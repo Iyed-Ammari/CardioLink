@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use SymfonyCasts\Bundle\VerifyEmail\Exception\VerifyEmailExceptionInterface;
 
@@ -22,7 +23,7 @@ class RegistrationController extends AbstractController
     public function __construct(private EmailVerifier $emailVerifier) {}
 
     #[Route('/register', name: 'app_register')]
-    public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, EntityManagerInterface $entityManager): Response
+    public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, EntityManagerInterface $entityManager, SessionInterface $session): Response
     {
         $user = new User();
         $form = $this->createForm(RegistrationFormType::class, $user);
@@ -34,18 +35,21 @@ class RegistrationController extends AbstractController
 
             // encode the plain password
             $user->setPassword($userPasswordHasher->hashPassword($user, $plainPassword));
+            $user->setIsVerified(false);  // Mark as unverified initially
 
-            // --- DEBUT AJOUT ---
+            // Save user to database (but unverified)
             $dossier = new DossierMedical();
-            $dossier->setGroupeSanguin('Inconnu'); // Valeur par défaut
-            $dossier->setUser($user);              // Liaison OneToOne
-            $entityManager->persist($dossier);     // On prépare l'enregistrement du dossier
-            // --- FIN AJOUT ---
+            $dossier->setGroupeSanguin('Inconnu');
+            $dossier->setUser($user);
 
             $entityManager->persist($user);
+            $entityManager->persist($dossier);
             $entityManager->flush();
 
-            // generate a signed url and email it to the user
+            // Store email in session for verification
+            $session->set('pending_verification_email', $user->getEmail());
+
+            // Now send the verification email with the user in database
             $this->emailVerifier->sendEmailConfirmation(
                 'app_verify_email',
                 $user,
@@ -56,9 +60,8 @@ class RegistrationController extends AbstractController
                     ->htmlTemplate('registration/confirmation_email.html.twig')
             );
 
-            // do anything else you need here, like send an email
-
-            return $this->redirectToRoute('app_home');
+            $this->addFlash('success', 'Check your email to verify your account before logging in.');
+            return $this->redirectToRoute('app_login');
         }
 
         return $this->render('registration/register.html.twig', [
@@ -67,24 +70,38 @@ class RegistrationController extends AbstractController
     }
 
     #[Route('/verify/email', name: 'app_verify_email')]
-    public function verifyUserEmail(Request $request, TranslatorInterface $translator): Response
+    public function verifyUserEmail(Request $request, TranslatorInterface $translator, EntityManagerInterface $entityManager, SessionInterface $session): Response
     {
-        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
-
-        // validate email confirmation link, sets User::isVerified=true and persists
-        try {
-            /** @var User $user */
-            $user = $this->getUser();
-            $this->emailVerifier->handleEmailConfirmation($request, $user);
-        } catch (VerifyEmailExceptionInterface $exception) {
-            $this->addFlash('verify_email_error', $translator->trans($exception->getReason(), [], 'VerifyEmailBundle'));
-
+        // Get the email from session that was stored during registration
+        $email = $session->get('pending_verification_email');
+        if (!$email) {
+            $this->addFlash('error', 'No pending email verification found. Please register again.');
             return $this->redirectToRoute('app_register');
         }
 
-        // @TODO Change the redirect on success and handle or remove the flash message in your templates
-        $this->addFlash('success', 'Your email address has been verified.');
+        // Load the unverified user from database by email
+        $userRepository = $entityManager->getRepository(User::class);
+        $user = $userRepository->findOneBy(['email' => $email]);
+        
+        if (!$user) {
+            $this->addFlash('error', 'User not found. Please register again.');
+            return $this->redirectToRoute('app_register');
+        }
 
-        return $this->redirectToRoute('app_register');
+        try {
+            $this->emailVerifier->handleEmailConfirmation($request, $user);
+        } catch (VerifyEmailExceptionInterface $exception) {
+            $this->addFlash('verify_email_error', $translator->trans($exception->getReason(), [], 'VerifyEmailBundle'));
+            return $this->redirectToRoute('app_register');
+        }
+
+        // The handleEmailConfirmation sets isVerified=true, so just flush
+        $entityManager->flush();
+        
+        // Clear session
+        $session->remove('pending_verification_email');
+
+        $this->addFlash('success', 'Your email address has been verified. You can now log in.');
+        return $this->redirectToRoute('app_login');
     }
 }

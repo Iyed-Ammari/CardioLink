@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\DossierMedicalRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: DossierMedicalRepository::class)]
 class DossierMedical
@@ -15,12 +16,25 @@ class DossierMedical
     private ?int $id = null;
 
     #[ORM\Column(length: 5)]
+    #[Assert\NotBlank(message: "Le groupe sanguin est obligatoire.")]
+    #[Assert\Choice(
+        choices: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+        message: "Le groupe sanguin choisi n'est pas valide."
+    )]
     private ?string $groupeSanguin = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(
+        max: 2000,
+        maxMessage: "La description des antécédents ne peut pas dépasser {{ limit }} caractères."
+    )]
     private ?string $antecedents = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(
+        max: 1000,
+        maxMessage: "La liste des allergies est trop longue (max {{ limit }} caractères)."
+    )]
     private ?string $allergies = null;
 
     #[ORM\OneToOne(inversedBy: 'dossierMedical', cascade: ['persist', 'remove'])]
@@ -80,17 +94,18 @@ class DossierMedical
         return $this;
     }
     public function updateHistory(string $newInfo): self
-{
-    $this->antecedents .= "\n Mis à jour le " . date('d/m/Y') . " : " . $newInfo;
-    return $this;
-}
+    {
+        $this->antecedents .= "\n Mis à jour le " . date('d/m/Y') . " : " . $newInfo;
+        return $this;
+    }
 
-public function getSummary(): string
-{
-    return sprintf("Patient: %s | Groupe: %s | Allergies: %s", 
-        $this->getUser()->getNom(), 
-        $this->groupeSanguin, 
-        $this->allergies
-    );
-}
+    public function getSummary(): string
+    {
+        return sprintf(
+            "Patient: %s | Groupe: %s | Allergies: %s",
+            $this->getUser()->getNom(),
+            $this->groupeSanguin,
+            $this->allergies
+        );
+    }
 }

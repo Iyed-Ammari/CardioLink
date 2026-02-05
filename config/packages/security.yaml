@@ -9,6 +9,7 @@ security:
             entity:
                 class: App\Entity\User
                 property: email
+    
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
@@ -16,6 +17,7 @@ security:
         main:
             lazy: true
             provider: app_user_provider
+            user_checker: App\Security\UserChecker
             form_login:
                 login_path: app_login
                 check_path: app_login
@@ -37,14 +39,18 @@ security:
     access_control:
         # - { path: ^/admin, roles: ROLE_ADMIN }
         # - { path: ^/profile, roles: ROLE_USER }
-        # On autorise tout le monde à voir les pages d'inscription et de login
+        # On autorise tout le monde à voir les pages d'inscription, de login, et de vérification d'email
         - { path: ^/login, roles: PUBLIC_ACCESS }
         - { path: ^/register, roles: PUBLIC_ACCESS }
+        - { path: ^/verify/email, roles: PUBLIC_ACCESS }
         # On oblige l'utilisateur à être connecté pour tout le reste (le dashboard, etc.)
         - { path: ^/, roles: ROLE_USER }
 
 when@test:
     security:
+        role_hierarchy:
+            ROLE_MEDECIN:     ROLE_PATIENT
+            ROLE_ADMIN:       [ROLE_MEDECIN, ROLE_ALLOWED_TO_SWITCH]
         password_hashers:
             # By default, password hashers are resource intensive and take time. This is
             # important to generate secure password hashes. In tests however, secure hashes
