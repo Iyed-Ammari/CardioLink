@@ -17,10 +17,10 @@ class DossierMedical
     #[ORM\Column(length: 5)]
     private ?string $groupeSanguin = null;
 
-    #[ORM\Column(type: Types::TEXT)]
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $antecedents = null;
 
-    #[ORM\Column(type: Types::TEXT)]
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $allergies = null;
 
     #[ORM\OneToOne(inversedBy: 'dossierMedical', cascade: ['persist', 'remove'])]
