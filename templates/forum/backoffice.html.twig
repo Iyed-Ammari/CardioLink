@@ -1,0 +1,21 @@
+<h1>Back-office - Gestion des posts</h1>
+
+<a href="{{ path('forum_index') }}">Retour à l'accueil</a>
+
+<hr>
+
+<h2>Liste des posts</h2>
+<ul>
+    {% for post in posts %}
+        <li>
+            <strong>{{ post.title }}</strong> par {{ post.user.nom }} {{ post.user.prenom }} ({{ post.user.email }})<br>
+            {{ post.content }}<br>
+            <a href="{{ path('forum_show', {id: post.id}) }}">Voir</a>
+            <a href="{{ path('forum_edit', {id: post.id}) }}">Modifier</a>
+            <a href="{{ path('forum_delete', {id: post.id}) }}" onclick="return confirm('Supprimer ce post ?')">Supprimer</a>
+        </li>
+        <hr>
+    {% else %}
+        <li>Aucun post pour le moment.</li>
+    {% endfor %}
+</ul>

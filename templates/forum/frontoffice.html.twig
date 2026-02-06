@@ -1,0 +1,149 @@
+<link rel="stylesheet" href="{{ asset('assets/forum.css') }}">
+
+<!-- Top Header -->
+<header class="top-header">
+  <div class="header-left">
+    <img src="https://via.placeholder.com/40" alt="Logo" class="logo">
+    <div class="platform-name">
+      <span class="title">CardioLink</span>
+      <span class="subtitle">Healthcare Platform</span>
+    </div>
+  </div>
+
+  <div class="header-center">
+    <span class="community-name">Wellness <strong>Community</strong></span>
+    <span class="community-subtitle">Connect, Share, and Grow Together • Active Members: 1,245</span>
+  </div>
+
+  <div class="header-right">
+    <input type="text" placeholder="Search topics, doctors, posts..." class="search-bar">
+    <div class="notification">
+      <span class="bell">🔔</span>
+      <span class="badge">3</span>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Sidebar gauche -->
+  <nav class="sidebar">
+    <div class="logo">CardioLink</div>
+    <a href="#" class="active">Community</a>
+    <a href="#">Dashboard</a>
+    <a href="#">Patients</a>
+    <a href="#">Monitoring</a>
+    <a href="#">Appointments</a>
+    <a href="#">Reports</a>
+    <a href="#">Notifications</a>
+    <a href="#">Settings</a>
+  </nav>
+
+  <!-- Contenu principal + panel droit -->
+  <div class="content-area">
+    <div class="main-content">
+
+      <!-- Formulaire création de post -->
+      <div class="create-post card-shadow" style="margin-bottom:1rem; padding:1rem; border-radius:8px; background:#f5f5f5;">
+        <h3>Créer un nouveau post</h3>
+        <form method="post" action="{{ path('forum_frontoffice') }}" style="display:flex; flex-direction:column; gap:0.5rem;">
+          <input type="number" name="userId" placeholder="Votre ID" required style="width:80px; padding:0.3rem; border-radius:4px; border:1px solid #ccc;">
+          <input type="text" name="title" placeholder="Titre du post" required style="padding:0.3rem; border-radius:4px; border:1px solid #ccc;">
+          <textarea name="content" rows="3" placeholder="Écrire votre post..." required style="padding:0.3rem; border-radius:4px; border:1px solid #ccc;"></textarea>
+          <button type="submit" style="background: linear-gradient( #2F60F5); color:#fff; border:none; padding:0.5rem 1rem; border-radius:5px; font-weight:600; cursor:pointer;">Publier</button>
+        </form>
+      </div>
+
+      <h2>Liste des posts</h2>
+
+      {% for post in posts %}
+        <article class="post-card card-shadow" style="margin-bottom:1rem; padding:1rem; border-radius:8px;">
+          <h3>{{ post.title }}</h3>
+          <p>{{ post.content }}</p>
+          <p class="post-meta">Par {{ post.user.nom }} {{ post.user.prenom }} ({{ post.user.roles|join(', ') }})</p>
+          <small>{{ post.createdAt|date('d/m/Y H:i') }}</small>
+
+          <!-- Bouton toggle commentaires -->
+          <button class="toggle-comments-btn" style="
+              margin-top:0.5rem; 
+              background: linear-gradient(45deg, #2F60F5, #F82239); 
+              color:#fff; 
+              border:none; 
+              padding:0.5rem 1rem; 
+              border-radius:5px; 
+              cursor:pointer;
+              font-weight:600;
+          ">
+              Afficher les commentaires
+          </button>
+
+          <!-- Section commentaires -->
+          <div class="comments-section" style="display:none; margin-top:1rem; padding-top:1rem; border-top:1px solid #ddd;">
+            <h4>Commentaires</h4>
+
+            {% for comment in post.comments %}
+              <div class="comment-card" style="margin-bottom:0.8rem; padding:0.5rem; border:1px solid #eee; border-radius:8px;">
+                <p>{{ comment.content }}</p>
+                <p class="post-meta">
+                  Par {{ comment.user.nom }} {{ comment.user.prenom }}
+                  • {{ comment.createdAt|date('d/m/Y H:i') }}
+                </p>
+              </div>
+            {% else %}
+              <p style="color:#6b7280;">Aucun commentaire pour le moment.</p>
+            {% endfor %}
+
+            <!-- Formulaire ajout commentaire -->
+            <form method="post" action="{{ path('comment_add', {'postId': post.id}) }}" style="margin-top:0.5rem; display:flex; gap:0.5rem; align-items:center;">
+              <input type="number" name="userId" placeholder="Votre ID" required style="width:60px; padding:0.3rem; border-radius:4px; border:1px solid #ccc;">
+              <input type="text" name="content" placeholder="Écrire un commentaire..." required style="flex:1; padding:0.3rem; border-radius:4px; border:1px solid #ccc;">
+              <button type="submit" style="background:#10b981; color:#fff; border:none; padding:0.4rem 0.8rem; border-radius:5px; cursor:pointer;">Commenter</button>
+            </form>
+          </div>
+        </article>
+      {% else %}
+        <p>Aucun post pour le moment.</p>
+      {% endfor %}
+
+    </div>
+
+    <!-- Right panel -->
+    <div class="right-panel">
+      <div class="panel-card">
+        <h3>Weekly Goal</h3>
+        <div class="progress-bar">
+          <div class="progress-bar-fill" style="width: 80%;"></div>
+        </div>
+        <p>You're doing great! Just 30 more minutes to reach your weekly heart health goal.</p>
+      </div>
+
+      <div class="panel-card" style="background: linear-gradient(to bottom right, #facc15, #ca8a04);">
+        <h3>Trending Topics</h3>
+        <ul>
+          <li>#HeartHealth - 2.4k posts</li>
+          <li>#MediterraneanDiet - 1.8k posts</li>
+          <li>#MorningCardio - 1.2k posts</li>
+          <li>#StressManagement - 950 posts</li>
+          <li>#SleepHygiene - 800 posts</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- JS simple pour toggle commentaires -->
+<script>
+  document.querySelectorAll('.toggle-comments-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const comments = button.nextElementSibling;
+      if (comments.style.display === 'none') {
+        comments.style.display = 'block';
+        button.textContent = 'Masquer les commentaires';
+      } else {
+        comments.style.display = 'none';
+        button.textContent = 'Afficher les commentaires';
+      }
+    });
+  });
+</script>
