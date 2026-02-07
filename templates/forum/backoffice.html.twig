@@ -1,21 +1,129 @@
-<h1>Back-office - Gestion des posts</h1>
+<link rel="stylesheet" href="{{ asset('assets/forum.css') }}">
 
-<a href="{{ path('forum_index') }}">Retour à l'accueil</a>
+<!-- Top Header -->
+<header class="top-header">
+  <div class="header-left">
+<img src="{{ asset('assets/image/logo.png') }}" alt="Logo" class="logo" style="width:80px; height:100px;">    <div class="platform-name">
+      <span class="title">CardioLink</span>
+      <span class="subtitle">Healthcare Platform</span>
+    </div>
+  </div>
 
-<hr>
+  <div class="header-center">
+    <span class="community-name" style="background: linear-gradient(45deg, #2F60F5, #F82239); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Wellness <strong>Community</strong></span>
+    <span class="community-subtitle">Connect, Share, and Manage Posts & Comments</span>
+  </div>
 
-<h2>Liste des posts</h2>
-<ul>
-    {% for post in posts %}
-        <li>
-            <strong>{{ post.title }}</strong> par {{ post.user.nom }} {{ post.user.prenom }} ({{ post.user.email }})<br>
-            {{ post.content }}<br>
-            <a href="{{ path('forum_show', {id: post.id}) }}">Voir</a>
-            <a href="{{ path('forum_edit', {id: post.id}) }}">Modifier</a>
-            <a href="{{ path('forum_delete', {id: post.id}) }}" onclick="return confirm('Supprimer ce post ?')">Supprimer</a>
-        </li>
-        <hr>
-    {% else %}
-        <li>Aucun post pour le moment.</li>
-    {% endfor %}
-</ul>
+  <div class="header-right">
+    <input type="text" placeholder="Search posts..." class="search-bar">
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Sidebar gauche -->
+  <nav class="sidebar">
+    <div class="logo">backoffice</div>
+    <a href="{{ path('forum_frontoffice') }}" style="background: ; text-align:center; margin-bottom:0.5rem; display:block; padding:0.5rem; border-radius:5px; font-weight:600; cursor:pointer;">
+      Aller au Front-Office
+    </a>
+
+    <a href="#" class="active">Community</a>
+    <a href="#">Dashboard</a>
+    <a href="#">Patients</a>
+    <a href="#">Monitoring</a>
+    <a href="#">Appointments</a>
+    <a href="#">Reports</a>
+    <a href="#">Notifications</a>
+    <a href="#">Settings</a>
+  </nav>
+
+
+  <!-- Contenu principal + panel droit -->
+  <div class="content-area">
+
+    <div class="main-content">
+      <h2>Liste des posts</h2>
+
+      {% for post in posts %}
+        <article class="post-card admin" style="margin-bottom:1rem; padding:1rem; border-radius:8px; border-left: 4px solid #2F60F5; background:#fff;">
+          <h3>{{ post.title }}</h3>
+          <p>{{ post.content }}</p>
+          <p class="post-meta">Par {{ post.user.nom }} {{ post.user.prenom }} ({{ post.user.roles|join(', ') }})</p>
+          <small>{{ post.createdAt|date('d/m/Y H:i') }}</small>
+
+          <!-- Bouton supprimer post -->
+          <form method="post" action="{{ path('forum_delete', { id: post.id }) }}" style="margin-top:0.5rem;">
+            <button style="background: linear-gradient(45deg, #2F60F5, #F82239); color:#fff; border:none; padding:0.5rem 1rem; border-radius:5px; font-weight:600; cursor:pointer;">Supprimer le post</button>
+          </form>
+
+          <!-- Bouton toggle commentaires -->
+          <button class="toggle-comments-btn" style="
+              margin-top:0.5rem; 
+              background: linear-gradient(45deg, #2F60F5, #F82239); 
+              color:#fff; 
+              border:none; 
+              padding:0.5rem 1rem; 
+              border-radius:5px; 
+              cursor:pointer;
+              font-weight:600;
+          ">
+              Afficher les commentaires
+          </button>
+
+          <!-- Section commentaires -->
+          <div class="comments-section" style="display:none; margin-top:1rem; padding-top:1rem; border-top:1px solid #ddd;">
+            <h4>Commentaires</h4>
+
+            {% for comment in post.comments %}
+              <div class="comment-card" style="margin-bottom:0.8rem; padding:0.5rem; border:1px solid #eee; border-radius:8px;">
+                <p>{{ comment.content }}</p>
+                <p class="post-meta">
+                  Par {{ comment.user.nom }} {{ comment.user.prenom }}
+                  • {{ comment.createdAt|date('d/m/Y H:i') }}
+                </p>
+
+                <!-- Bouton supprimer commentaire -->
+                <form method="post" action="{{ path('comment_delete', { id: comment.id }) }}">
+                  <button style="background: linear-gradient(45deg, #F82239, #2F60F5); color:#fff; border:none; padding:0.3rem 0.8rem; border-radius:5px; cursor:pointer;">Supprimer</button>
+                </form>
+              </div>
+            {% else %}
+              <p style="color:#6b7280;">Aucun commentaire pour le moment.</p>
+            {% endfor %}
+          </div>
+        </article>
+      {% else %}
+        <p>Aucun post pour le moment.</p>
+      {% endfor %}
+    </div>
+
+    <!-- Right panel -->
+    <div class="right-panel">
+      <div class="panel-card">
+        <h3>Statistiques</h3>
+        <ul>
+          <li>Total posts : {{ posts|length }}</li>
+          <li>Total commentaires : {{ comments|length }}</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- JS simple pour toggle commentaires -->
+<script>
+  document.querySelectorAll('.toggle-comments-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const comments = button.nextElementSibling;
+      if (comments.style.display === 'none') {
+        comments.style.display = 'block';
+        button.textContent = 'Masquer les commentaires';
+      } else {
+        comments.style.display = 'none';
+        button.textContent = 'Afficher les commentaires';
+      }
+    });
+  });
+</script>
