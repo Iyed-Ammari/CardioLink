@@ -1,23 +1,74 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Register{% endblock %}
+{% block title %}Register - CardioLink{% endblock %}
 
 {% block body %}
-    {% for flash_error in app.flashes('verify_email_error') %}
-        <div class="alert alert-danger" role="alert">{{ flash_error }}</div>
-    {% endfor %}
+<div class="auth-container">
+    <div class="auth-form">
+        <h1>Create Account</h1>
+        <p>Join CardioLink and take control of your cardiac health today.</p>
+        
+        {% for flash_error in app.flashes('verify_email_error') %}
+            <div class="alert alert-danger">
+                ⚠️ {{ flash_error }}
+            </div>
+        {% endfor %}
 
-    <h1>Register</h1>
+        {% if registrationForm.vars.errors|length > 0 %}
+            <div class="alert alert-danger">
+                ⚠️ Please correct the errors below to continue.
+            </div>
+        {% endif %}
 
-    {{ form_errors(registrationForm) }}
+        {{ form_start(registrationForm, {'attr': {'novalidate': 'novalidate'}}) }}
+        
+            <div class="form-group">
+                {{ form_label(registrationForm.email, 'Email Address') }}
+                {{ form_widget(registrationForm.email, {'attr': {'placeholder': 'you@example.com', 'autocomplete': 'email'}}) }}
+                {% if registrationForm.email.vars.errors|length > 0 %}
+                    <div style="color: #F82239; font-size: 0.875rem; margin-top: 0.5rem;">
+                        {{ form_errors(registrationForm.email) }}
+                    </div>
+                {% endif %}
+            </div>
 
-    {{ form_start(registrationForm) }}
-        {{ form_row(registrationForm.email) }}
-        {{ form_row(registrationForm.plainPassword, {
-            label: 'Password'
-        }) }}
-        {{ form_row(registrationForm.agreeTerms) }}
+            <div class="form-group">
+                {{ form_label(registrationForm.plainPassword, 'Password') }}
+                {{ form_widget(registrationForm.plainPassword, {'attr': {'placeholder': 'Enter a strong password', 'autocomplete': 'new-password'}}) }}
+                {% if registrationForm.plainPassword.vars.errors|length > 0 %}
+                    <div style="color: #F82239; font-size: 0.875rem; margin-top: 0.5rem;">
+                        {{ form_errors(registrationForm.plainPassword) }}
+                    </div>
+                {% endif %}
+            </div>
 
-        <button type="submit" class="btn">Register</button>
-    {{ form_end(registrationForm) }}
+            <div class="checkbox-group">
+                {{ form_widget(registrationForm.agreeTerms) }}
+                {{ form_label(registrationForm.agreeTerms, 'I agree to the Terms and Conditions') }}
+            </div>
+
+            {% if registrationForm.agreeTerms.vars.errors|length > 0 %}
+                <div style="color: #F82239; font-size: 0.875rem; margin-bottom: 1rem;">
+                    {{ form_errors(registrationForm.agreeTerms) }}
+                </div>
+            {% endif %}
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;">
+                Register Now
+            </button>
+
+        {{ form_end(registrationForm) }}
+
+        <div style="text-align: center; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+            <p style="color: var(--text-secondary); font-size: 0.95rem;">
+                Already have an account? 
+                <a href="{{ path('app_login') }}">Sign in here</a>
+            </p>
+        </div>
+    </div>
+
+    <div class="auth-illustration">
+        <div class="illustration-content">🏥</div>
+    </div>
+</div>
 {% endblock %}

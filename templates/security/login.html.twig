@@ -1,38 +1,74 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Log in!{% endblock %}
+{% block title %}Sign In - CardioLink{% endblock %}
 
 {% block body %}
-    <form method="post">
+<div class="auth-container">
+    <div class="auth-form">
+        <h1>Welcome Back</h1>
+        <p>Sign in to your account to continue managing your cardiac health.</p>
+
         {% if error %}
-            <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+            <div class="alert alert-danger">
+                ⚠️ {{ error.messageKey|trans(error.messageData, 'security') }}
+            </div>
         {% endif %}
 
         {% if app.user %}
-            <div class="mb-3">
-                You are logged in as {{ app.user.userIdentifier }}, <a href="{{ logout_path() }}">Logout</a>
+            <div class="alert alert-info">
+                ✓ You are already logged in as {{ app.user.userIdentifier }}.
+            </div>
+            <a href="{{ logout_path() }}" class="btn btn-secondary" style="width: 100%; margin-bottom: 1rem;">
+                Logout
+            </a>
+        {% else %}
+            <form method="post" novalidate>
+                <div class="form-group">
+                    <label for="username">Email Address</label>
+                    <input 
+                        type="email" 
+                        id="username" 
+                        name="_username" 
+                        value="{{ last_username }}" 
+                        placeholder="you@example.com"
+                        autocomplete="email" 
+                        required 
+                        autofocus
+                        class="form-control"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="_password" 
+                        placeholder="Enter your password"
+                        autocomplete="current-password" 
+                        required
+                        class="form-control"
+                    >
+                </div>
+
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;">
+                    Sign In
+                </button>
+            </form>
+
+            <div style="text-align: center; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                <p style="color: var(--text-secondary); font-size: 0.95rem;">
+                    Don't have an account? 
+                    <a href="{{ path('app_register') }}">Register here</a>
+                </p>
             </div>
         {% endif %}
+    </div>
 
-        <h1 class="h3 mb-3 font-weight-normal">Please sign in</h1>
-        <label for="username">Email</label>
-        <input type="email" value="{{ last_username }}" name="_username" id="username" class="form-control" autocomplete="email" required autofocus>
-        <label for="password">Password</label>
-        <input type="password" name="_password" id="password" class="form-control" autocomplete="current-password" required>
-        <input type="hidden" name="_csrf_token" data-controller="csrf-protection" value="{{ csrf_token('authenticate') }}">
-
-        {#
-            Uncomment this section and add a remember_me option below your firewall to activate remember me functionality.
-            See https://symfony.com/doc/current/security/remember_me.html
-
-            <div class="checkbox mb-3">
-                <input type="checkbox" name="_remember_me" id="_remember_me">
-                <label for="_remember_me">Remember me</label>
-            </div>
-        #}
-
-        <button class="btn btn-lg btn-primary" type="submit">
-            Sign in
-        </button>
-    </form>
+    <div class="auth-illustration">
+        <div class="illustration-content">🔐</div>
+    </div>
+</div>
 {% endblock %}
