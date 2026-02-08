@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -63,6 +65,24 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column]
     private bool $isVerified = false;
+
+    /**
+     * @var Collection<int, RendezVous>
+     */
+    #[ORM\OneToMany(targetEntity: RendezVous::class, mappedBy: 'patient')]
+    private Collection $rendezVouses;
+
+    /**
+     * @var Collection<int, RendezVous>
+     */
+    #[ORM\OneToMany(targetEntity: RendezVous::class, mappedBy: 'medecin')]
+    private Collection $rendezVousMedecin;
+
+    public function __construct()
+    {
+        $this->rendezVouses = new ArrayCollection();
+        $this->rendezVousMedecin = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -207,6 +227,66 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setIsVerified(bool $isVerified): static
     {
         $this->isVerified = $isVerified;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, RendezVous>
+     */
+    public function getRendezVouses(): Collection
+    {
+        return $this->rendezVouses;
+    }
+
+    public function addRendezVouse(RendezVous $rendezVouse): static
+    {
+        if (!$this->rendezVouses->contains($rendezVouse)) {
+            $this->rendezVouses->add($rendezVouse);
+            $rendezVouse->setPatient($this);
+        }
+
+        return $this;
+    }
+
+    public function removeRendezVouse(RendezVous $rendezVouse): static
+    {
+        if ($this->rendezVouses->removeElement($rendezVouse)) {
+            // set the owning side to null (unless already changed)
+            if ($rendezVouse->getPatient() === $this) {
+                $rendezVouse->setPatient(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, RendezVous>
+     */
+    public function getRendezVousMedecin(): Collection
+    {
+        return $this->rendezVousMedecin;
+    }
+
+    public function addRendezVousMedecin(RendezVous $rendezVousMedecin): static
+    {
+        if (!$this->rendezVousMedecin->contains($rendezVousMedecin)) {
+            $this->rendezVousMedecin->add($rendezVousMedecin);
+            $rendezVousMedecin->setMedecin($this);
+        }
+
+        return $this;
+    }
+
+    public function removeRendezVousMedecin(RendezVous $rendezVousMedecin): static
+    {
+        if ($this->rendezVousMedecin->removeElement($rendezVousMedecin)) {
+            // set the owning side to null (unless already changed)
+            if ($rendezVousMedecin->getMedecin() === $this) {
+                $rendezVousMedecin->setMedecin(null);
+            }
+        }
 
         return $this;
     }
