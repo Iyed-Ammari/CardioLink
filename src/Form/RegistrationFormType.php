@@ -5,7 +5,9 @@ namespace App\Form;
 use App\Entity\User;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\IsTrue;
@@ -22,6 +24,41 @@ class RegistrationFormType extends AbstractType
             ->add('prenom')     // Ajouté
             ->add('tel')        // Ajouté
             ->add('adresse')    // Ajouté
+            ->add('groupeSanguin', ChoiceType::class, [
+                'mapped' => false,
+                'choices' => [
+                    'Select your blood type' => '',
+                    'A+' => 'A+',
+                    'A-' => 'A-',
+                    'B+' => 'B+',
+                    'B-' => 'B-',
+                    'AB+' => 'AB+',
+                    'AB-' => 'AB-',
+                    'O+' => 'O+',
+                    'O-' => 'O-',
+                ],
+                'constraints' => [
+                    new NotBlank([
+                        'message' => 'Please select your blood type',
+                    ]),
+                ],
+            ])
+            ->add('antecedents', TextareaType::class, [
+                'mapped' => false,
+                'required' => false,
+                'attr' => [
+                    'placeholder' => 'List any medical conditions or surgeries (optional)',
+                    'rows' => 4,
+                ],
+            ])
+            ->add('allergies', TextareaType::class, [
+                'mapped' => false,
+                'required' => false,
+                'attr' => [
+                    'placeholder' => 'List any known allergies (optional)',
+                    'rows' => 4,
+                ],
+            ])
             ->add('agreeTerms', CheckboxType::class, [
                 'mapped' => false,
                 'constraints' => [

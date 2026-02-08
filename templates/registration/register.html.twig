@@ -42,6 +42,76 @@
                 {% endif %}
             </div>
 
+            <div class="form-group">
+                {{ form_label(registrationForm.nom, 'Last Name') }}
+                {{ form_widget(registrationForm.nom, {'attr': {'placeholder': 'Your last name'}}) }}
+                {% if registrationForm.nom.vars.errors|length > 0 %}
+                    <div style="color: #F82239; font-size: 0.875rem; margin-top: 0.5rem;">
+                        {{ form_errors(registrationForm.nom) }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                {{ form_label(registrationForm.prenom, 'First Name') }}
+                {{ form_widget(registrationForm.prenom, {'attr': {'placeholder': 'Your first name'}}) }}
+                {% if registrationForm.prenom.vars.errors|length > 0 %}
+                    <div style="color: #F82239; font-size: 0.875rem; margin-top: 0.5rem;">
+                        {{ form_errors(registrationForm.prenom) }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                {{ form_label(registrationForm.tel, 'Phone Number') }}
+                {{ form_widget(registrationForm.tel, {'attr': {'placeholder': '12345678'}}) }}
+                {% if registrationForm.tel.vars.errors|length > 0 %}
+                    <div style="color: #F82239; font-size: 0.875rem; margin-top: 0.5rem;">
+                        {{ form_errors(registrationForm.tel) }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                {{ form_label(registrationForm.adresse, 'Address') }}
+                {{ form_widget(registrationForm.adresse, {'attr': {'placeholder': 'Your address'}}) }}
+                {% if registrationForm.adresse.vars.errors|length > 0 %}
+                    <div style="color: #F82239; font-size: 0.875rem; margin-top: 0.5rem;">
+                        {{ form_errors(registrationForm.adresse) }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                {{ form_label(registrationForm.groupeSanguin, 'Blood Type') }}
+                {{ form_widget(registrationForm.groupeSanguin) }}
+                {% if registrationForm.groupeSanguin.vars.errors|length > 0 %}
+                    <div style="color: #F82239; font-size: 0.875rem; margin-top: 0.5rem;">
+                        {{ form_errors(registrationForm.groupeSanguin) }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                {{ form_label(registrationForm.antecedents, 'Medical History') }}
+                {{ form_widget(registrationForm.antecedents) }}
+                {% if registrationForm.antecedents.vars.errors|length > 0 %}
+                    <div style="color: #F82239; font-size: 0.875rem; margin-top: 0.5rem;">
+                        {{ form_errors(registrationForm.antecedents) }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                {{ form_label(registrationForm.allergies, 'Known Allergies') }}
+                {{ form_widget(registrationForm.allergies) }}
+                {% if registrationForm.allergies.vars.errors|length > 0 %}
+                    <div style="color: #F82239; font-size: 0.875rem; margin-top: 0.5rem;">
+                        {{ form_errors(registrationForm.allergies) }}
+                    </div>
+                {% endif %}
+            </div>
+
             <div class="checkbox-group">
                 {{ form_widget(registrationForm.agreeTerms) }}
                 {{ form_label(registrationForm.agreeTerms, 'I agree to the Terms and Conditions') }}

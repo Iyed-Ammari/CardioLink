@@ -37,9 +37,18 @@ class RegistrationController extends AbstractController
             $user->setPassword($userPasswordHasher->hashPassword($user, $plainPassword));
             $user->setIsVerified(false);  // Mark as unverified initially
 
-            // Save user to database (but unverified)
+            // Create DossierMedical with information from the form
             $dossier = new DossierMedical();
-            $dossier->setGroupeSanguin('Inconnu');
+            $dossier->setGroupeSanguin($form->get('groupeSanguin')->getData());
+            
+            // Set optional medical information if provided
+            if ($form->get('antecedents')->getData()) {
+                $dossier->setAntecedents($form->get('antecedents')->getData());
+            }
+            if ($form->get('allergies')->getData()) {
+                $dossier->setAllergies($form->get('allergies')->getData());
+            }
+            
             $dossier->setUser($user);
 
             $entityManager->persist($user);
