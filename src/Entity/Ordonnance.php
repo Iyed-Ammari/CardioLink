@@ -14,7 +14,7 @@ class Ordonnance
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 50)]
+    #[ORM\Column(length: 50, unique: true)]
     private ?string $reference = null;
 
     #[ORM\Column]
