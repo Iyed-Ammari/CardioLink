@@ -43,6 +43,20 @@
           <div class="nav-items">
             {% if app.user %}
               <a href="{{ path('app_home') }}" class="nav-link">Home</a>
+              {% if is_granted('ROLE_PATIENT') %}
+                {# <a href="{{ path('app_mon_dossier') }}" class="nav-link">Mon Dossier Médical</a> #}
+                <a href="#" class="nav-link">Mon Dossier Médical</a>
+              {% endif %}
+
+              {% if is_granted('ROLE_MEDECIN') %}
+                {# <a href="{{ path('app_liste_patients') }}" class="nav-link">Gérer mes Patients</a> #}
+                <a href="#" class="nav-link">Gérer mes Patients</a>
+              {% endif %}
+
+              {% if is_granted('ROLE_ADMIN') %}
+                {# <a href="{{ path('app_admin_dashboard') }}" class="nav-link">Administration</a> #}
+                <a href="#" class="nav-link">Administration</a>
+              {% endif %}
               <a href="{{ logout_path() }}" class="nav-link">Logout</a>
             {% else %}
               <a href="{{ path('app_register') }}" class="nav-link">Register</a>

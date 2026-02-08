@@ -50,7 +50,7 @@ class RegistrationController extends AbstractController
             }
             
             $dossier->setUser($user);
-
+            $user->setRoles(['ROLE_PATIENT']);
             $entityManager->persist($user);
             $entityManager->persist($dossier);
             $entityManager->flush();
