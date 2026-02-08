@@ -1,0 +1,45 @@
+<h1>Catalogue Produits (Patient)</h1>
+
+<form method="get" style="display:flex; gap:10px; margin: 10px 0;">
+  <input type="text" name="q" value="{{ q ?? '' }}" placeholder="Recherche (nom/description)" />
+  <input type="text" name="categorie" value="{{ categorie ?? '' }}" placeholder="Catégorie (optionnel)" />
+  <button type="submit">Filtrer</button>
+  <a href="{{ path('patient_produit_index') }}">Réinitialiser</a>
+</form>
+
+<table border="1" cellpadding="8" cellspacing="0" style="width:100%; border-collapse:collapse;">
+  <thead>
+  <tr>
+    <th>ID</th><th>Nom</th><th>Catégorie</th><th>Prix</th><th>Stock</th><th>Statut</th><th>Panier</th>
+  </tr>
+  </thead>
+
+  <tbody>
+  {% for p in produits %}
+    <tr>
+      <td>{{ p.id }}</td>
+      <td>{{ p.nom }}</td>
+      <td>{{ p.categorie ?? '-' }}</td>
+      <td>{{ p.prix }}</td>
+      <td>{{ p.stock }}</td>
+      <td>{{ p.stockStatus }}</td>
+      <td>
+        {% if p.stock > 0 %}
+          <form method="post" action="{{ path('patient_panier_add') }}" style="display:flex; gap:6px;">
+            <input type="hidden" name="produitId" value="{{ p.id }}">
+            <input type="number" name="quantite" value="1" min="1" style="width:70px;">
+            <button type="submit">Ajouter</button>
+          </form>
+        {% else %}
+          Rupture
+        {% endif %}
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="7">Aucun produit trouvé.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<hr>
+<a href="{{ path('patient_panier_show') }}">➡️ Voir mon panier</a>

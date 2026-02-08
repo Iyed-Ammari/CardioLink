@@ -35,13 +35,21 @@ security:
     # Easy way to control access for large sections of your site
     # Note: Only the *first* access control that matches will be used
     access_control:
-        # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
-        # On autorise tout le monde à voir les pages d'inscription et de login
-        - { path: ^/login, roles: PUBLIC_ACCESS }
-        - { path: ^/register, roles: PUBLIC_ACCESS }
-        # On oblige l'utilisateur à être connecté pour tout le reste (le dashboard, etc.)
-        - { path: ^/, roles: ROLE_USER }
+    # API → accessible depuis Postman
+    - { path: ^/api, roles: PUBLIC_ACCESS }
+    - { path: ^/api/produits, roles: PUBLIC_ACCESS }
+
+    # Pages publiques
+    - { path: ^/login, roles: PUBLIC_ACCESS }
+    - { path: ^/register, roles: PUBLIC_ACCESS }
+    -  { path: ^/admin, roles: ROLE_ADMIN }
+    - { path: ^/patient, roles: ROLE_USER }
+    # Tout le reste nécessite un utilisateur connecté
+    - { path: ^/, roles: ROLE_USER }
+
+
+
+
 
 when@test:
     security:

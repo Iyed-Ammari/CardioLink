@@ -1,0 +1,56 @@
+<h1>Mon Panier</h1>
+
+{% for label, msgs in app.flashes %}
+  {% for m in msgs %}
+    <div style="padding:10px; margin:10px 0; border:1px solid #ccc;">
+      <b>{{ label }}</b> — {{ m }}
+    </div>
+  {% endfor %}
+{% endfor %}
+
+<p><b>Statut:</b> {{ commande.statut }}</p>
+<p><b>Total:</b> {{ commande.montantTotal }} TND</p>
+
+<table border="1" cellpadding="8" cellspacing="0" style="width:100%; border-collapse:collapse;">
+  <thead>
+  <tr>
+    <th>Produit</th><th>PU</th><th>Qté</th><th>Total ligne</th><th>Actions</th>
+  </tr>
+  </thead>
+
+  <tbody>
+  {% for l in commande.lignes %}
+    <tr>
+      <td>{{ l.produit.nom }}</td>
+      <td>{{ l.prixUnitaire }}</td>
+      <td>
+        <form method="post" action="{{ path('patient_panier_update_ligne', {id: l.id}) }}" style="display:flex; gap:6px;">
+          <input type="number" name="quantite" value="{{ l.quantite }}" min="1" style="width:70px;">
+          <button type="submit">Modifier</button>
+        </form>
+      </td>
+      <td>{{ l.totalLigne }}</td>
+      <td>
+        <form method="post" action="{{ path('patient_panier_delete_ligne', {id: l.id}) }}"
+              onsubmit="return confirm('Supprimer cette ligne ?');">
+          <button type="submit">Supprimer</button>
+        </form>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5">Panier vide.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<hr>
+
+<form method="post" action="{{ path('patient_panier_checkout') }}"
+      onsubmit="return confirm('Valider la commande ?');">
+  <button type="submit">✅ Checkout (Valider)</button>
+</form>
+
+<br>
+<a href="{{ path('patient_commandes_index') }}">➡️ Mes commandes</a>
+<br>
+<a href="{{ path('patient_produit_index') }}">⬅️ Retour catalogue</a>
