@@ -1,0 +1,206 @@
+<link rel="stylesheet" href="{{ asset('assets/forum.css') }}">
+
+<!-- ================= TOP HEADER ================= -->
+<header class="top-header">
+  <div class="header-left">
+    <img src="{{ asset('assets/image/logo.png') }}" alt="Logo" class="logo" style="width:80px; height:100px;">
+    <div class="platform-name">
+      <span class="title">CardioLink</span>
+      <span class="subtitle">Healthcare Platform</span>
+    </div>
+  </div>
+
+  <div class="header-center">
+    <span class="community-name">Wellness <strong>Community</strong></span>
+    <span class="community-subtitle">
+      Connect, Share, and Grow Together • Active Members: 1,245
+    </span>
+  </div>
+
+  <div class="header-right">
+    <input type="text" placeholder="Search topics, doctors, posts..." class="search-bar">
+    <div class="notification">
+      <span class="bell">🔔</span>
+      <span class="badge">3</span>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+<!-- ================= SIDEBAR GAUCHE ================= -->
+<nav class="sidebar">
+  <div class="logo">CardioLink</div>
+  <a href="{{ path('forum_backoffice') }}" style="color:#000000;">Aller au Back-Office</a>
+  <a href="#" class="active">Community</a>
+  <a href="#">Dashboard</a>
+  <a href="#">Patients</a>
+  <a href="#">Monitoring</a>
+  <a href="#">Appointments</a>
+  <a href="#">Reports</a>
+  <a href="#">Notifications</a>
+  <a href="#">Settings</a>
+</nav>
+
+<!-- ================= CONTENT ================= -->
+<div class="content-area">
+<div class="main-content">
+
+<!-- ========== CREATE POST FACEBOOK STYLE ========== -->
+<div class="create-post card-shadow" style="margin-bottom:1rem; border-radius:10px; background:#fff; padding:1rem;">
+
+  <form method="post" action="{{ path('forum_frontoffice') }}" class="fb-post-form">
+
+    <!-- Ligne utilisateur -->
+    <div style="display:flex; align-items:center; gap:0.7rem;">
+
+      <div style="
+        width:40px;
+        height:40px;
+        border-radius:50%;
+        background:#dbeafe;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-weight:bold;
+        color:#2563eb;
+      ">
+        U
+      </div>
+
+      <textarea
+        name="content"
+        rows="1"
+        placeholder="Quoi de neuf ?"
+        class="fb-textarea"
+        required
+      ></textarea>
+
+    </div>
+
+    <!-- Zone cachée -->
+    <div class="fb-hidden-zone" style="display:none; margin-top:0.8rem; flex-direction:column; gap:0.5rem;">
+
+      <input type="number" name="userId" placeholder="Votre ID" required>
+
+      <input type="text" name="title" placeholder="Titre du post" required>
+
+      <div style="display:flex; justify-content:flex-end;">
+        <button type="submit" style="
+          background:#2F60F5;
+          color:#fff;
+          border:none;
+          padding:0.5rem 1rem;
+          border-radius:6px;
+          font-weight:600;
+        ">
+          Publier
+        </button>
+      </div>
+
+    </div>
+
+  </form>
+</div>
+<h2>ACCUEIL</h2>
+
+<!-- ================= POSTS ================= -->
+{% for post in posts %}
+<article class="post-card card-shadow" style="margin-bottom:1rem; padding:1rem; border-radius:8px;">
+
+  <!-- ===== AFFICHAGE NORMAL ===== -->
+  <div class="post-display">
+    <h3>{{ post.title }}</h3>
+    <p>{{ post.content }}</p>
+    <p class="post-meta">Par {{ post.user.nom }} {{ post.user.prenom }}</p>
+    <small>{{ post.createdAt|date('d/m/Y H:i') }}</small>
+  </div>
+
+  <!-- ===== MODIFICATION INLINE (FACEBOOK STYLE) ===== -->
+  <form
+    method="post"
+    action="{{ path('forum_edit', {'id': post.id}) }}"
+    class="edit-form"
+    style="display:none; margin-top:0.6rem; flex-direction:column; gap:0.4rem;"
+  >
+    <input type="number" name="userId" placeholder="Votre ID" required>
+    <input type="text" name="title" value="{{ post.title }}" required>
+    <textarea name="content" rows="3" required>{{ post.content }}</textarea>
+
+    <div style="display:flex; gap:0.4rem;">
+      <button type="submit" style="background:#2563eb; color:#fff;">Enregistrer</button>
+      <button type="button" class="btn-cancel" style="background:#9ca3af; color:#fff;">Annuler</button>
+    </div>
+  </form>
+
+  <!-- ===== ACTIONS ===== -->
+  <div style="margin-top:0.6rem; display:flex; gap:0.5rem;">
+
+    <button
+      type="button"
+      class="btn-edit"
+      style="background:#3b82f6; color:#fff; padding:0.4rem 0.8rem; border:none; border-radius:5px;">
+      Modifier
+    </button>
+
+    <form method="post" action="{{ path('forum_delete', {'id': post.id}) }}">
+      <input type="number" name="userId" placeholder="Votre ID" required>
+      <button type="submit" style="background:#ef4444; color:#fff;">Supprimer</button>
+    </form>
+
+  </div>
+
+</article>
+{% else %}
+<p>Aucun post.</p>
+{% endfor %}
+
+</div>
+</div>
+</div>
+
+<!-- ================= JS FIX FINAL ================= -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+  document.querySelectorAll('.btn-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const article = btn.closest('.post-card');
+
+      article.querySelector('.post-display').style.display = 'none';
+      article.querySelector('.edit-form').style.display = 'flex';
+    });
+  });
+
+  document.querySelectorAll('.btn-cancel').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const article = btn.closest('.post-card');
+
+      article.querySelector('.edit-form').style.display = 'none';
+      article.querySelector('.post-display').style.display = 'block';
+    });
+  });
+
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const textarea = document.querySelector(".fb-textarea");
+  const hiddenZone = document.querySelector(".fb-hidden-zone");
+
+  if(textarea){
+    textarea.addEventListener("focus", () => {
+      hiddenZone.style.display = "flex";
+      textarea.rows = 3;
+    });
+  }
+
+});
+</script>
+<!-- ================= AUTO HIDE FLASH ================= -->
+<script>
+setTimeout(() => {
+  document.querySelectorAll('.flash-message').forEach(el => el.remove());
+}, 1500);
+</script>
