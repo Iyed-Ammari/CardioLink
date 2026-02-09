@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau Suivi {% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-plus-circle"></i> Enregistrer un Nouveau Suivi
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Veuillez saisir uniquement le type de donnée et la valeur. 
+                        Les autres informations seront remplies automatiquement.
+                    </p>
+
+                    {{ form_start(form, {'attr': {'class': 'mb-4', 'novalidate': 'novalidate'}}) }}
+                        <div class="mb-3">
+                            {{ form_label(form.typeDonnee, 'Type de donnée', {'label_attr': {'class': 'form-label'}}) }}
+                            {{ form_widget(form.typeDonnee) }}
+                            {% if form.typeDonnee.vars.errors|length > 0 %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.typeDonnee.vars.errors %}
+                                        <i class="fas fa-exclamation-circle"></i> {{ error.message }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_label(form.valeur, 'Valeur mesurée', {'label_attr': {'class': 'form-label'}}) }}
+                            {{ form_widget(form.valeur) }}
+                            {% if form.valeur.vars.errors|length > 0 %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.valeur.vars.errors %}
+                                        <i class="fas fa-exclamation-circle"></i> {{ error.message }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Veuillez entrer une valeur numérique (ex: 120.5)
+                            </small>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save"></i> Enregistrer le Suivi
+                            </button>
+                            <a href="{{ path('app_suivi_index') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Annuler
+                            </a>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+
+            <div class="alert alert-warning mt-4">
+                <h5><i class="fas fa-warning"></i> Rappel Important</h5>
+                <ul class="mb-0">
+                    <li>L'unité de mesure sera définie automatiquement selon le type de donnée</li>
+                    <li>Le niveau d'urgence sera calculé automatiquement basé sur les valeurs critiques</li>
+                    <li>Si un seuil critique est détecté, une alerte d'urgence sera créée automatiquement</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

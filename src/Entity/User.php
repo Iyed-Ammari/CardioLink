@@ -63,6 +63,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
     private ?DossierMedical $dossierMedical = null;
 
+    #[ORM\OneToMany(mappedBy: 'patient', targetEntity: Suivi::class, cascade: ['persist', 'remove'])]
+    private Collection $suivis;
+
+    #[ORM\OneToMany(mappedBy: 'medecin', targetEntity: Intervention::class)]
+    private Collection $interventions;
+
     #[ORM\Column]
     private bool $isVerified = false;
 
@@ -82,6 +88,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->rendezVouses = new ArrayCollection();
         $this->rendezVousMedecin = new ArrayCollection();
+        $this->suivis = new ArrayCollection();
+        $this->interventions = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -244,6 +252,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         if (!$this->rendezVouses->contains($rendezVouse)) {
             $this->rendezVouses->add($rendezVouse);
             $rendezVouse->setPatient($this);
+     * @return Collection<int, Suivi>
+     */
+    public function getSuivis(): Collection
+    {
+        return $this->suivis;
+    }
+
+    public function addSuivi(Suivi $suivi): static
+    {
+        if (!$this->suivis->contains($suivi)) {
+            $this->suivis->add($suivi);
+            $suivi->setPatient($this);
         }
 
         return $this;
@@ -255,6 +275,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             // set the owning side to null (unless already changed)
             if ($rendezVouse->getPatient() === $this) {
                 $rendezVouse->setPatient(null);
+    public function removeSuivi(Suivi $suivi): static
+    {
+        if ($this->suivis->removeElement($suivi)) {
+            if ($suivi->getPatient() === $this) {
+                $suivi->setPatient(null);
             }
         }
 
@@ -274,6 +299,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         if (!$this->rendezVousMedecin->contains($rendezVousMedecin)) {
             $this->rendezVousMedecin->add($rendezVousMedecin);
             $rendezVousMedecin->setMedecin($this);
+     * @return Collection<int, Intervention>
+     */
+    public function getInterventions(): Collection
+    {
+        return $this->interventions;
+    }
+
+    public function addIntervention(Intervention $intervention): static
+    {
+        if (!$this->interventions->contains($intervention)) {
+            $this->interventions->add($intervention);
+            $intervention->setMedecin($this);
         }
 
         return $this;
@@ -285,6 +322,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             // set the owning side to null (unless already changed)
             if ($rendezVousMedecin->getMedecin() === $this) {
                 $rendezVousMedecin->setMedecin(null);
+    public function removeIntervention(Intervention $intervention): static
+    {
+        if ($this->interventions->removeElement($intervention)) {
+            if ($intervention->getMedecin() === $this) {
+                $intervention->setMedecin(null);
             }
         }
 

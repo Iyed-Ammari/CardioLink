@@ -1,0 +1,60 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier Suivi {% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-edit"></i> Modifier le Suivi
+                    </h3>
+                </div>
+                <div class="card-body">
+                    {{ form_start(form, {'attr': {'class': 'mb-4', 'novalidate': 'novalidate'}}) }}
+                        <div class="mb-3">
+                            {{ form_label(form.typeDonnee, 'Type de donnée', {'label_attr': {'class': 'form-label'}}) }}
+                            {{ form_widget(form.typeDonnee) }}
+                            {% if form.typeDonnee.vars.errors|length > 0 %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.typeDonnee.vars.errors %}
+                                        <i class="fas fa-exclamation-circle"></i> {{ error.message }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_label(form.valeur, 'Valeur mesurée', {'label_attr': {'class': 'form-label'}}) }}
+                            {{ form_widget(form.valeur) }}
+                            {% if form.valeur.vars.errors|length > 0 %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.valeur.vars.errors %}
+                                        <i class="fas fa-exclamation-circle"></i> {{ error.message }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-warning btn-lg">
+                                <i class="fas fa-save"></i> Mettre à jour
+                            </button>
+                            <a href="{{ path('app_suivi_show', {'id': suivi.id}) }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Annuler
+                            </a>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+
+            <div class="alert alert-info mt-4">
+                <i class="fas fa-lightbulb"></i>
+                Les modifications recalculeront automatiquement l'urgence et statut critique.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
