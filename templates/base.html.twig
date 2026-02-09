@@ -44,11 +44,14 @@
             {% if app.user %}
               <a href="{{ path('app_home') }}" class="nav-link">Home</a>
               {% if is_granted('ROLE_PATIENT') %}
+                <a href="{{ path('app_suivi_index') }}" class="nav-link">📊 Mes Suivis</a>
                 {# <a href="{{ path('app_mon_dossier') }}" class="nav-link">Mon Dossier Médical</a> #}
                 <a href="#" class="nav-link">Mon Dossier Médical</a>
               {% endif %}
 
               {% if is_granted('ROLE_MEDECIN') %}
+                <a href="{{ path('app_intervention_index') }}" class="nav-link">🏥 Interventions</a>
+                <a href="{{ path('app_intervention_urgent') }}" class="nav-link">🚨 SOS</a>
                 {# <a href="{{ path('app_liste_patients') }}" class="nav-link">Gérer mes Patients</a> #}
                 <a href="#" class="nav-link">Gérer mes Patients</a>
               {% endif %}

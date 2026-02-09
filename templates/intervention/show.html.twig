@@ -1,0 +1,186 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Détails Intervention {% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow border-
+                {% if intervention.isUrgent() %}
+                    danger
+                {% else %}
+                    primary
+                {% endif %}
+            ">
+                <div class="card-header bg-
+                    {% if intervention.isUrgent() %}
+                        danger
+                    {% else %}
+                        primary
+                    {% endif %}
+                    text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-ambulance"></i> {{ intervention.type }}
+                        {% if intervention.isUrgent() %}
+                            <span class="badge bg-warning text-dark ms-2">URGENT</span>
+                        {% endif %}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Statut</h6>
+                            <p>
+                                <span class="badge bg-
+                                    {% if intervention.statut == 'En attente' %}
+                                        warning
+                                    {% elseif intervention.statut == 'Effectuée' %}
+                                        success
+                                    {% elseif intervention.statut == 'Annulée' %}
+                                        secondary
+                                    {% else %}
+                                        info
+                                    {% endif %}
+                                " style="font-size: 1rem;">
+                                    {{ intervention.statut }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Urgence</h6>
+                            <p>
+                                <span class="
+                                    {% if intervention.isUrgent() %}
+                                        badge bg-danger
+                                    {% else %}
+                                        text-success
+                                    {% endif %}
+                                ">
+                                    {% if intervention.isUrgent() %}
+                                        <i class="fas fa-exclamation-triangle"></i> URGENT - SOS
+                                    {% else %}
+                                        <i class="fas fa-check"></i> Normal
+                                    {% endif %}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="text-muted">Description</h6>
+                        <p class="fs-5">{{ intervention.description }}</p>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Date planifiée</h6>
+                            <p>{{ intervention.datePlanifiee|format_datetime('full', 'medium', locale='fr') }}</p>
+                        </div>
+                        {% if intervention.dateCompletion %}
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Date de complétion</h6>
+                                <p>{{ intervention.dateCompletion|format_datetime('full', 'medium', locale='fr') }}</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Médecin responsable</h6>
+                            <p>
+                                {% if intervention.medecin %}
+                                    <strong>{{ intervention.medecin.prenom }} {{ intervention.medecin.nom }}</strong><br>
+                                    <small class="text-muted">{{ intervention.medecin.email }}</small>
+                                {% else %}
+                                    <em class="text-muted">Non assigné</em>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    {% if intervention.suiviOrigine %}
+                        <hr>
+                        <div class="mb-4">
+                            <h6 class="text-muted">
+                                <i class="fas fa-heartbeat"></i> Suivi d'origine
+                            </h6>
+                            <div class="alert alert-info">
+                                <strong>Type:</strong> {{ intervention.suiviOrigine.typeDonnee }}<br>
+                                <strong>Valeur:</strong> {{ intervention.suiviOrigine.getFormattedValue() }}<br>
+                                <strong>Urgence:</strong> <span class="badge bg-danger">{{ intervention.suiviOrigine.niveauUrgence }}</span><br>
+                                <strong>Date:</strong> {{ intervention.suiviOrigine.dateSaisie|format_datetime('medium', 'short', locale='fr') }}<br>
+                                <a href="{{ path('app_suivi_show', {'id': intervention.suiviOrigine.id}) }}" class="btn btn-sm btn-outline-primary mt-2">
+                                    Voir le suivi
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="card-footer">
+                    {% if intervention.statut != 'Effectuée' and intervention.statut != 'Annulée' %}
+                        {% if intervention.statut == 'En attente' %}
+                            <form method="POST" action="{{ path('app_intervention_accept', {'id': intervention.id}) }}" style="display:inline;">
+                                <input type="hidden" name="_token" value="{{ csrf_token('accept' ~ intervention.id) }}">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check"></i> Accepter
+                                </button>
+                            </form>
+                        {% endif %}
+
+                        <form method="POST" action="{{ path('app_intervention_complete', {'id': intervention.id}) }}" style="display:inline;">
+                            <input type="hidden" name="_token" value="{{ csrf_token('complete' ~ intervention.id) }}">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check-circle"></i> Marquer comme Effectuée
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    <a href="{{ path('app_intervention_edit', {'id': intervention.id}) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Modifier
+                    </a>
+
+                    <form method="POST" action="{{ path('app_intervention_delete', {'id': intervention.id}) }}" style="display:inline;">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ intervention.id) }}">
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Êtes-vous sûr ?')">
+                            <i class="fas fa-trash"></i> Supprimer
+                        </button>
+                    </form>
+
+                    <a href="{{ path('app_intervention_index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-list"></i> Statuts disponibles
+                    </h6>
+                </div>
+                <div class="card-body small">
+                    <div class="mb-2">
+                        <span class="badge bg-warning text-dark">En attente</span> - En attente d'acceptation
+                    </div>
+                    <div class="mb-2">
+                        <span class="badge bg-info">Acceptée</span> - Acceptée par un médecin
+                    </div>
+                    <div class="mb-2">
+                        <span class="badge bg-info">En cours</span> - En cours d'exécution
+                    </div>
+                    <div class="mb-2">
+                        <span class="badge bg-success">Effectuée</span> - Complétée avec succès
+                    </div>
+                    <div class="mb-2">
+                        <span class="badge bg-secondary">Annulée</span> - Annulée
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
