@@ -72,10 +72,31 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private bool $isVerified = false;
 
+    /**
+     * @var Collection<int, Conversation>
+     */
+    #[ORM\OneToMany(targetEntity: Conversation::class, mappedBy: 'patient')]
+    private Collection $conversationsAsPatient;
+
+    /**
+     * @var Collection<int, Conversation>
+     */
+    #[ORM\OneToMany(targetEntity: Conversation::class, mappedBy: 'medecin')]
+    private Collection $conversationsAsMedecin;
+
+    /**
+     * @var Collection<int, Message>
+     */
+    #[ORM\OneToMany(targetEntity: Message::class, mappedBy: 'sender')]
+    private Collection $messages;
+
     public function __construct()
     {
         $this->suivis = new ArrayCollection();
         $this->interventions = new ArrayCollection();
+        $this->conversationsAsPatient = new ArrayCollection();
+        $this->conversationsAsMedecin = new ArrayCollection();
+        $this->messages = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -280,6 +301,79 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             }
         }
 
+        return $this;
+    }
+
+    // Getters et Setters pour les collections
+    public function getConversationsAsPatient(): Collection
+    {
+        return $this->conversationsAsPatient;
+    }
+
+    public function addConversationAsPatient(Conversation $conversation): static
+    {
+        if (!$this->conversationsAsPatient->contains($conversation)) {
+            $this->conversationsAsPatient->add($conversation);
+            $conversation->setPatient($this);
+        }
+        return $this;
+    }
+
+    public function removeConversationAsPatient(Conversation $conversation): static
+    {
+        if ($this->conversationsAsPatient->removeElement($conversation)) {
+            if ($conversation->getPatient() === $this) {
+                $conversation->setPatient(null);
+            }
+        }
+        return $this;
+    }
+
+    public function getConversationsAsMedecin(): Collection
+    {
+        return $this->conversationsAsMedecin;
+    }
+
+    public function addConversationAsMedecin(Conversation $conversation): static
+    {
+        if (!$this->conversationsAsMedecin->contains($conversation)) {
+            $this->conversationsAsMedecin->add($conversation);
+            $conversation->setMedecin($this);
+        }
+        return $this;
+    }
+
+    public function removeConversationAsMedecin(Conversation $conversation): static
+    {
+        if ($this->conversationsAsMedecin->removeElement($conversation)) {
+            if ($conversation->getMedecin() === $this) {
+                $conversation->setMedecin(null);
+            }
+        }
+        return $this;
+    }
+
+    public function getMessages(): Collection
+    {
+        return $this->messages;
+    }
+
+    public function addMessage(Message $message): static
+    {
+        if (!$this->messages->contains($message)) {
+            $this->messages->add($message);
+            $message->setSender($this);
+        }
+        return $this;
+    }
+
+    public function removeMessage(Message $message): static
+    {
+        if ($this->messages->removeElement($message)) {
+            if ($message->getSender() === $this) {
+                $message->setSender(null);
+            }
+        }
         return $this;
     }
 }

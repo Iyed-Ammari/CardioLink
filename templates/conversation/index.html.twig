@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Messagerie - CardioLink{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <h1 class="mb-4">Messagerie</h1>
+
+    {% if conversations is empty %}
+        <div class="alert alert-info">
+            Aucune conversation pour le moment.
+        </div>
+    {% else %}
+        <div class="list-group">
+            {% for conversation in conversations %}
+                <a href="{{ path('app_conversation_show', {'id': conversation.id}) }}" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">
+                            {% if app.user == conversation.patient %}
+                                Dr. {{ conversation.medecin.prenom }} {{ conversation.medecin.nom }}
+                            {% else %}
+                                {{ conversation.patient.prenom }} {{ conversation.patient.nom }}
+                            {% endif %}
+                        </h5>
+                        <small>{{ conversation.updatedAt|date('d/m/Y H:i') }}</small>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
