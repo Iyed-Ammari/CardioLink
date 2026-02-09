@@ -27,28 +27,27 @@ class CommentController extends AbstractController
     }
 
     // =============================
-    // Ajouter un commentaire (sans login)
+    // Ajouter un commentaire
     // =============================
     #[Route('/post/{postId}/comment/add', name: 'comment_add', methods:['POST'])]
     public function add(Request $request, int $postId): Response
     {
+        $user = $this->getUser();
+        if (!$user) {
+            $this->addFlash('error', 'Vous devez être connecté');
+            return $this->redirectToRoute('app_login');
+        }
+
         $post = $this->postRepo->find($postId);
         if (!$post) {
             $this->addFlash('error', 'Post introuvable');
             return $this->redirectToRoute('forum_frontoffice');
         }
 
-        $userId = $request->request->get('userId');
         $content = $request->request->get('content');
 
-        if (!$userId || !$content) {
-            $this->addFlash('error', 'Veuillez remplir tous les champs');
-            return $this->redirectToRoute('forum_frontoffice');
-        }
-
-        $user = $this->userRepo->find($userId);
-        if (!$user) {
-            $this->addFlash('error', 'Utilisateur introuvable');
+        if (!$content) {
+            $this->addFlash('error', 'Le commentaire ne peut pas être vide');
             return $this->redirectToRoute('forum_frontoffice');
         }
 
@@ -71,14 +70,19 @@ class CommentController extends AbstractController
     #[Route('/comment/{id}/edit', name: 'comment_edit', methods:['POST'])]
     public function edit(Request $request, int $id): Response
     {
+        $user = $this->getUser();
+        if (!$user) {
+            $this->addFlash('error', 'Vous devez être connecté');
+            return $this->redirectToRoute('app_login');
+        }
+
         $comment = $this->commentRepo->find($id);
         if (!$comment) {
             $this->addFlash('error', 'Commentaire introuvable');
             return $this->redirectToRoute('forum_frontoffice');
         }
 
-        $user = $this->getUser();
-        if (!$user || $comment->getUser()->getId() !== $user->getId()) {
+        if ($comment->getUser()->getId() !== $user->getId()) {
             $this->addFlash('error', 'Vous ne pouvez pas modifier ce commentaire');
             return $this->redirectToRoute('forum_frontoffice');
         }
@@ -102,14 +106,19 @@ class CommentController extends AbstractController
     #[Route('/comment/{id}/delete', name: 'comment_delete', methods:['POST'])]
     public function delete(int $id): Response
     {
+        $user = $this->getUser();
+        if (!$user) {
+            $this->addFlash('error', 'Vous devez être connecté');
+            return $this->redirectToRoute('app_login');
+        }
+
         $comment = $this->commentRepo->find($id);
         if (!$comment) {
             $this->addFlash('error', 'Commentaire introuvable');
             return $this->redirectToRoute('forum_frontoffice');
         }
 
-        $user = $this->getUser();
-        if (!$user || $comment->getUser()->getId() !== $user->getId()) {
+        if ($comment->getUser()->getId() !== $user->getId()) {
             $this->addFlash('error', 'Vous ne pouvez pas supprimer ce commentaire');
             return $this->redirectToRoute('forum_frontoffice');
         }

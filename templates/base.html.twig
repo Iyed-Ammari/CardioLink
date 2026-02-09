@@ -1,17 +1,106 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
-        {% block stylesheets %}
-        {% endblock %}
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      {% block title %}
+        CardioLink
+      {% endblock %}
+    </title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>❤️</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    {% block stylesheets %}
+      {{ encore_entry_link_tags('app') }}
+    {% endblock %}
 
-        {% block javascripts %}
-            {% block importmap %}{{ importmap('app') }}{% endblock %}
-        {% endblock %}
-    </head>
-    <body>
-        {% block body %}{% endblock %}
-    </body>
+    {% block javascripts %}
+      {% block importmap %}
+        {{ importmap('app') }}
+      {% endblock %}
+    {% endblock %}
+
+    <script>
+      // Initialize theme immediately to prevent flash of light mode
+      ;(function () {
+        // Check storage, default to light if empty
+        const savedTheme = localStorage.getItem('theme') || 'light'
+        // Apply it to the document before the body even loads
+        document.documentElement.setAttribute('data-theme', savedTheme)
+      })()
+    </script>
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="navbar-container">
+        <a href="{{ path('app_home') }}" class="navbar-brand">
+          <span class="brand-icon">❤️</span>
+          <span class="brand-text">CardioLink</span>
+        </a>
+        <div class="navbar-menu">
+          <div class="nav-items">
+            {% if app.user %}
+              <a href="{{ path('app_home') }}" class="nav-link">Home</a>
+              {% if is_granted('ROLE_PATIENT') %}
+                <a href="{{ path('app_suivi_index') }}" class="nav-link">📊 Mes Suivis</a>
+                {# <a href="{{ path('app_mon_dossier') }}" class="nav-link">Mon Dossier Médical</a> #}
+                <a href="#" class="nav-link">Mon Dossier Médical</a>
+              {% endif %}
+
+              {% if is_granted('ROLE_MEDECIN') %}
+                <a href="{{ path('app_intervention_index') }}" class="nav-link">🏥 Interventions</a>
+                <a href="{{ path('app_intervention_urgent') }}" class="nav-link">🚨 SOS</a>
+                {# <a href="{{ path('app_liste_patients') }}" class="nav-link">Gérer mes Patients</a> #}
+                <a href="#" class="nav-link">Gérer mes Patients</a>
+              {% endif %}
+
+              {% if is_granted('ROLE_ADMIN') %}
+                {# <a href="{{ path('app_admin_dashboard') }}" class="nav-link">Administration</a> #}
+                <a href="#" class="nav-link">Administration</a>
+              {% endif %}
+              <a href="{{ logout_path() }}" class="nav-link">Logout</a>
+            {% else %}
+              <a href="{{ path('app_register') }}" class="nav-link">Register</a>
+              <a href="{{ path('app_login') }}" class="nav-link">Login</a>
+            {% endif %}
+          </div>
+          <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()"><span class="toggle-icon"></span></button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="main-content">
+      {% block body %}
+
+      {% endblock %}
+    </main>
+
+    <footer class="footer">
+      <p>&copy; 2026 CardioLink. All rights reserved.</p>
+    </footer>
+
+    <script>
+      function syncIcon() {
+        const currentTheme = document.documentElement.getAttribute('data-theme')
+        const icon = document.querySelector('.toggle-icon')
+        if (icon) {
+          icon.textContent = currentTheme === 'dark' ? '🌙' : '☀️'
+        }
+      }
+      
+      function toggleTheme() {
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light'
+        const nextTheme = isLight ? 'dark' : 'light'
+      
+        document.documentElement.setAttribute('data-theme', nextTheme)
+        localStorage.setItem('theme', nextTheme)
+        syncIcon()
+      }
+      
+      // Sync the icon as soon as the button exists in the DOM
+      syncIcon()
+    </script>
+  </body>
 </html>

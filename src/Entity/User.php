@@ -83,13 +83,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->conversationsAsPatient = new ArrayCollection();
         $this->conversationsAsMedecin = new ArrayCollection();
         $this->messages = new ArrayCollection();
-    }
-
-    public function __construct()
-    {
         $this->posts = new ArrayCollection();
         $this->comments = new ArrayCollection();
     }
+
+   
 
     public function getId(): ?int { return $this->id; }
 

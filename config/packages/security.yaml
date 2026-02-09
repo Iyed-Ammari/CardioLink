@@ -44,7 +44,7 @@ security:
         - { path: ^/register, roles: PUBLIC_ACCESS }
         - { path: ^/verify/email, roles: PUBLIC_ACCESS }
         # On oblige l'utilisateur à être connecté pour tout le reste (le dashboard, etc.)
-        - { path: ^/, roles: PUBLIC_ACCESS }
+        - { path: ^/, roles: ROLE_USER }
 
 when@test:
     security:

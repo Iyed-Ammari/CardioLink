@@ -1,0 +1,13 @@
+<ul style="list-style:none; margin:0; padding:0; max-height:300px; overflow:auto;">
+    {% if posts is empty %}
+        <li style="padding:0.3rem;">Aucun post récent</li>
+    {% else %}
+        {% for post in posts %}
+            <li style="padding:0.3rem 0.2rem; border-bottom:1px solid #eee;">
+                <strong>{{ post.title }}</strong><br>
+                {{ post.content }}<br>
+                <small>{{ post.user.nom }} {{ post.user.prenom }} - {{ post.createdAt ? post.createdAt|date('d/m/Y H:i') : '' }}</small>
+            </li>
+        {% endfor %}
+    {% endif %}
+</ul>
