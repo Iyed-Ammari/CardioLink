@@ -18,7 +18,7 @@ class Ordonnance
     private ?string $reference = null;
 
     #[ORM\Column]
-    private ?\DateTimeImmutable $dateCreation = null;
+    private ?\DateTime $dateCreation = null;
 
     #[ORM\Column(type: Types::TEXT)]
     private ?string $contenu = null;
@@ -43,12 +43,12 @@ class Ordonnance
         return $this;
     }
 
-    public function getDateCreation(): ?\DateTimeImmutable
+    public function getDateCreation(): ?\DateTime
     {
         return $this->dateCreation;
     }
 
-    public function setDateCreation(\DateTimeImmutable $dateCreation): static
+    public function setDateCreation(\DateTime $dateCreation): static
     {
         $this->dateCreation = $dateCreation;
 
