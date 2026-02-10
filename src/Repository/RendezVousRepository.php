@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\RendezVous;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -15,7 +16,24 @@ class RendezVousRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, RendezVous::class);
     }
+// src/Repository/RendezVousRepository.php
 
+public function countCrenau(\DateTime $debut, User $medecin): int
+{
+    // On suppose qu'un RDV dure 30 min
+    $fin = $debut->modify('+30 minutes');
+
+    return $this->createQueryBuilder('r')
+        ->select('count(r.id)')
+        ->where('r.medecin = :medecin')
+        ->andWhere('r.dateHeure < :fin') // Le RDV commence avant la fin du nouveau
+        ->andWhere('DATE_ADD(r.dateHeure, 30, \'minute\') > :debut') // Et finit après le début du nouveau
+        ->setParameter('medecin', $medecin)
+        ->setParameter('debut', $debut)
+        ->setParameter('fin', $fin)
+        ->getQuery()
+        ->getSingleScalarResult();
+}
     //    /**
     //     * @return RendezVous[] Returns an array of RendezVous objects
     //     */
