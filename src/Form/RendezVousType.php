@@ -5,8 +5,7 @@ namespace App\Form;
 use App\Entity\RendezVous;
 use App\Entity\User;
 use App\Repository\UserRepository;
-use App\Entity\Lieu;
-use App\Entity\Ordonnance;
+use App\Validator\Constraint\AvailableMedecinSlot;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -23,8 +22,7 @@ class RendezVousType extends AbstractType
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $isEditByDoctor = $options['edit_by_doctor'] ?? false;
-
+        // Les 4 champs requis pour un RDV
         $builder
             ->add('medecin', EntityType::class, [
                 'class' => User::class,
@@ -32,7 +30,6 @@ class RendezVousType extends AbstractType
                 'choices' => $this->userRepository->findMedecins(),
                 'label' => 'Choisir un médecin',
                 'placeholder' => 'Sélectionnez un médecin',
-                'disabled' => $isEditByDoctor, // Désactiver si c'est un médecin qui édite
                 'constraints' => [
                     new NotBlank(['message' => 'Veuillez sélectionner un médecin.'])
                 ]
@@ -44,14 +41,13 @@ class RendezVousType extends AbstractType
                     new NotBlank(['message' => 'La date et l\'heure sont obligatoires.'])
                 ]
             ])
-
-            ->add('statut')
             ->add('type', ChoiceType::class, [
                 'choices' => [
                     'Consultation au cabinet' => 'Présentiel',
                     'Vidéo Consultation' => 'Télémédecine',
                 ],
                 'label' => 'Type de consultation',
+                'expanded' => true,
                 'placeholder' => false,
                 'constraints' => [
                     new NotBlank(['message' => 'Veuillez sélectionner un type de consultation.'])
@@ -59,34 +55,8 @@ class RendezVousType extends AbstractType
             ])
             ->add('remarques', TextareaType::class, [
                 'required' => false,
-                'label' => 'Motif / Remarques (optionnel)',
+                'label' => 'Motif / Remarques',
                 'attr' => ['placeholder' => 'Ex: Douleurs thoraciques depuis 2 jours...']
-            ])
-            ->add('lienVisio')
-            ->add('remarques', TextareaType::class, [
-                'required' => false,
-                'label' => 'Motif de la consultation'
-            ])
-            ->add('patient', EntityType::class, [
-                'class' => User::class,
-                'choice_label' => 'id',
-            ])
-            ->add('medecin', EntityType::class, [
-                'class' => User::class,
-                'choice_label' => 'nom', // Affiche le nom du médecin
-                // Idéalement, filtre ici pour n'afficher que les utilisateurs avec ROLE_MEDECIN
-                'label' => 'Choisir un médecin'
-            ])
-            ->add('lieu', EntityType::class, [
-                'class' => Lieu::class,
-                'choice_label' => 'nom',
-                'required' => false,
-                'label' => 'Lieu (si présentiel)',
-                'placeholder' => 'Choisir un cabinet...'
-            ])
-            ->add('ordonnance', EntityType::class, [
-                'class' => Ordonnance::class,
-                'choice_label' => 'id',
             ])
         ;
     }
@@ -95,7 +65,9 @@ class RendezVousType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => RendezVous::class,
-            'edit_by_doctor' => false, // Option par défaut
+            'constraints' => [
+                new AvailableMedecinSlot(),
+            ],
         ]);
     }
 }

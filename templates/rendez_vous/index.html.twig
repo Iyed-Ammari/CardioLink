@@ -69,11 +69,7 @@
                             <td>
                                 {% if rdv.type == 'Télémédecine' %}
                                     {% if rdv.lienVisio %}
-<<<<<<< HEAD
                                         <a href="{{ path('app_rdv_join_visio', {'id': rdv.id}) }}" target="_blank" class="btn btn-sm btn-outline-primary">
-=======
-                                        <a href="{{ rdv.lienVisio }}" target="_blank" class="btn btn-sm btn-outline-primary">
->>>>>>> b6f51606fe623e32b207fad7a4244e37179d11cb
                                             Rejoindre la réunion
                                         </a>
                                     {% else %}
@@ -92,7 +88,6 @@
 
                             {# 5. Statut (Code couleur) #}
                             <td>
-<<<<<<< HEAD
                                 {# Si c'est un MEDECIN, permet de changer le statut #}
                                 {% if is_granted('ROLE_MEDECIN') %}
                                     {% if rdv.canDoctorEdit() %}
@@ -131,16 +126,6 @@
                                     {% else %}
                                         <span class="badge bg-warning text-dark">{{ rdv.statut }}</span>
                                     {% endif %}
-=======
-                                {% if rdv.statut == 'Confirmé' %}
-                                    <span class="badge bg-success">Confirmé</span>
-                                {% elseif rdv.statut == 'Annulé' %}
-                                    <span class="badge bg-danger">Annulé</span>
-                                {% elseif rdv.statut == 'Terminé' %}
-                                    <span class="badge bg-secondary">Terminé</span>
-                                {% else %}
-                                    <span class="badge bg-warning text-dark">En attente</span>
->>>>>>> b6f51606fe623e32b207fad7a4244e37179d11cb
                                 {% endif %}
                             </td>
 
@@ -160,7 +145,6 @@
                                     </a>
                                 {% endif %}
 
-<<<<<<< HEAD
                                 {# Bouton Suppression pour PATIENT #}
                                 {% if is_granted('ROLE_PATIENT') and rdv.canPatientDelete() %}
                                     <form method="post" action="{{ path('app_rdv_delete', {'id': rdv.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce rendez-vous ?');" class="d-inline">
@@ -181,18 +165,6 @@
                                 {% if is_granted('ROLE_PATIENT') and rdv.canPatientEdit() %}
                                     <a href="{{ path('app_rdv_edit', {'id': rdv.id}) }}" class="btn btn-sm btn-warning text-dark">✏️</a>
                                 {% endif %}
-=======
-                                {# Bouton Annuler (Seulement si le RDV est futur) #}
-                                {% if rdv.dateHeure > date() and rdv.statut != 'Annulé' %}
-                                    {# Tu devras créer la route de suppression plus tard #}
-                                    <form method="post" action="{{ path('app_rdv_delete', {'id': rdv.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce rendez-vous ?');">
-    {# Ce token est OBLIGATOIRE pour la sécurité Symfony #}
-    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ rdv.id) }}">
-    <button class="btn btn-sm btn-danger">🗑️</button>
-</form>
-                                {% endif %}
-                                {% if rdv.dateHeure > date() %} <a href="{{ path('app_rdv_edit', {'id': rdv.id}) }}" class="btn btn-sm btn-warning text-dark"> ✏️ </a> {% endif %}
->>>>>>> b6f51606fe623e32b207fad7a4244e37179d11cb
                             </td>
                         </tr>
                     {% else %}

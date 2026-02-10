@@ -18,21 +18,37 @@ class RendezVousRepository extends ServiceEntityRepository
     }
 // src/Repository/RendezVousRepository.php
 
-public function countCrenau(\DateTime $debut, User $medecin): int
+/**
+ * Vérifie si un créneau est disponible pour un médecin
+ * 
+ * @param \DateTime $dateHeure La date/heure du rendez-vous à vérifier
+ * @param User $medecin Le médecin concerné
+ * @param ?int $excludeId L'ID du RDV à exclure (pour les modifications)
+ * @return int Le nombre de RDV en conflit
+ */
+public function countCrenau(\DateTime $dateHeure, User $medecin, ?int $excludeId = null): int
 {
     // On suppose qu'un RDV dure 30 min
-    $fin = $debut->modify('+30 minutes');
+    $fin = (clone $dateHeure)->add(new \DateInterval('PT30M'));
 
-    return $this->createQueryBuilder('r')
-        ->select('count(r.id)')
+    $qb = $this->createQueryBuilder('r')
+        ->select('r')
         ->where('r.medecin = :medecin')
-        ->andWhere('r.dateHeure < :fin') // Le RDV commence avant la fin du nouveau
-        ->andWhere('DATE_ADD(r.dateHeure, 30, \'minute\') > :debut') // Et finit après le début du nouveau
+        // Le RDV commence avant la fin du nouveau
+        ->andWhere('r.dateHeure < :fin')
+        // Et finit après le début du nouveau (en supposant 30 min de durée)
+        ->andWhere('r.dateHeure + 30 * 60 > :debut')
         ->setParameter('medecin', $medecin)
-        ->setParameter('debut', $debut)
-        ->setParameter('fin', $fin)
-        ->getQuery()
-        ->getSingleScalarResult();
+        ->setParameter('debut', $dateHeure)
+        ->setParameter('fin', $fin);
+
+    // Exclure le RDV actuel si on modifie
+    if ($excludeId !== null) {
+        $qb->andWhere('r.id != :excludeId')
+            ->setParameter('excludeId', $excludeId);
+    }
+
+    return count($qb->getQuery()->getResult());
 }
     //    /**
     //     * @return RendezVous[] Returns an array of RendezVous objects
