@@ -7,6 +7,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: DossierMedicalRepository::class)]
+#[ORM\Table(name: 'dossier_medical')] // ✅ force le nom exact
 class DossierMedical
 {
     #[ORM\Id]
@@ -23,74 +24,39 @@ class DossierMedical
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $allergies = null;
 
-    #[ORM\OneToOne(inversedBy: 'dossierMedical', cascade: ['persist', 'remove'])]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\OneToOne(inversedBy: 'dossierMedical', targetEntity: User::class)]
+    #[ORM\JoinColumn(name: 'user_id', referencedColumnName: 'id', nullable: false, onDelete: 'CASCADE')]
     private ?User $user = null;
 
-    public function getId(): ?int
-    {
-        return $this->id;
-    }
+    public function getId(): ?int { return $this->id; }
 
-    public function getGroupeSanguin(): ?string
-    {
-        return $this->groupeSanguin;
-    }
+    public function getGroupeSanguin(): ?string { return $this->groupeSanguin; }
+    public function setGroupeSanguin(string $groupeSanguin): static { $this->groupeSanguin = $groupeSanguin; return $this; }
 
-    public function setGroupeSanguin(string $groupeSanguin): static
-    {
-        $this->groupeSanguin = $groupeSanguin;
+    public function getAntecedents(): ?string { return $this->antecedents; }
+    public function setAntecedents(?string $antecedents): static { $this->antecedents = $antecedents; return $this; }
 
-        return $this;
-    }
+    public function getAllergies(): ?string { return $this->allergies; }
+    public function setAllergies(?string $allergies): static { $this->allergies = $allergies; return $this; }
 
-    public function getAntecedents(): ?string
-    {
-        return $this->antecedents;
-    }
+    public function getUser(): ?User { return $this->user; }
+    public function setUser(User $user): static { $this->user = $user; return $this; }
 
-    public function setAntecedents(string $antecedents): static
-    {
-        $this->antecedents = $antecedents;
-
-        return $this;
-    }
-
-    public function getAllergies(): ?string
-    {
-        return $this->allergies;
-    }
-
-    public function setAllergies(string $allergies): static
-    {
-        $this->allergies = $allergies;
-
-        return $this;
-    }
-
-    public function getUser(): ?User
-    {
-        return $this->user;
-    }
-
-    public function setUser(User $user): static
-    {
-        $this->user = $user;
-
-        return $this;
-    }
+    // ✅ sécurité: si antecedents est null, on évite erreur
     public function updateHistory(string $newInfo): self
-{
-    $this->antecedents .= "\n Mis à jour le " . date('d/m/Y') . " : " . $newInfo;
-    return $this;
-}
+    {
+        $old = $this->antecedents ?? '';
+        $this->antecedents = trim($old . "\nMis à jour le " . date('d/m/Y') . " : " . $newInfo);
+        return $this;
+    }
 
-public function getSummary(): string
-{
-    return sprintf("Patient: %s | Groupe: %s | Allergies: %s", 
-        $this->getUser()->getNom(), 
-        $this->groupeSanguin, 
-        $this->allergies
-    );
-}
+    public function getSummary(): string
+    {
+        return sprintf(
+            "Patient: %s | Groupe: %s | Allergies: %s",
+            $this->getUser()?->getNom() ?? 'N/A',
+            $this->groupeSanguin ?? 'N/A',
+            $this->allergies ?? 'N/A'
+        );
+    }
 }

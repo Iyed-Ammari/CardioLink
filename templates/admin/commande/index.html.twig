@@ -1,0 +1,153 @@
+{# templates/admin/commande/index.html.twig #}
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Marketplace — Commandes{% endblock %}
+
+{# ✅ IMPORTANT: base.html.twig affiche block body, donc on garde TON style et on change فقط content -> body #}
+{% block body %}
+  <div class="space-y-6">
+    {# Header #}
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900">
+          Marketplace — Commandes
+        </h1>
+        
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-slate-600 font-semibold">
+          Total : {{ commandes|length }}
+        </span>
+      </div>
+    </div>
+
+    {# ✅ Flash messages (TON style, gardé) #}
+    <div class="space-y-3">
+      {% for label, msgs in app.flashes %}
+        {% for m in msgs %}
+          {% set color =
+            label == 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' :
+            (label == 'danger' ? 'border-red-200 bg-red-50 text-red-800' :
+            'border-slate-200 bg-slate-50 text-slate-800')
+          %}
+          <div class="rounded-xl border px-4 py-3 text-sm {{ color }}">
+            <span class="font-bold uppercase mr-2">{{ label }}</span>
+            <span>{{ m }}</span>
+          </div>
+        {% endfor %}
+      {% endfor %}
+    </div>
+
+    {# Card container #}
+    <div class="rounded-2xl bg-white shadow-lg shadow-slate-200/70 ring-1 ring-slate-200">
+      <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div class="font-bold text-slate-900">Liste des commandes</div>
+        <div class="text-sm text-slate-500">
+          Statuts : EN_ATTENTE_PAIEMENT → PAYEE → LIVREE
+        </div>
+      </div>
+
+      <div class="p-4">
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-left">
+            <thead>
+              <tr class="text-xs uppercase tracking-wider text-slate-500">
+                <th class="py-3 px-3">ID</th>
+                <th class="py-3 px-3">Patient</th>
+                <th class="py-3 px-3">Date</th>
+                <th class="py-3 px-3">Statut</th>
+                <th class="py-3 px-3 text-right">Total</th>
+                <th class="py-3 px-3 text-right">Actions</th>
+              </tr>
+            </thead>
+
+            <tbody class="divide-y divide-slate-100">
+              {% for c in commandes %}
+                {% set statut = c.statut %}
+                {% set badge =
+                  statut == 'EN_ATTENTE_PAIEMENT' ? 'bg-amber-50 text-amber-700 ring-amber-200' :
+                  (statut == 'PAYEE' ? 'bg-blue-50 text-blue-700 ring-blue-200' :
+                  (statut == 'LIVREE' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' :
+                  (statut == 'ANNULEE' ? 'bg-red-50 text-red-700 ring-red-200' :
+                  'bg-slate-50 text-slate-700 ring-slate-200')))
+                %}
+
+                <tr class="hover:bg-slate-50/60 transition">
+                  <td class="py-4 px-3 font-extrabold text-slate-900">
+                    #{{ c.id }}
+                  </td>
+
+                  <td class="py-4 px-3">
+                    <div class="font-semibold text-slate-900">{{ c.user.email }}</div>
+                    <div class="text-xs text-slate-500">
+                      {{ c.lignes|length }} lignes
+                    </div>
+                  </td>
+
+                  <td class="py-4 px-3 text-slate-700">
+                    {{ c.dateCommande ? (c.dateCommande|date('Y-m-d H:i')) : '-' }}
+                  </td>
+
+                  <td class="py-4 px-3">
+                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ring-1 {{ badge }}">
+                      {{ statut }}
+                    </span>
+                  </td>
+
+                  <td class="py-4 px-3 text-right font-extrabold text-slate-900">
+                    {{ c.montantTotal }} TND
+                  </td>
+
+                  <td class="py-4 px-3">
+                    <div class="flex justify-end gap-2">
+                      {% if c.statut == 'EN_ATTENTE_PAIEMENT' %}
+                        <form method="post" action="{{ path('admin_commande_pay', {id: c.id}) }}">
+                          <input type="hidden" name="_token" value="{{ csrf_token('admin_pay_' ~ c.id) }}">
+                          <button
+                            type="submit"
+                            class="rounded-xl px-4 py-2 text-sm font-bold text-white shadow-lg transition-all
+                                   bg-gradient-to-r from-[#F82239] via-rose-500 to-[#2F60F5]
+                                   hover:opacity-95 active:scale-[0.99]">
+                            Marquer PAYEE
+                          </button>
+                        </form>
+                      {% endif %}
+
+                      {% if c.statut == 'PAYEE' %}
+                        <form method="post" action="{{ path('admin_commande_deliver', {id: c.id}) }}">
+                          <input type="hidden" name="_token" value="{{ csrf_token('admin_deliver_' ~ c.id) }}">
+                          <button
+                            type="submit"
+                            class="rounded-xl px-4 py-2 text-sm font-bold text-white shadow-lg transition-all
+                                   bg-gradient-to-r from-[#2F60F5] via-indigo-500 to-[#F82239]
+                                   hover:opacity-95 active:scale-[0.99]">
+                            Marquer LIVREE
+                          </button>
+                        </form>
+                      {% endif %}
+
+                      {# Si pas d’action possible #}
+                      {% if c.statut not in ['EN_ATTENTE_PAIEMENT','PAYEE'] %}
+                        <span class="text-sm text-slate-400 font-semibold px-3 py-2">
+                          —
+                        </span>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+
+              {% else %}
+                <tr>
+                  <td colspan="6" class="py-10 text-center text-slate-500">
+                    Aucune commande.
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
