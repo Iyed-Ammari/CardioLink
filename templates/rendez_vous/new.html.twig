@@ -21,31 +21,45 @@
                     {{ form_start(form) }}
                        
                         <div class="mb-3">
-                            <label class="form-label">Médecin</label>
+                            <label class="form-label">{{ form.medecin.vars.label }}</label>
                             {{ form_widget(form.medecin, {'attr': {'class': 'form-select'}}) }}
-                            <div class="form-text text-muted">Choisissez votre praticien.</div>
+                            {% if form.medecin.vars.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.medecin.vars.errors %}
+                                        {{ error.message }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Date et Heure</label>
-                                {{ form_widget(form.dateHeure, {'attr': {'class': 'form-control'}}) }}
+                                <label class="form-label">{{ form.dateHeure.vars.label }}</label>
+                                {{ form_widget(form.dateHeure, {'attr': {'class': 'form-control', 'type': 'datetime-local'}}) }}
+                                {% if form.dateHeure.vars.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.dateHeure.vars.errors %}
+                                            {{ error.message }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                            
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Type de consultation</label>
+                                <label class="form-label">{{ form.type.vars.label }}</label>
                                 {{ form_widget(form.type, {'attr': {'class': 'form-select', 'id': 'select-type'}}) }}
+                                {% if form.type.vars.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.type.vars.errors %}
+                                            {{ error.message }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
 
-                        {# Ce bloc sera caché si Télémédecine est choisi #}
-                        <div class="mb-3" id="bloc-lieu">
-                            <label class="form-label">Lieu du rendez-vous</label>
-                            {{ form_widget(form.lieu, {'attr': {'class': 'form-select'}}) }}
-                        </div>
-
                         <div class="mb-3">
-                            <label class="form-label">Motif / Remarques</label>
+                            <label class="form-label">{{ form.remarques.vars.label }}</label>
                             {{ form_widget(form.remarques, {'attr': {'class': 'form-control', 'rows': '3', 'placeholder': 'Ex: Douleurs thoraciques depuis 2 jours...'}}) }}
                         </div>
 
@@ -65,26 +79,13 @@
     </div>
 </div>
 
-{# --- LE SCRIPT MAGIQUE --- #}
+{# --- LE SCRIPT POUR AFFICHAGE CONDITIONNEL --- #}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const selectType = document.getElementById('rendez_vous_type'); // L'ID généré par Symfony
-        const blocLieu = document.getElementById('bloc-lieu'); // Notre div contenant le lieu
-
-        function toggleLieu() {
-            // Si la valeur est 'Télémédecine', on cache le lieu
-            if (selectType.value === 'Télémédecine') {
-                blocLieu.style.display = 'none';
-            } else {
-                blocLieu.style.display = 'block';
-            }
-        }
-
-        // On lance la fonction au chargement de la page (au cas où il y a une erreur et que le form revient rempli)
-        toggleLieu();
-
-        // On écoute le changement
-        selectType.addEventListener('change', toggleLieu);
+        const selectType = document.getElementById('rendez_vous_type');
+        
+        // Le script initial n'est plus nécessaire car nous n'avons plus de champ "lieu"
+        // Mais on peut garder le script au cas où on voudrait ajouter des fonctionnalités à l'avenir
     });
 </script>
 {% endblock %}

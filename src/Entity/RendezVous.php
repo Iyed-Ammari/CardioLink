@@ -163,4 +163,75 @@ class RendezVous
 
         return $this;
     }
+
+    // ============= MÉTHODES UTILITAIRES =============
+
+    /**
+     * Vérifie si la consultation est passée (plus d'1h après l'heure prévue)
+     */
+    public function isPassedConsultation(): bool
+    {
+        if (!$this->dateHeure) {
+            return false;
+        }
+
+        $now = new \DateTime();
+        $consultationEndTime = (clone $this->dateHeure)->add(new \DateInterval('PT1H'));
+
+        return $now > $consultationEndTime;
+    }
+
+    /**
+     * Vérifie si le RDV est finalisé (accepté ou refusé)
+     */
+    public function isFinalized(): bool
+    {
+        return in_array($this->statut, ['Accepté', 'Refusé']);
+    }
+
+    /**
+     * Vérifie si le patient peut modifier ce RDV
+     */
+    public function canPatientEdit(): bool
+    {
+        // Le patient ne peut pas modifier si le RDV est finalisé ou passé
+        return !$this->isFinalized() && !$this->isPassedConsultation();
+    }
+
+    /**
+     * Vérifie si le patient peut supprimer ce RDV
+     */
+    public function canPatientDelete(): bool
+    {
+        // Même conditions que pour l'édition
+        return $this->canPatientEdit();
+    }
+
+    /**
+     * Vérifie si le médecin peut modifier ce RDV
+     */
+    public function canDoctorEdit(): bool
+    {
+        // Le médecin ne peut modifier que si le RDV n'est pas encore passé (ou en cours de la consultation)
+        return !$this->isPassedConsultation();
+    }
+
+    /**
+     * Vérifie si le médecin peut supprimer ce RDV
+     */
+    public function canDoctorDelete(): bool
+    {
+        // Le médecin ne peut supprimer que si le RDV n'est pas encore passé
+        return !$this->isPassedConsultation();
+    }
+
+    /**
+     * Met à jour automatiquement le statut si la consultation est passée
+     */
+    public function updateStatusIfPassed(): void
+    {
+        if ($this->isPassedConsultation() && $this->statut === 'En attente') {
+            $this->statut = 'Complété';
+        }
+    }
 }

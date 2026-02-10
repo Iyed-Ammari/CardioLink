@@ -60,6 +60,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Assert\NotBlank(message: "L'adresse ne peut pas être vide.")]
     private ?string $adresse = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Length(max: 255, maxMessage: "L'adresse du cabinet ne peut pas dépasser 255 caractères.")]
+    private ?string $cabinet = null;
+
     #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
     private ?DossierMedical $dossierMedical = null;
 
@@ -227,6 +231,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setAdresse(string $adresse): static
     {
         $this->adresse = $adresse;
+
+        return $this;
+    }
+
+    public function getCabinet(): ?string
+    {
+        return $this->cabinet;
+    }
+
+    public function setCabinet(?string $cabinet): static
+    {
+        $this->cabinet = $cabinet;
 
         return $this;
     }

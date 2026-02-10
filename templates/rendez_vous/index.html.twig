@@ -69,7 +69,7 @@
                             <td>
                                 {% if rdv.type == 'Télémédecine' %}
                                     {% if rdv.lienVisio %}
-                                        <a href="{{ rdv.lienVisio }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                        <a href="{{ path('app_rdv_join_visio', {'id': rdv.id}) }}" target="_blank" class="btn btn-sm btn-outline-primary">
                                             Rejoindre la réunion
                                         </a>
                                     {% else %}
@@ -88,14 +88,44 @@
 
                             {# 5. Statut (Code couleur) #}
                             <td>
-                                {% if rdv.statut == 'Confirmé' %}
-                                    <span class="badge bg-success">Confirmé</span>
-                                {% elseif rdv.statut == 'Annulé' %}
-                                    <span class="badge bg-danger">Annulé</span>
-                                {% elseif rdv.statut == 'Terminé' %}
-                                    <span class="badge bg-secondary">Terminé</span>
+                                {# Si c'est un MEDECIN, permet de changer le statut #}
+                                {% if is_granted('ROLE_MEDECIN') %}
+                                    {% if rdv.canDoctorEdit() %}
+                                        {# Formulaire pour changer le statut #}
+                                        <form method="post" action="{{ path('app_rdv_update_status', {'id': rdv.id}) }}" class="d-inline">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('status' ~ rdv.id) }}">
+                                            <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                                                <option value="En attente" {% if rdv.statut == 'En attente' %}selected{% endif %}>En attente</option>
+                                                <option value="Accepté" {% if rdv.statut == 'Accepté' %}selected{% endif %}>Accepté</option>
+                                                <option value="Refusé" {% if rdv.statut == 'Refusé' %}selected{% endif %}>Refusé</option>
+                                                <option value="Complété" {% if rdv.statut == 'Complété' %}selected{% endif %}>Complété</option>
+                                            </select>
+                                        </form>
+                                    {% else %}
+                                        {# Si la consultation est passée, affichage simple du statut #}
+                                        {% if rdv.statut == 'Accepté' %}
+                                            <span class="badge bg-success">{{ rdv.statut }}</span>
+                                        {% elseif rdv.statut == 'Refusé' %}
+                                            <span class="badge bg-danger">{{ rdv.statut }}</span>
+                                        {% elseif rdv.statut == 'Complété' %}
+                                            <span class="badge bg-info">{{ rdv.statut }}</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">{{ rdv.statut }}</span>
+                                        {% endif %}
+                                    {% endif %}
                                 {% else %}
-                                    <span class="badge bg-warning text-dark">En attente</span>
+                                    {# Pour les patients, affichage simple du statut #}
+                                    {% if rdv.statut == 'Accepté' %}
+                                        <span class="badge bg-success">{{ rdv.statut }}</span>
+                                    {% elseif rdv.statut == 'Refusé' %}
+                                        <span class="badge bg-danger">{{ rdv.statut }}</span>
+                                    {% elseif rdv.statut == 'Complété' %}
+                                        <span class="badge bg-info">{{ rdv.statut }}</span>
+                                    {% elseif rdv.statut == 'En attente' %}
+                                        <span class="badge bg-warning text-dark">En attente</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">{{ rdv.statut }}</span>
+                                    {% endif %}
                                 {% endif %}
                             </td>
 
@@ -115,16 +145,26 @@
                                     </a>
                                 {% endif %}
 
-                                {# Bouton Annuler (Seulement si le RDV est futur) #}
-                                {% if rdv.dateHeure > date() and rdv.statut != 'Annulé' %}
-                                    {# Tu devras créer la route de suppression plus tard #}
-                                    <form method="post" action="{{ path('app_rdv_delete', {'id': rdv.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce rendez-vous ?');">
-    {# Ce token est OBLIGATOIRE pour la sécurité Symfony #}
-    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ rdv.id) }}">
-    <button class="btn btn-sm btn-danger">🗑️</button>
-</form>
+                                {# Bouton Suppression pour PATIENT #}
+                                {% if is_granted('ROLE_PATIENT') and rdv.canPatientDelete() %}
+                                    <form method="post" action="{{ path('app_rdv_delete', {'id': rdv.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce rendez-vous ?');" class="d-inline">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ rdv.id) }}">
+                                        <button class="btn btn-sm btn-danger" type="submit">🗑️</button>
+                                    </form>
                                 {% endif %}
-                                {% if rdv.dateHeure > date() %} <a href="{{ path('app_rdv_edit', {'id': rdv.id}) }}" class="btn btn-sm btn-warning text-dark"> ✏️ </a> {% endif %}
+
+                                {# Bouton Suppression pour MEDECIN #}
+                                {% if is_granted('ROLE_MEDECIN') and rdv.canDoctorDelete() %}
+                                    <form method="post" action="{{ path('app_rdv_delete', {'id': rdv.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce rendez-vous ?');" class="d-inline">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ rdv.id) }}">
+                                        <button class="btn btn-sm btn-danger" type="submit">🗑️</button>
+                                    </form>
+                                {% endif %}
+
+                                {# Bouton Édition pour PATIENT seulement (seulement si modifiable) #}
+                                {% if is_granted('ROLE_PATIENT') and rdv.canPatientEdit() %}
+                                    <a href="{{ path('app_rdv_edit', {'id': rdv.id}) }}" class="btn btn-sm btn-warning text-dark">✏️</a>
+                                {% endif %}
                             </td>
                         </tr>
                     {% else %}
