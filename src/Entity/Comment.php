@@ -5,6 +5,8 @@ namespace App\Entity;
 use App\Repository\CommentRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use App\Entity\User;
+use App\Entity\Post;
 
 #[ORM\Entity(repositoryClass: CommentRepository::class)]
 class Comment
@@ -22,24 +24,30 @@ class Comment
 
     #[ORM\ManyToOne(inversedBy: 'comments')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?post $post = null;
-#[ORM\ManyToOne]
-#[ORM\JoinColumn(nullable: false)]
-private ?User $user = null;
+    private ?Post $post = null;
 
-public function getUser(): ?User
-{
-    return $this->user;
-}
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?User $user = null;
 
-public function setUser(?User $user): static
-{
-    $this->user = $user;
-    return $this;
-}
+    public function __construct()
+    {
+    }
+
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function setUser(?User $user): static
+    {
+        $this->user = $user;
+        return $this;
     }
 
     public function getContent(): ?string
@@ -66,12 +74,12 @@ public function setUser(?User $user): static
         return $this;
     }
 
-    public function getPost(): ?post
+    public function getPost(): ?Post
     {
         return $this->post;
     }
 
-    public function setPost(?post $post): static
+    public function setPost(?Post $post): static
     {
         $this->post = $post;
 

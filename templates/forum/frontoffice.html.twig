@@ -10,6 +10,9 @@
       <span class="title" style="font-weight:700; font-size:1.2rem;">CardioLink</span>
       <span class="subtitle" style="font-size:0.9rem; color:#555;">Healthcare Platform</span>
     </div>
+    {% if app.user and 'ROLE_ADMIN' in app.user.roles %}
+    <a href="{{ path('forum_backoffice') }}" style="margin-left:2rem; color:#2F60F5; font-weight:600; text-decoration:none;">Aller au Back-Office</a>
+    {% endif %}
   </div>
 
   <!-- ===== CENTER ===== -->
@@ -17,14 +20,24 @@
     <span class="community-name" style="font-weight:600; font-size:1.1rem;">Wellness <strong>Community</strong></span>
     <span class="community-subtitle" style="font-size:0.85rem; color:#666;">Connect, Share, and Grow Together • Active Members: {{ posts|length }}</span>
 
-    <!-- Barre de recherche -->
-    <input 
-      type="text" 
-      id="search-post"
-      placeholder="Rechercher par titre..."
-      class="search-input"
-      style="margin-top:0.5rem; padding:0.5rem 0.8rem; width:300px; border-radius:6px; border:1px solid #ccc; outline:none;"
-    />
+    <!-- Barre de recherche et tri -->
+    <div style="display:flex; gap:0.5rem; margin-top:0.5rem; align-items:center;">
+      <input 
+        type="text" 
+        id="search-post"
+        placeholder="Rechercher par titre..."
+        class="search-input"
+        style="padding:0.5rem 0.8rem; width:250px; border-radius:6px; border:1px solid #ccc; outline:none;"
+      />
+      
+      <!-- Boutons de tri -->
+      <select id="sort-posts" style="padding:0.5rem 0.8rem; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; outline:none;">
+        <option value="recent">Récent</option>
+        <option value="ancien">Ancien</option>
+        <option value="titre-asc">Titre (A-Z)</option>
+        <option value="titre-desc">Titre (Z-A)</option>
+      </select>
+    </div>
   </div>
 
   <div class="header-right" style="display:flex; align-items:center; gap:1rem;">
@@ -48,14 +61,21 @@
   <nav class="sidebar">
     <div class="logo">CardioLink</div>
     <a href="{{ path('forum_backoffice') }}" style="color:#000000;">Aller au Back-Office</a>
-    <a href="#" class="active">Community</a>
-    <a href="#">Dashboard</a>
-    <a href="#">Patients</a>
-    <a href="#">Monitoring</a>
-    <a href="#">Appointments</a>
-    <a href="#">Reports</a>
-    <a href="#">Notifications</a>
-    <a href="#">Settings</a>
+    <a href="{{ path('forum_frontoffice') }}" class="active">Community</a>
+    <a href="{{ path('app_home') }}">Home</a>
+    {% if is_granted('ROLE_PATIENT') %}
+    <a href="{{ path('app_suivi_index') }}">📊 Mes Suivis</a>
+    <a href="#">Mon Dossier Médical</a>
+    {% endif %}
+    {% if is_granted('ROLE_MEDECIN') %}
+    <a href="{{ path('app_intervention_index') }}">🏥 Interventions</a>
+    <a href="{{ path('app_intervention_urgent') }}">🚨 SOS</a>
+    <a href="#">Gérer mes Patients</a>
+    {% endif %}
+    {% if is_granted('ROLE_ADMIN') %}
+    <a href="#">Administration</a>
+    {% endif %}
+    <a href="{{ logout_path() }}">Logout</a>
   </nav>
 
   <!-- ================= CONTENT ================= -->
@@ -120,6 +140,7 @@
           </form>
 
           <!-- ===== ACTIONS ===== -->
+          {% if app.user and post.user.id == app.user.id %}
           <div style="margin-top:0.6rem; display:flex; gap:0.5rem;">
             <button type="button"
                     class="btn-edit"
@@ -131,6 +152,7 @@
               <button type="submit" style="background:#ef4444;color:#fff;">Supprimer</button>
             </form>
           </div>
+          {% endif %}
 
           <!-- ================= COMMENTAIRES ================= -->
           <div style="margin-top:1rem; padding-top:0.5rem; border-top:1px solid #e5e7eb;">
@@ -160,6 +182,7 @@
               </form>
 
               <!-- ACTIONS -->
+              {% if app.user and comment.user.id == app.user.id %}
               <div class="comment-actions" style="margin-top:2px;">
                 <button type="button" class="btn-edit-comment" style="font-size:0.8rem;">
                   Modifier
@@ -173,6 +196,7 @@
                   </button>
                 </form>
               </div>
+              {% endif %}
 
             </div>
             {% endfor %}
@@ -298,16 +322,72 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ===== RECHERCHE POSTS =====
   const searchInput = document.getElementById('search-post');
-  const posts = document.querySelectorAll('.post-card');
+  const sortSelect = document.getElementById('sort-posts');
+  const postsContainer = document.getElementById('posts-container');
 
-  searchInput.addEventListener('input', function () {
-      const query = this.value.toLowerCase().trim();
+  // Fonction pour trier et afficher les posts
+  function sortAndDisplayPosts() {
+    const query = searchInput.value.toLowerCase().trim();
+    const sortValue = sortSelect.value;
+    
+    // Récupérer tous les posts en tant qu'array
+    let allPosts = Array.from(postsContainer.querySelectorAll('.post-card'));
+    
+    // Filtrer par recherche
+    let visiblePosts = allPosts.filter(post => {
+      const title = post.querySelector('.post-title').textContent.toLowerCase();
+      return title.includes(query);
+    });
 
-      posts.forEach(post => {
-          const title = post.querySelector('.post-title').textContent.toLowerCase();
-          post.style.display = title.includes(query) ? 'block' : 'none';
-      });
-  });
+    // Trier les posts
+    visiblePosts.sort((a, b) => {
+      if (sortValue === 'titre-asc') {
+        const titleA = a.querySelector('.post-title').textContent.toLowerCase();
+        const titleB = b.querySelector('.post-title').textContent.toLowerCase();
+        return titleA.localeCompare(titleB);
+      } else if (sortValue === 'titre-desc') {
+        const titleA = a.querySelector('.post-title').textContent.toLowerCase();
+        const titleB = b.querySelector('.post-title').textContent.toLowerCase();
+        return titleB.localeCompare(titleA);
+      } else if (sortValue === 'recent') {
+        // Récupérer les timestamps depuis data attributes ou créés
+        const dateStrA = a.querySelector('small').textContent;
+        const dateStrB = b.querySelector('small').textContent;
+        // Parser au format "d/m/Y H:i"
+        const dateA = parseDate(dateStrA);
+        const dateB = parseDate(dateStrB);
+        return dateB - dateA;
+      } else if (sortValue === 'ancien') {
+        const dateStrA = a.querySelector('small').textContent;
+        const dateStrB = b.querySelector('small').textContent;
+        const dateA = parseDate(dateStrA);
+        const dateB = parseDate(dateStrB);
+        return dateA - dateB;
+      }
+    });
+
+    // Réorganiser les posts dans le DOM
+    allPosts.forEach(post => post.style.display = 'none');
+    visiblePosts.forEach(post => {
+      post.style.display = 'block';
+      postsContainer.appendChild(post);
+    });
+  }
+
+  // Fonction pour parser la date au format "d/m/Y H:i"
+  function parseDate(dateStr) {
+    const parts = dateStr.trim().split(' ');
+    if (parts.length >= 2) {
+      const [day, month, year] = parts[0].split('/');
+      const [hours, minutes] = parts[1].split(':');
+      return new Date(year, month - 1, day, hours, minutes);
+    }
+    return new Date(0);
+  }
+
+  // Événements pour recherche et tri
+  searchInput.addEventListener('input', sortAndDisplayPosts);
+  sortSelect.addEventListener('change', sortAndDisplayPosts);
 
 });
 </script>

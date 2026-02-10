@@ -104,6 +104,13 @@ class ForumController extends AbstractController
         PostRepository $postRepository,
         CommentRepository $commentRepository
     ): Response {
+        $user = $this->getUser();
+
+        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+            $this->addFlash('error', 'Vous devez être administrateur pour accéder au back-office');
+            return $this->redirectToRoute('forum_frontoffice');
+        }
+
         return $this->render('forum/backoffice.html.twig', [
             'posts' => $postRepository->findAll(),
             'comments' => $commentRepository->findAll(),
