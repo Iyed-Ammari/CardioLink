@@ -1,0 +1,127 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Détails du Suivi {% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-stethoscope"></i> Détails du Suivi
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Type de donnée</h6>
+                            <p class="fs-5"><strong>{{ suivi.typeDonnee }}</strong></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Urgent</h6>
+                            <p>
+                                <span class="badge bg-
+                                    {% if suivi.niveauUrgence == 'Critique' %}
+                                        danger
+                                    {% elseif suivi.niveauUrgence == 'Stable' %}
+                                        warning
+                                    {% else %}
+                                        success
+                                    {% endif %}
+                                " style="font-size: 1rem;">
+                                    {{ suivi.niveauUrgence }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Valeur mesurée</h6>
+                            <p class="fs-5"><strong>{{ suivi.valeur }} {{ suivi.unite }}</strong></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Statut critique</h6>
+                            <p>
+                                {% if suivi.isCritical() %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-exclamation-triangle"></i> CRITIQUE
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Normal
+                                    </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <h6 class="text-muted">Date de saisie</h6>
+                            <p>{{ suivi.dateSaisie|format_datetime('full', 'medium') }}</p>
+                        </div>
+                    </div>
+
+                    {% if suivi.intervention %}
+                        <hr>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <h6 class="text-muted">
+                                    <i class="fas fa-ambulance"></i> Intervention associée
+                                </h6>
+                                <p>
+                                    <a href="{{ path('app_intervention_show', {'id': suivi.intervention.id}) }}" class="btn btn-sm btn-outline-primary">
+                                        Voir l'intervention SOS
+                                    </a>
+                                </p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <a href="{{ path('app_suivi_edit', {'id': suivi.id}) }}" class="btn btn-warning">
+                    <i class="fas fa-edit"></i> Modifier
+                </a>
+                <form method="POST" action="{{ path('app_suivi_delete', {'id': suivi.id}) }}" style="display:inline;">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ suivi.id) }}">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce suivi ?')">
+                        <i class="fas fa-trash"></i> Supprimer
+                    </button>
+                </form>
+                <a href="{{ path('app_suivi_index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Retour
+                </a>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-info-circle"></i> Guide d'interprétation
+                    </h6>
+                </div>
+                <div class="card-body small">
+                    {% set guidance = {
+                        'Fréquence Cardiaque': 'Normal: 60-100 bpm | Stable: 100-120 bpm | Critique: > 120 ou < 40 bpm',
+                        'Tension': 'Normal: < 140/90 mmHg | Stable: 140-180/90-110 mmHg | Critique: > 180/110 mmHg',
+                        'SpO2': 'Normal: > 95% | Stable: 90-95% | Critique: < 90%',
+                        'Température': 'Normal: 36.5-37.5°C | Stable: 37.5-39°C | Critique: > 39°C ou < 35°C',
+                        'Glycémie': 'Normal: 70-100 mg/dL | Stable: 70-100 ou 200-250 mg/dL | Critique: > 250 ou < 70 mg/dL'
+                    } %}
+                    
+                    {% if guidance[suivi.typeDonnee] %}
+                        <p class="mb-0">{{ guidance[suivi.typeDonnee] }}</p>
+                    {% else %}
+                        <p class="mb-0">Consultez votre médecin pour l'interprétation.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

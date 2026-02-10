@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\DossierMedicalRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: DossierMedicalRepository::class)]
 #[ORM\Table(name: 'dossier_medical')] // ✅ force le nom exact
@@ -16,12 +17,25 @@ class DossierMedical
     private ?int $id = null;
 
     #[ORM\Column(length: 5)]
+    #[Assert\NotBlank(message: "Le groupe sanguin est obligatoire.")]
+    #[Assert\Choice(
+        choices: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+        message: "Le groupe sanguin choisi n'est pas valide."
+    )]
     private ?string $groupeSanguin = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(
+        max: 2000,
+        maxMessage: "La description des antécédents ne peut pas dépasser {{ limit }} caractères."
+    )]
     private ?string $antecedents = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(
+        max: 1000,
+        maxMessage: "La liste des allergies est trop longue (max {{ limit }} caractères)."
+    )]
     private ?string $allergies = null;
 
     #[ORM\OneToOne(inversedBy: 'dossierMedical', targetEntity: User::class)]
@@ -45,8 +59,7 @@ class DossierMedical
     // ✅ sécurité: si antecedents est null, on évite erreur
     public function updateHistory(string $newInfo): self
     {
-        $old = $this->antecedents ?? '';
-        $this->antecedents = trim($old . "\nMis à jour le " . date('d/m/Y') . " : " . $newInfo);
+        $this->antecedents .= "\n Mis à jour le " . date('d/m/Y') . " : " . $newInfo;
         return $this;
     }
 
@@ -54,9 +67,9 @@ class DossierMedical
     {
         return sprintf(
             "Patient: %s | Groupe: %s | Allergies: %s",
-            $this->getUser()?->getNom() ?? 'N/A',
-            $this->groupeSanguin ?? 'N/A',
-            $this->allergies ?? 'N/A'
+            $this->getUser()->getNom(),
+            $this->groupeSanguin,
+            $this->allergies
         );
     }
 }

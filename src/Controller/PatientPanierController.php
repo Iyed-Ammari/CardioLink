@@ -18,26 +18,27 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/patient/panier')]
 final class PatientPanierController extends AbstractController
 {
-    /**
-     * ✅ LOCAL ONLY: on simule un user connecté sans vraie sécurité
-     * - tu peux changer l'email si tu veux
-     */
-    private function getFakeUser(EntityManagerInterface $em): User
+    private function getLocalUser(EntityManagerInterface $em): User
     {
+        // ✅ email de test (mets celui qui existe dans ta DB)
         $email = 'patient@cardiolink.tn';
+
+        $user = $this->getUser();
+        if ($user instanceof User) {
+            return $user;
+        }
 
         $user = $em->getRepository(User::class)->findOneBy(['email' => $email]);
         if (!$user) {
-            throw $this->createNotFoundException("User de test introuvable: $email. Crée-le d'abord en base.");
+            throw $this->createNotFoundException("User local introuvable: $email. Crée-le en base.");
         }
-
         return $user;
     }
 
     private function getOrCreatePanier(CommandeRepository $commandeRepo, EntityManagerInterface $em): Commande
     {
         // ✅ au lieu de getUser() (null), on prend un user de test
-        $user = $this->getFakeUser($em);
+        $user = $this->getLocalUser($em);
 
         $panier = $commandeRepo->findPanierByUser($user);
         if ($panier) return $panier;
@@ -140,7 +141,7 @@ final class PatientPanierController extends AbstractController
         EntityManagerInterface $em
     ): RedirectResponse {
 
-        $user = $this->getFakeUser($em);
+        $user = $this->getLocalUser($em);
 
         $ligne = $ligneRepo->find($id);
         if (!$ligne) {
@@ -183,7 +184,7 @@ final class PatientPanierController extends AbstractController
         EntityManagerInterface $em
     ): RedirectResponse {
 
-        $user = $this->getFakeUser($em);
+        $user = $this->getLocalUser($em);
 
         $ligne = $ligneRepo->find($id);
         if (!$ligne) {
@@ -215,7 +216,7 @@ final class PatientPanierController extends AbstractController
     #[Route('/checkout', name: 'patient_panier_checkout', methods: ['POST'])]
     public function checkout(CommandeRepository $commandeRepo, EntityManagerInterface $em): RedirectResponse
     {
-        $user = $this->getFakeUser($em);
+        $user = $this->getLocalUser($em);
 
         $panier = $commandeRepo->findPanierByUser($user);
         if (!$panier) {
