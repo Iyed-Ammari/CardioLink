@@ -4,6 +4,7 @@
 
 {% block body %}
 <div class="container mt-5">
+<<<<<<< HEAD
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card shadow-sm">
@@ -73,4 +74,38 @@
         </div>
     </div>
 </div>
+=======
+    <h1>✏️ Modifier le Rendez-vous</h1>
+   
+    <div class="card shadow-sm mt-4">
+        <div class="card-body">
+            {{ form_start(form) }}
+                {# On réutilise les widgets, ou on laisse Symfony faire #}
+                {{ form_widget(form) }}
+               
+                <div class="mt-3 d-flex justify-content-between">
+                    <a href="{{ path('app_rdv_index') }}" class="btn btn-secondary">Retour</a>
+                    <button class="btn btn-warning">💾 Enregistrer les modifications</button>
+                </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+</div>
+
+{# LE SCRIPT EST NÉCESSAIRE ICI AUSSI #}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Attention : Vérifie bien l'ID de ton champ Type (souvent rendez_vous_type)
+        const selectType = document.getElementById('rendez_vous_type');
+        // L'ID du champ Lieu généré par Symfony (souvent div > label > select)
+        // Astuce : Cherche le div parent du champ Lieu.
+        // Si tu as utilisé form_widget(form), c'est automatique.
+        // Si tu veux le cibler précisément, il vaut mieux personnaliser l'affichage comme dans new.html.twig
+       
+        // Pour faire simple ici, on suppose que tu utilises le même template que New
+        // Si tu veux faire pro, copie-colle tout le contenu de new.html.twig ici
+        // et change juste le titre et le texte du bouton.
+    });
+</script>
+>>>>>>> b6f51606fe623e32b207fad7a4244e37179d11cb
 {% endblock %}

@@ -5,6 +5,8 @@ namespace App\Form;
 use App\Entity\RendezVous;
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Entity\Lieu;
+use App\Entity\Ordonnance;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -42,6 +44,8 @@ class RendezVousType extends AbstractType
                     new NotBlank(['message' => 'La date et l\'heure sont obligatoires.'])
                 ]
             ])
+
+            ->add('statut')
             ->add('type', ChoiceType::class, [
                 'choices' => [
                     'Consultation au cabinet' => 'Présentiel',
@@ -57,6 +61,32 @@ class RendezVousType extends AbstractType
                 'required' => false,
                 'label' => 'Motif / Remarques (optionnel)',
                 'attr' => ['placeholder' => 'Ex: Douleurs thoraciques depuis 2 jours...']
+            ])
+            ->add('lienVisio')
+            ->add('remarques', TextareaType::class, [
+                'required' => false,
+                'label' => 'Motif de la consultation'
+            ])
+            ->add('patient', EntityType::class, [
+                'class' => User::class,
+                'choice_label' => 'id',
+            ])
+            ->add('medecin', EntityType::class, [
+                'class' => User::class,
+                'choice_label' => 'nom', // Affiche le nom du médecin
+                // Idéalement, filtre ici pour n'afficher que les utilisateurs avec ROLE_MEDECIN
+                'label' => 'Choisir un médecin'
+            ])
+            ->add('lieu', EntityType::class, [
+                'class' => Lieu::class,
+                'choice_label' => 'nom',
+                'required' => false,
+                'label' => 'Lieu (si présentiel)',
+                'placeholder' => 'Choisir un cabinet...'
+            ])
+            ->add('ordonnance', EntityType::class, [
+                'class' => Ordonnance::class,
+                'choice_label' => 'id',
             ])
         ;
     }

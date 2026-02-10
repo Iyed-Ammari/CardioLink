@@ -21,6 +21,7 @@
                     {{ form_start(form) }}
                        
                         <div class="mb-3">
+<<<<<<< HEAD
                             <label class="form-label">{{ form.medecin.vars.label }}</label>
                             {{ form_widget(form.medecin, {'attr': {'class': 'form-select'}}) }}
                             {% if form.medecin.vars.errors %}
@@ -30,10 +31,16 @@
                                     {% endfor %}
                                 </div>
                             {% endif %}
+=======
+                            <label class="form-label">Médecin</label>
+                            {{ form_widget(form.medecin, {'attr': {'class': 'form-select'}}) }}
+                            <div class="form-text text-muted">Choisissez votre praticien.</div>
+>>>>>>> b6f51606fe623e32b207fad7a4244e37179d11cb
                         </div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
+<<<<<<< HEAD
                                 <label class="form-label">{{ form.dateHeure.vars.label }}</label>
                                 {{ form_widget(form.dateHeure, {'attr': {'class': 'form-control', 'type': 'datetime-local'}}) }}
                                 {% if form.dateHeure.vars.errors %}
@@ -60,6 +67,26 @@
 
                         <div class="mb-3">
                             <label class="form-label">{{ form.remarques.vars.label }}</label>
+=======
+                                <label class="form-label">Date et Heure</label>
+                                {{ form_widget(form.dateHeure, {'attr': {'class': 'form-control'}}) }}
+                            </div>
+                           
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Type de consultation</label>
+                                {{ form_widget(form.type, {'attr': {'class': 'form-select', 'id': 'select-type'}}) }}
+                            </div>
+                        </div>
+
+                        {# Ce bloc sera caché si Télémédecine est choisi #}
+                        <div class="mb-3" id="bloc-lieu">
+                            <label class="form-label">Lieu du rendez-vous</label>
+                            {{ form_widget(form.lieu, {'attr': {'class': 'form-select'}}) }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Motif / Remarques</label>
+>>>>>>> b6f51606fe623e32b207fad7a4244e37179d11cb
                             {{ form_widget(form.remarques, {'attr': {'class': 'form-control', 'rows': '3', 'placeholder': 'Ex: Douleurs thoraciques depuis 2 jours...'}}) }}
                         </div>
 
@@ -79,6 +106,7 @@
     </div>
 </div>
 
+<<<<<<< HEAD
 {# --- LE SCRIPT POUR AFFICHAGE CONDITIONNEL --- #}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -86,6 +114,28 @@
         
         // Le script initial n'est plus nécessaire car nous n'avons plus de champ "lieu"
         // Mais on peut garder le script au cas où on voudrait ajouter des fonctionnalités à l'avenir
+=======
+{# --- LE SCRIPT MAGIQUE --- #}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectType = document.getElementById('rendez_vous_type'); // L'ID généré par Symfony
+        const blocLieu = document.getElementById('bloc-lieu'); // Notre div contenant le lieu
+
+        function toggleLieu() {
+            // Si la valeur est 'Télémédecine', on cache le lieu
+            if (selectType.value === 'Télémédecine') {
+                blocLieu.style.display = 'none';
+            } else {
+                blocLieu.style.display = 'block';
+            }
+        }
+
+        // On lance la fonction au chargement de la page (au cas où il y a une erreur et que le form revient rempli)
+        toggleLieu();
+
+        // On écoute le changement
+        selectType.addEventListener('change', toggleLieu);
+>>>>>>> b6f51606fe623e32b207fad7a4244e37179d11cb
     });
 </script>
 {% endblock %}
