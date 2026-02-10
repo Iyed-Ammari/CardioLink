@@ -60,6 +60,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Assert\NotBlank(message: "L'adresse ne peut pas être vide.")]
     private ?string $adresse = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Length(max: 255, maxMessage: "L'adresse du cabinet ne peut pas dépasser 255 caractères.")]
+    private ?string $cabinet = null;
+
     #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
     private ?DossierMedical $dossierMedical = null;
 
@@ -71,6 +75,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column]
     private bool $isVerified = false;
+
+    /**
+     * @var Collection<int, RendezVous>
+     */
+    #[ORM\OneToMany(targetEntity: RendezVous::class, mappedBy: 'patient')]
+    private Collection $rendezVouses;
+
+    /**
+     * @var Collection<int, RendezVous>
+     */
+    #[ORM\OneToMany(targetEntity: RendezVous::class, mappedBy: 'medecin')]
+    private Collection $rendezVousMedecin;
 
     /**
      * @var Collection<int, Conversation>
@@ -97,6 +113,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->conversationsAsPatient = new ArrayCollection();
         $this->conversationsAsMedecin = new ArrayCollection();
         $this->messages = new ArrayCollection();
+        $this->rendezVouses = new ArrayCollection();
+        $this->rendezVousMedecin = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -217,6 +235,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function getCabinet(): ?string
+    {
+        return $this->cabinet;
+    }
+
+    public function setCabinet(?string $cabinet): static
+    {
+        $this->cabinet = $cabinet;
+
+        return $this;
+    }
+
     public function getDossierMedical(): ?DossierMedical
     {
         return $this->dossierMedical;
@@ -247,6 +277,22 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
+     * @return Collection<int, RendezVous>
+     */
+    public function getRendezVouses(): Collection
+    {
+        return $this->rendezVouses;
+    }
+
+    public function addRendezVouse(RendezVous $rendezVouse): static
+    {
+        if (!$this->rendezVouses->contains($rendezVouse)) {
+            $this->rendezVouses->add($rendezVouse);
+            $rendezVouse->setPatient($this);
+        }
+        return $this;
+    }
+    /**
      * @return Collection<int, Suivi>
      */
     public function getSuivis(): Collection
@@ -264,6 +310,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function removeRendezVouse(RendezVous $rendezVouse): static
+    {
+        if ($this->rendezVouses->removeElement($rendezVouse)) {
+            // set the owning side to null (unless already changed)
+            if ($rendezVouse->getPatient() === $this) {
+                $rendezVouse->setPatient(null);
+            }
+        }
+        return $this;
+    }
+    
     public function removeSuivi(Suivi $suivi): static
     {
         if ($this->suivis->removeElement($suivi)) {
@@ -275,6 +332,22 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    /**
+     * @return Collection<int, RendezVous>
+     */
+    public function getRendezVousMedecin(): Collection
+    {
+        return $this->rendezVousMedecin;
+    }
+
+    public function addRendezVousMedecin(RendezVous $rendezVousMedecin): static
+    {
+        if (!$this->rendezVousMedecin->contains($rendezVousMedecin)) {
+            $this->rendezVousMedecin->add($rendezVousMedecin);
+            $rendezVousMedecin->setMedecin($this);
+        }
+        return $this;
+    }
     /**
      * @return Collection<int, Intervention>
      */
@@ -293,6 +366,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function removeRendezVousMedecin(RendezVous $rendezVousMedecin): static
+    {
+        if ($this->rendezVousMedecin->removeElement($rendezVousMedecin)) {
+            // set the owning side to null (unless already changed)
+            if ($rendezVousMedecin->getMedecin() === $this) {
+                $rendezVousMedecin->setMedecin(null);
+            }
+        }
+        return $this;
+    }
+    
     public function removeIntervention(Intervention $intervention): static
     {
         if ($this->interventions->removeElement($intervention)) {
