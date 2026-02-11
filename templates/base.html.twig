@@ -53,8 +53,7 @@
               {% if is_granted('ROLE_MEDECIN') %}
                 <a href="{{ path('app_intervention_index') }}" class="nav-link">🏥 Interventions</a>
                 <a href="{{ path('app_intervention_urgent') }}" class="nav-link">🚨 SOS</a>
-                {# <a href="{{ path('app_liste_patients') }}" class="nav-link">Gérer mes Patients</a> #}
-                <a href="#" class="nav-link">Gérer mes Patients</a>
+                 <a href="{{ path('app_rdv_index') }}" class="nav-link">Gérer RDV</a> 
               {% endif %}
 
               {% if is_granted('ROLE_ADMIN') %}

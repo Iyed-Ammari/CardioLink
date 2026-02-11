@@ -1,0 +1,222 @@
+{% extends 'patient/base.html.twig' %}
+
+{% block title %}Produits{% endblock %}
+{% block page_title %}Marketplace — Produits{% endblock %}
+
+{% block styles %}
+<style>
+  .toolbar{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  .search{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .control{
+    height:42px;
+    padding:0 12px;
+    border-radius:12px;
+    border:1px solid rgba(229,231,235,.9);
+    outline:none;
+    background:#fff;
+    min-width:260px;
+    font-weight:800;
+  }
+  .control:focus{
+    border-color: rgba(47,96,245,.35);
+    box-shadow: 0 0 0 4px rgba(47,96,245,.10);
+  }
+  .select{ min-width:220px; }
+  .muted{ color:var(--muted); font-weight:900; font-size:13px; }
+
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap:14px;
+  }
+  @media (max-width: 1100px){ .grid{grid-template-columns: repeat(2, minmax(0, 1fr));} }
+  @media (max-width: 700px){ .grid{grid-template-columns: 1fr;} }
+
+  .p-card{
+    border:1px solid rgba(229,231,235,.9);
+    border-radius:18px;
+    overflow:hidden;
+    background:#fff;
+    box-shadow: var(--shadow-soft);
+    transition:.18s ease;
+    display:flex;
+    flex-direction:column;
+    min-height: 280px;
+  }
+  .p-card:hover{ transform: translateY(-2px); box-shadow: var(--shadow); }
+
+  .p-media{
+    height:140px;
+    background: linear-gradient(135deg, rgba(248,34,57,.14), rgba(47,96,245,.14));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+  }
+  .p-img{
+    width:100%; height:100%;
+    object-fit:cover;
+    display:block;
+  }
+  .p-fallback{
+    width:64px;height:64px;border-radius:20px;
+    background: linear-gradient(135deg, rgba(248,34,57,.22), rgba(47,96,245,.22));
+    display:flex;align-items:center;justify-content:center;
+    font-weight:900;
+  }
+
+  .p-body{ padding:12px 12px 14px 12px; display:flex; flex-direction:column; gap:10px; flex:1; }
+  .p-title{ font-weight:950; font-size:15px; }
+  .p-desc{ color:var(--muted); font-weight:800; font-size:12.5px; line-height:1.35; min-height:34px; }
+
+  .row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-top:auto;
+  }
+  .price{
+    font-weight:950;
+    white-space:nowrap;
+  }
+  .stock{
+    font-weight:900;
+    font-size:12px;
+    padding:6px 10px;
+    border-radius:999px;
+    border:1px solid rgba(229,231,235,.9);
+    background:#fff;
+  }
+  .ok{ color:#0F766E; border-color: rgba(13,148,136,.25); background: rgba(13,148,136,.08); }
+  .no{ color:#B42318; border-color: rgba(248,34,57,.25); background: rgba(248,34,57,.08); }
+
+  .add-btn{
+    height:40px;
+    width:44px;
+    border-radius:12px;
+    border:1px solid rgba(229,231,235,.9);
+    background:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:.15s ease;
+  }
+  .add-btn:hover{
+    border-color: rgba(47,96,245,.25);
+    box-shadow: var(--shadow-soft);
+    transform: translateY(-1px);
+  }
+  .add-btn svg{ width:20px; height:20px; stroke:#374151; }
+
+  .add-btn[disabled]{
+    opacity:.55;
+    cursor:not-allowed;
+    transform:none;
+    box-shadow:none;
+  }
+
+  .mini{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+  <div class="card">
+    <div class="toolbar">
+      <form method="get" class="search">
+        <input class="control" type="text" name="q" value="{{ q ?? '' }}" placeholder="Recherche (nom, description)">
+
+        <select class="control select" name="categorie">
+          <option value="" {{ (categorie ?? '') == '' ? 'selected' : '' }}>Toutes catégories</option>
+          <option value="MEDICAL" {{ (categorie ?? '') == 'MEDICAL' ? 'selected' : '' }}>Médical</option>
+          <option value="ACCESSOIRE" {{ (categorie ?? '') == 'ACCESSOIRE' ? 'selected' : '' }}>Accessoire</option>
+          <option value="AUTRE" {{ (categorie ?? '') == 'AUTRE' ? 'selected' : '' }}>Autre</option>
+        </select>
+
+        <button class="btn btn-ghost" type="submit">Filtrer</button>
+        <a class="btn btn-ghost" href="{{ path('patient_produit_index') }}">Réinitialiser</a>
+      </form>
+
+      <div class="muted">Total: {{ produits|length }}</div>
+    </div>
+
+    <div class="grid">
+      {% for p in produits %}
+        <div class="p-card">
+          <div class="p-media">
+            {% set img = p.imageUrl %}
+            {% if img %}
+              {% if img starts with '/' %}
+                <img class="p-img" src="{{ asset(img) }}" alt="{{ p.nom }}">
+              {% else %}
+                <img class="p-img" src="{{ img }}" alt="{{ p.nom }}">
+              {% endif %}
+            {% else %}
+              <div class="p-fallback">CL</div>
+            {% endif %}
+          </div>
+
+          <div class="p-body">
+            <div class="mini">
+              <div class="p-title">{{ p.nom }}</div>
+              {% if (p.stock ?? 0) > 0 %}
+                <span class="stock ok">DISPONIBLE</span>
+              {% else %}
+                <span class="stock no">RUPTURE</span>
+              {% endif %}
+            </div>
+
+            <div class="p-desc">
+              {{ p.description ? p.description|slice(0, 90) ~ (p.description|length > 90 ? '…' : '') : '—' }}
+            </div>
+
+            <div class="row">
+              <div class="price">{{ p.prix }} TND</div>
+
+              <form method="post" action="{{ path('patient_panier_add') }}" style="margin:0;">
+                <input type="hidden" name="produitId" value="{{ p.id }}">
+                <input type="hidden" name="quantite" value="1">
+
+                <button
+                  class="add-btn"
+                  type="submit"
+                  title="{{ (p.stock ?? 0) > 0 ? 'Ajouter au panier' : 'Rupture de stock' }}"
+                  {{ (p.stock ?? 0) > 0 ? '' : 'disabled' }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M6 6h15l-1.5 9h-12z" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M6 6L5 3H2" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M12 10v6" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M9 13h6" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div style="grid-column:1 / -1; color:var(--muted); font-weight:900;">
+          Aucun produit trouvé.
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}

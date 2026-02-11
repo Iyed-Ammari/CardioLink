@@ -1,0 +1,352 @@
+{# templates/admin/base.html.twig #}
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Admin{% endblock %} • CardioLink</title>
+
+  <style>
+    :root{
+      --red:#F82239;
+      --blue:#2F60F5;
+      --bg:#F6F7FB;
+      --card:#FFFFFF;
+      --text:#111827;
+      --muted:#6B7280;
+      --border:#E5E7EB;
+      --shadow: 0 10px 25px rgba(16,24,40,.08);
+      --shadow-soft: 0 6px 18px rgba(16,24,40,.06);
+      --radius:16px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color:var(--text);
+      background:var(--bg);
+    }
+
+    .admin-shell{
+      display:flex;
+      min-height:100vh;
+    }
+
+    /* Sidebar */
+    .sidebar{
+      width: 290px;
+      background: #fff;
+      border-right: 1px solid rgba(229,231,235,.8);
+      box-shadow: 0 10px 30px rgba(16,24,40,.06);
+      display:flex;
+      flex-direction:column;
+    }
+
+    .brand{
+      padding: 22px 18px 14px 18px;
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+
+    .brand-badge{
+      width:44px;height:44px;border-radius:14px;
+      background: linear-gradient(135deg, var(--red), var(--blue));
+      display:flex;align-items:center;justify-content:center;
+      box-shadow: 0 12px 20px rgba(47,96,245,.18);
+    }
+    .brand-badge svg{width:22px;height:22px; fill:#fff}
+
+    .brand-title{line-height:1.05;}
+    .brand-title .name{font-weight:800;font-size:18px;letter-spacing:.2px;}
+    .brand-title .sub{font-size:12.5px;color:var(--muted);margin-top:3px;}
+
+    .nav{
+      padding: 14px 12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .nav a{
+      text-decoration:none;
+      color:#111827;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      transition: .18s ease;
+      font-weight:600;
+    }
+
+    .nav a .icon{
+      width:40px;height:40px;border-radius:14px;
+      display:flex;align-items:center;justify-content:center;
+      background:#F3F4F6;
+      transition:.18s ease;
+    }
+    .nav a .icon svg{width:20px;height:20px; stroke:#374151}
+
+    .nav a:hover{
+      border-color: rgba(47,96,245,.18);
+      box-shadow: var(--shadow-soft);
+      transform: translateY(-1px);
+    }
+
+    .nav a.active{
+      color:#fff;
+      background: linear-gradient(90deg, var(--red), var(--blue));
+      box-shadow: 0 14px 25px rgba(47,96,245,.16);
+    }
+    .nav a.active .icon{background: rgba(255,255,255,.18);}
+    .nav a.active .icon svg{stroke:#fff}
+
+    .sidebar-footer{
+      margin-top:auto;
+      padding: 14px 16px 18px 16px;
+      border-top: 1px solid rgba(229,231,235,.8);
+      display:flex;gap:12px;align-items:center;
+    }
+    .avatar{
+      width:44px;height:44px;border-radius:16px;
+      background: linear-gradient(135deg, rgba(248,34,57,.22), rgba(47,96,245,.22));
+      display:flex;align-items:center;justify-content:center;
+      font-weight:800;color:#1F2937;
+    }
+    .who .role{font-size:12px;color:var(--muted)}
+    .who .user{font-weight:800}
+
+    /* Main */
+    .main{flex:1;padding: 26px;}
+
+    .page-head{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:14px;
+      margin-bottom:18px;
+    }
+    .page-head h1{margin:0;font-size:26px;letter-spacing:.2px;}
+    .page-head .hint{color:var(--muted);font-size:13px;margin-top:6px;}
+
+    .card{
+      background:var(--card);
+      border:1px solid rgba(229,231,235,.8);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .toolbar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom: 12px;
+      flex-wrap:wrap;
+    }
+    .toolbar .left{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .toolbar input{
+      height:42px;
+      padding: 0 12px;
+      border-radius: 12px;
+      border:1px solid rgba(229,231,235,.9);
+      outline:none;
+      min-width:240px;
+    }
+    .toolbar input:focus{
+      border-color: rgba(47,96,245,.35);
+      box-shadow: 0 0 0 4px rgba(47,96,245,.10);
+    }
+
+    .btn{
+      height:42px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border:1px solid transparent;
+      cursor:pointer;
+      font-weight:800;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      text-decoration:none;
+    }
+    .btn-primary{
+      color:#fff;
+      background: linear-gradient(90deg, var(--red), var(--blue));
+      box-shadow: 0 14px 25px rgba(47,96,245,.16);
+    }
+    .btn-ghost{
+      background:#fff;
+      border-color: rgba(229,231,235,.9);
+      color:#111827;
+    }
+
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border-radius: 14px;
+      border: 1px solid rgba(229,231,235,.9);
+    }
+    thead th{
+      text-align:left;
+      font-size:12px;
+      color: #6B7280;
+      letter-spacing:.4px;
+      text-transform:uppercase;
+      background:#FAFAFB;
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(229,231,235,.9);
+    }
+    tbody td{
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(229,231,235,.7);
+      vertical-align:middle;
+    }
+    tbody tr:hover{background: rgba(47,96,245,.04);}
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      padding: 6px 10px;
+      border-radius:999px;
+      font-weight:800;
+      font-size:12px;
+      border: 1px solid rgba(229,231,235,.9);
+      background:#fff;
+    }
+    .badge-ok{color:#0F766E; border-color: rgba(13,148,136,.25); background: rgba(13,148,136,.08);}
+    .badge-no{color:#B42318; border-color: rgba(248,34,57,.25); background: rgba(248,34,57,.08);}
+
+    .link{
+      font-weight:800;
+      text-decoration:none;
+      color: var(--blue);
+    }
+    .link:hover{ text-decoration: underline; }
+
+    /* ✅ TOASTS (popup) */
+    .toast-stack{
+      position:fixed;
+      top:18px;
+      right:18px;
+      z-index:9999;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      pointer-events:none;
+    }
+    .toast{
+      pointer-events:auto;
+      width:min(360px, calc(100vw - 36px));
+      background:#fff;
+      border-radius:14px;
+      border:1px solid rgba(229,231,235,.9);
+      box-shadow: 0 14px 30px rgba(16,24,40,.14);
+      padding:12px 12px;
+      position:relative;
+      overflow:hidden;
+      animation: toastIn .18s ease-out;
+    }
+    .toast::before{
+      content:"";
+      position:absolute;
+      left:0; top:0; bottom:0;
+      width:6px;
+      background: var(--blue);
+    }
+
+    .toast-success{ border-color: rgba(13,148,136,.25); }
+    .toast-success::before{ background: rgba(13,148,136,1); }
+
+    .toast-danger{ border-color: rgba(248,34,57,.25); }
+    .toast-danger::before{ background: rgba(248,34,57,1); }
+
+    .toast-title{ font-weight:900; font-size:13px; color:#111827; }
+    .toast-msg{ margin-top:3px; font-weight:700; font-size:13px; color:#374151; }
+
+    .toast-close{
+      position:absolute;
+      top:8px; right:10px;
+      border:0;
+      background:transparent;
+      font-size:18px;
+      cursor:pointer;
+      color:#6B7280;
+      line-height:1;
+    }
+
+    .toast-hide{
+      opacity:0;
+      transform: translateY(-6px);
+      transition: .2s ease;
+    }
+
+    @keyframes toastIn{
+      from{ opacity:0; transform: translateY(-8px); }
+      to{ opacity:1; transform: translateY(0); }
+    }
+
+    @media (max-width: 980px){
+      .sidebar{width: 84px}
+      .brand-title, .nav .label, .who{display:none}
+      .nav a{justify-content:center}
+      .sidebar-footer{justify-content:center}
+    }
+  </style>
+
+  {% block styles %}{% endblock %}
+</head>
+<body>
+
+  {# ✅ TOASTS global (affiché sur toutes les pages) #}
+  <div class="toast-stack" id="toastStack">
+    {% for label, msgs in app.flashes %}
+      {% for m in msgs %}
+        <div class="toast {{ label == 'success' ? 'toast-success' : (label == 'danger' ? 'toast-danger' : '') }}">
+          <div class="toast-title">{{ label == 'success' ? 'Succès' : 'Erreur' }}</div>
+          <div class="toast-msg">{{ m }}</div>
+          <button class="toast-close" type="button" aria-label="Fermer">×</button>
+        </div>
+      {% endfor %}
+    {% endfor %}
+  </div>
+
+  <div class="admin-shell">
+    {% include 'admin/_sidebar.html.twig' %}
+
+    <main class="main">
+      {% block body %}{% endblock %}
+    </main>
+  </div>
+
+  <script>
+    (function(){
+      const toasts = document.querySelectorAll('.toast');
+      if(!toasts.length) return;
+
+      toasts.forEach((t) => {
+        const isSuccess = t.classList.contains('toast-success');
+        const ttl = isSuccess ? 8000 : 4500;
+
+        const close = () => {
+          t.classList.add('toast-hide');
+          setTimeout(() => t.remove(), 220);
+        };
+
+        const btn = t.querySelector('.toast-close');
+        if(btn) btn.addEventListener('click', close);
+
+        setTimeout(close, ttl);
+      });
+    })();
+  </script>
+
+  {% block javascripts %}{% endblock %}
+</body>
+</html>

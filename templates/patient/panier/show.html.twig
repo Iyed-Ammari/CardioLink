@@ -1,0 +1,173 @@
+{% extends 'patient/base.html.twig' %}
+
+{% block title %}Mon panier{% endblock %}
+{% block page_title %}Mon panier{% endblock %}
+{% block page_hint %}Vérifie les quantités puis valide la commande{% endblock %}
+
+{% block styles %}
+<style>
+  .layout{
+    display:grid;
+    grid-template-columns: 1fr 360px;
+    gap:14px;
+  }
+  @media (max-width: 1000px){ .layout{ grid-template-columns:1fr; } }
+
+  .item{
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+    padding:12px;
+    border:1px solid rgba(229,231,235,.9);
+    border-radius:16px;
+    background:#fff;
+  }
+  .thumb{
+    width:54px;height:54px;border-radius:16px;
+    border:1px solid rgba(229,231,235,.9);
+    overflow:hidden;
+    background: linear-gradient(135deg, rgba(248,34,57,.14), rgba(47,96,245,.14));
+    display:flex;align-items:center;justify-content:center;
+    flex:0 0 auto;
+  }
+  .thumb img{width:100%;height:100%;object-fit:cover;}
+  .thumb .fallback{font-weight:950;}
+  .name{font-weight:950;}
+  .meta{color:var(--muted); font-weight:800; font-size:12.5px; margin-top:2px;}
+  .right{
+    margin-left:auto;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    align-items:flex-end;
+    min-width:200px;
+  }
+  .lineTotal{font-weight:950;}
+  .qty{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .qty input{
+    height:40px;
+    width:86px;
+    border-radius:12px;
+    border:1px solid rgba(229,231,235,.9);
+    outline:none;
+    padding:0 10px;
+    font-weight:900;
+  }
+  .qty input:focus{
+    border-color: rgba(47,96,245,.35);
+    box-shadow: 0 0 0 4px rgba(47,96,245,.10);
+  }
+
+  .mini-btn{
+    height:40px;
+    padding:0 12px;
+    border-radius:12px;
+    border:1px solid rgba(229,231,235,.9);
+    background:#fff;
+    font-weight:950;
+    cursor:pointer;
+  }
+  .mini-danger{
+    border-color: rgba(248,34,57,.25);
+    background: rgba(248,34,57,.08);
+    color:#B42318;
+  }
+
+  .summary{
+    position:sticky;
+    top:18px;
+  }
+  .sumRow{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    padding:10px 0;
+    border-bottom:1px solid rgba(229,231,235,.7);
+    font-weight:900;
+  }
+  .sumRow:last-child{border-bottom:0}
+  .big{font-size:18px}
+</style>
+{% endblock %}
+
+{% block body %}
+  <div class="layout">
+    <div class="card">
+      {% if commande.lignes|length == 0 %}
+        <div style="color:var(--muted); font-weight:900;">
+          Panier vide. <a class="btn btn-ghost" href="{{ path('patient_produit_index') }}">Voir les produits</a>
+        </div>
+      {% else %}
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          {% for l in commande.lignes %}
+            <div class="item">
+              <div class="thumb">
+                {% set img = l.produit.imageUrl %}
+                {% if img %}
+                  {% if img starts with '/' %}
+                    <img src="{{ asset(img) }}" alt="{{ l.produit.nom }}">
+                  {% else %}
+                    <img src="{{ img }}" alt="{{ l.produit.nom }}">
+                  {% endif %}
+                {% else %}
+                  <div class="fallback">CL</div>
+                {% endif %}
+              </div>
+
+              <div>
+                <div class="name">{{ l.produit.nom }}</div>
+                <div class="meta">PU: {{ l.prixUnitaire }} TND • Stock: {{ l.produit.stock }}</div>
+              </div>
+
+              <div class="right">
+                <div class="lineTotal">{{ l.totalLigne }} TND</div>
+
+                <div class="qty">
+                  <form method="post" action="{{ path('patient_panier_update_ligne', {id: l.id}) }}" style="margin:0; display:flex; gap:8px; align-items:center;">
+                    <input type="number" name="quantite" value="{{ l.quantite }}" min="1">
+                    <button class="mini-btn" type="submit">OK</button>
+                  </form>
+
+                  <form method="post" action="{{ path('patient_panier_delete_ligne', {id: l.id}) }}"
+                        style="margin:0;"
+                        onsubmit="return confirm('Supprimer cette ligne ?');">
+                    <button class="mini-btn mini-danger" type="submit">Supprimer</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="card summary">
+      <div class="sumRow">
+        <span>Statut</span>
+        <span>{{ commande.statut }}</span>
+      </div>
+      <div class="sumRow">
+        <span>Total</span>
+        <span class="big">{{ commande.montantTotal }} TND</span>
+      </div>
+
+      <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
+        <form method="post" action="{{ path('patient_panier_checkout') }}"
+              onsubmit="return confirm('Valider la commande ?');"
+              style="margin:0;">
+          <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">
+            ✅ Valider (Checkout)
+          </button>
+        </form>
+
+        <a class="btn btn-ghost" href="{{ path('patient_produit_index') }}" style="justify-content:center;">
+          ⬅ Retour produits
+        </a>
+      </div>
+    </div>
+  </div>
+{% endblock %}

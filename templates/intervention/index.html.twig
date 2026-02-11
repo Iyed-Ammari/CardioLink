@@ -58,7 +58,7 @@
                                             {{ intervention.statut }}
                                         </span>
                                     </td>
-                                    <td>{{ intervention.datePlanifiee|format_datetime('short', 'short', locale='fr') }}</td>
+                                    <td>{{ intervention.datePlanifiee|format_datetime('short', 'short') }}</td>
                                     <td>
                                         {% if intervention.medecin %}
                                             {{ intervention.medecin.prenom }} {{ intervention.medecin.nom }}
@@ -68,7 +68,7 @@
                                     </td>
                                     <td>
                                         <a href="{{ path('app_intervention_show', {'id': intervention.id}) }}" class="btn btn-sm btn-info">
-                                            <i class="fas fa-eye"></i>
+                                            <i class="fas fa-eye">👁️</i>
                                         </a>
                                     </td>
                                 </tr>
