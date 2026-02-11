@@ -154,7 +154,6 @@ final class PatientPanierController extends AbstractController
             $this->addFlash('danger', 'Accès interdit');
             return $this->redirectToRoute('patient_panier_show');
         }
-
         if (!$commande->canEditPanier()) {
             $this->addFlash('danger', 'Panier non modifiable');
             return $this->redirectToRoute('patient_panier_show');
@@ -197,7 +196,6 @@ final class PatientPanierController extends AbstractController
             $this->addFlash('danger', 'Accès interdit');
             return $this->redirectToRoute('patient_panier_show');
         }
-
         if (!$commande->canEditPanier()) {
             $this->addFlash('danger', 'Panier non modifiable');
             return $this->redirectToRoute('patient_panier_show');
@@ -223,12 +221,10 @@ final class PatientPanierController extends AbstractController
             $this->addFlash('danger', 'Panier introuvable');
             return $this->redirectToRoute('patient_panier_show');
         }
-
         if (!$panier->canEditPanier()) {
             $this->addFlash('danger', 'Panier non modifiable');
             return $this->redirectToRoute('patient_panier_show');
         }
-
         if ($panier->getLignes()->count() === 0) {
             $this->addFlash('danger', 'Panier vide');
             return $this->redirectToRoute('patient_panier_show');

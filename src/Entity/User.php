@@ -286,9 +286,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             $this->suivis->add($suivi);
             $suivi->setPatient($this);
         }
-
         return $this;
     }
+
+    // ✅ commandes
+    /**
+     * @return Collection<int, Commande>
+     */
+
 
     public function removeRendezVouse(RendezVous $rendezVouse): static
     {
