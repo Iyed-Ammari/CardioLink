@@ -6,8 +6,8 @@ security:
     # ✅ Hiérarchie des rôles
     role_hierarchy:
         ROLE_PATIENT:     ROLE_USER
-        ROLE_MEDECIN:     ROLE_PATIENT
-        ROLE_ADMIN:       [ROLE_MEDECIN, ROLE_ALLOWED_TO_SWITCH]
+        ROLE_MEDECIN:     ROLE_USER
+        ROLE_ADMIN:       [ROLE_MEDECIN, ROLE_PATIENT, ROLE_ALLOWED_TO_SWITCH]
     
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
@@ -51,8 +51,8 @@ when@test:
     security:
         role_hierarchy:
             ROLE_PATIENT:     ROLE_USER
-            ROLE_MEDECIN:     ROLE_PATIENT
-            ROLE_ADMIN:       [ROLE_MEDECIN, ROLE_ALLOWED_TO_SWITCH]
+            ROLE_MEDECIN:     ROLE_USER
+            ROLE_ADMIN:       [ROLE_MEDECIN, ROLE_PATIENT, ROLE_ALLOWED_TO_SWITCH]
         password_hashers:
             # By default, password hashers are resource intensive and take time. This is
             # important to generate secure password hashes. In tests however, secure hashes
