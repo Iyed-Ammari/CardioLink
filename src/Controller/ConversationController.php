@@ -40,4 +40,39 @@ class ConversationController extends AbstractController
             'messages' => $messages,
         ]);
     }
+    #[Route('/{id}/send', name: 'conversation_send', methods: ['POST'])]
+    public function sendMessage(Conversation $conversation, \Symfony\Component\HttpFoundation\Request $request, \Doctrine\ORM\EntityManagerInterface $entityManager): \Symfony\Component\HttpFoundation\JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        $content = $data['content'] ?? null;
+
+        if (!$content) {
+            return $this->json(['error' => 'Message vide'], 400);
+        }
+
+        $message = new \App\Entity\Message();
+        $message->setContent($content);
+        $message->setConversation($conversation);
+        $message->setSender($this->getUser());
+        $message->setCreatedAt(new \DateTime());
+        $message->setIsRead(false);
+
+        // Mise à jour du timestamp de la conversation
+        $conversation->setUpdatedAt(new \DateTime());
+
+        $entityManager->persist($message);
+        $entityManager->flush();
+        $user = $this->getUser();
+        if ($user instanceof \App\Entity\User) {
+            $nom = $user->getNom();
+            $prenom = $user->getPrenom();
+        }
+
+        return $this->json([
+            'status' => 'success', 
+            'messageId' => $message->getId(),
+            'senderName' => $prenom . ' ' . $nom,
+            'createdAt' => $message->getCreatedAt()->format('H:i')
+        ]);
+    }
 }
