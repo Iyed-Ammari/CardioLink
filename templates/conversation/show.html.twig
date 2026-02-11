@@ -20,19 +20,24 @@
     <div class="card" style="height: 500px; overflow-y: auto; background-color: #f8f9fa;" id="chat-box">
       <div class="card-body" id="messages-list">
         {% for message in messages %}
-          <div class="mb-3 {% if message.sender == app.user %}{% endif %}">
-            <div class="{% if message.sender == app.user %}
-
-              {% endif %} p-3 rounded d-inline-block"
-              style="max-width: 70%; border: 1px solid #ddd;">
-              <p class="mb-1">{{ message.content }}</p>
-              <small class="{% if message.sender == app.user %}
-
-                {% endif %}">
-                {{ message.createdAt|date('H:i') }}
-              </small>
+          {# On vérifie si c'est MOI ou l'AUTRE pour l'alignement #}
+        {% set isMe = message.sender == app.user %}
+        
+        <div class="mb-3 {{ isMe ? 'text-end' : 'text-start' }}">
+            <div class="{{ isMe ? 'bg-primary text-white' : 'bg-light text-dark border' }} p-3 rounded d-inline-block text-start"
+                 style="max-width: 70%; word-wrap: break-word;">
+                 {% if not isMe %}
+                    <div class="small fw-bold mb-1 text-primary">
+                        {{ message.sender.prenom }}
+                    </div>
+                {% endif %}
+                <p class="mb-1">{{ message.content }}</p>
+                
+                <small class="{{ isMe ? 'text-white-50' : 'text-muted' }}">
+                    {{ message.createdAt|date('H:i') }}
+                </small>
             </div>
-          </div>
+        </div>
         {% endfor %}
       </div>
     </div>
@@ -48,45 +53,58 @@
 
   {# --- SCRIPT WEBSOCKET & AJAX --- #}
 <script>
+(function() { // 1. On ouvre une "bulle" isolée (IIFE) pour éviter l'erreur "Already declared"
+    
     const conversationId = {{ conversation.id }};
     const currentUserId = {{ app.user.id }};
     const currentUserPrenom = "{{ app.user.prenom }}";
     
-    // 1. Connexion au WebSocket
-    const socket = new WebSocket("ws://localhost:3001");
+    // 2. Connexion au WebSocket
+    let socket = new WebSocket("ws://localhost:3001");
 
     socket.onopen = function(e) {
-        console.log("Connecté au serveur de chat !");
+        console.log("✅ Connecté au serveur de chat !");
     };
 
-    // 2. Quand on reçoit un message du WebSocket
     socket.onmessage = function(event) {
         const data = JSON.parse(event.data);
-        
         // On n'affiche le message que s'il appartient à CETTE conversation
         if (data.conversationId === conversationId) {
-            appendMessage(data.content, data.senderId === currentUserId, data.time);
+            // Si c'est moi qui l'ai envoyé, on l'a déjà affiché via AJAX, donc on ignore
+            if (data.senderId !== currentUserId) {
+                appendMessage(data.content, false, data.senderPrenom || 'Dr.', data.time);
+            }
         }
     };
 
-    // 3. Envoi du message (AJAX + WebSocket)
-    document.getElementById('sendBtn').addEventListener('click', sendMessage);
-    
-    // Envoi avec la touche "Entrée"
-    document.getElementById('messageContent').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
+    // 3. Gestion intelligente de la fermeture (Pour Turbo)
+    // Quand l'utilisateur quitte la page, on coupe la connexion pour éviter les doublons
+    document.addEventListener('turbo:before-cache', function() {
+        if (socket) {
+            socket.close();
         }
-    });
+    }, { once: true });
+
+    // 4. Envoi du message
+    const sendBtn = document.getElementById('sendBtn');
+    const msgInput = document.getElementById('messageContent');
+
+    if (sendBtn && msgInput) {
+        sendBtn.addEventListener('click', sendMessage);
+
+        msgInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    }
 
     function sendMessage() {
-        const input = document.getElementById('messageContent');
-        const content = input.value.trim();
-
+        const content = msgInput.value.trim();
         if (!content) return;
 
-        // A. Sauvegarde en Base de Données via AJAX
+        // A. Sauvegarde en BDD (AJAX)
         fetch("{{ path('app_conversation_send', {id: conversation.id}) }}", {
             method: "POST",
             headers: { 'Content-Type': 'application/json' },
@@ -95,43 +113,58 @@
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                // B. Si sauvegardé, on l'affiche pour MOI tout de suite
-                appendMessage(content, true, data.createdAt);
-                input.value = '';
+                // B. Affichage pour MOI
+                appendMessage(content, true, 'Moi', data.createdAt);
+                msgInput.value = '';
 
-                // C. On prévient les AUTRES via WebSocket
-                const payload = {
-                    conversationId: conversationId,
-                    content: content,
-                    senderId: currentUserId,
-                    time: data.createdAt
-                };
-                socket.send(JSON.stringify(payload));
+                // C. Diffusion WebSocket
+                if (socket.readyState === WebSocket.OPEN) {
+                    const payload = {
+                        conversationId: conversationId,
+                        content: content,
+                        senderId: currentUserId,
+                        senderPrenom: currentUserPrenom,
+                        time: data.createdAt
+                    };
+                    socket.send(JSON.stringify(payload));
+                }
             }
         })
         .catch(error => console.error('Erreur:', error));
     }
 
-    // Fonction pour ajouter le HTML du message
-    function appendMessage(text, isMe, time) {
+    // Fonction d'affichage HTML
+    // Fonction d'affichage HTML
+    function appendMessage(text, isMe, senderName, time) {
         const list = document.getElementById('messages-list');
+        if (!list) return;
+
         const alignment = isMe ? 'text-end' : 'text-start';
-        const color = isMe ? 'bg-primary text-white' : 'bg-white';
+        // --- COULEURS JS ---
+        const color = isMe ? 'bg-primary text-white' : 'bg-light text-dark border';
         const textColor = isMe ? 'text-white-50' : 'text-muted';
+        
+        // Nom en bleu si c'est l'autre
+        const nameDisplay = isMe ? '' : `<div class="small fw-bold mb-1 text-primary">${senderName}</div>`;
 
         const html = `
             <div class="mb-3 ${alignment}">
-                <div class="${color} p-3 rounded d-inline-block" style="max-width: 70%; border: 1px solid #ddd;">
+                <div class="${color} p-3 rounded d-inline-block text-start" style="max-width: 70%; word-wrap: break-word;">
+                    ${nameDisplay}
                     <p class="mb-1">${text}</p>
-                    <small class="${textColor}">${time}</small>
+                    <small class="${textColor} d-block text-end" style="font-size: 0.75rem;">${time}</small>
                 </div>
             </div>
         `;
         
         list.insertAdjacentHTML('beforeend', html);
-        // Scroll automatique vers le bas
         const chatBox = document.getElementById('chat-box');
-        chatBox.scrollTop = chatBox.scrollHeight;
+        if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
     }
+    // Scroll au chargement
+    const chatBox = document.getElementById('chat-box');
+    if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+
+})(); // <--- Fin de l'isolation
 </script>
 {% endblock %}

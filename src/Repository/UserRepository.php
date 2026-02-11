@@ -71,4 +71,18 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Récupère tous les utilisateurs avec le rôle ROLE_PATIENT
+     * @return User[]
+     */
+    public function findPatients(): array
+    {
+        return $this->createQueryBuilder('u')
+            ->where('u.roles LIKE :role')
+            ->setParameter('role', '%ROLE_PATIENT%')
+            ->orderBy('u.nom', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

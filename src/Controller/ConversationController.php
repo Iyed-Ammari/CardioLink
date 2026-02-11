@@ -3,8 +3,11 @@
 namespace App\Controller;
 
 use App\Entity\Conversation;
+use App\Entity\User; // N'oublie pas d'importer User
 use App\Repository\ConversationRepository;
 use App\Repository\MessageRepository;
+use App\Repository\UserRepository; // Ajoute ça
+use Doctrine\ORM\EntityManagerInterface; // Ajoute ça
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -17,19 +20,75 @@ class ConversationController extends AbstractController
     public function __construct(
         private ConversationRepository $conversationRepository,
         private MessageRepository $messageRepository,
+        private UserRepository $userRepository, // Injection du UserRepository
+        private EntityManagerInterface $entityManager // Injection de l'EntityManager
     ) {}
 
     #[Route('', name: 'conversation_index')]
     public function index(): Response
     {
         $user = $this->getUser();
+        
+        // 1. Récupérer les conversations existantes
         $conversations = $this->conversationRepository->findByUser($user);
+
+        // 2. Récupérer la liste des contacts potentiels (Logique inversée)
+        $contacts = [];
+        if ($this->isGranted('ROLE_MEDECIN')) {
+            // Si je suis médecin, je veux voir les patients
+            $contacts = $this->userRepository->findPatients();
+        } else {
+            // Si je suis patient, je veux voir les médecins
+            $contacts = $this->userRepository->findMedecins();
+        }
 
         return $this->render('conversation/index.html.twig', [
             'conversations' => $conversations,
+            'contacts' => $contacts // On envoie la liste à la vue
         ]);
     }
 
+    // ✅ NOUVELLE METHODE : Créer ou Rediriger vers une conversation
+    #[Route('/start/{id}', name: 'conversation_start')]
+    public function start(User $recipient): Response
+    {
+        $currentUser = $this->getUser();
+
+        // Vérification de sécurité simple
+        if ($currentUser === $recipient) {
+            $this->addFlash('danger', 'Vous ne pouvez pas parler à vous-même.');
+            return $this->redirectToRoute('app_conversation_index');
+        }
+
+        // 1. Vérifier si une conversation existe déjà
+        $existingConversation = $this->conversationRepository->findByPatientAndMedecin($currentUser, $recipient);
+
+        if ($existingConversation) {
+            // Si elle existe, on redirige directement dessus
+            return $this->redirectToRoute('app_conversation_show', ['id' => $existingConversation->getId()]);
+        }
+
+        // 2. Si elle n'existe pas, on la crée
+        $conversation = new Conversation();
+        
+        // On détermine qui est qui en fonction des rôles
+        if ($this->isGranted('ROLE_MEDECIN')) {
+            $conversation->setMedecin($currentUser);
+            $conversation->setPatient($recipient);
+        } else {
+            $conversation->setPatient($currentUser);
+            $conversation->setMedecin($recipient);
+        }
+
+        $conversation->setCreatedAt(new \DateTime());
+        $conversation->setUpdatedAt(new \DateTime());
+        $conversation->setIsActive(true);
+
+        $this->entityManager->persist($conversation);
+        $this->entityManager->flush();
+
+        return $this->redirectToRoute('app_conversation_show', ['id' => $conversation->getId()]);
+    }
     #[Route('/{id}', name: 'conversation_show', requirements: ['id' => '\d+'])]
     public function show(Conversation $conversation): Response
     {
