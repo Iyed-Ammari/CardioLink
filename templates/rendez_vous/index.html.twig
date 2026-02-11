@@ -133,14 +133,14 @@
                             <td class="text-end">
                                 {# Si c'est un MEDECIN et que le RDV est passé ou confirmé #}
                                 {% if is_granted('ROLE_MEDECIN') and rdv.ordonnance is null %}
-                                    <a href="#" class="btn btn-sm btn-success">
-                                        📝 Créer Ordonnance
-                                    </a>
+                                        <a href="{{ path('ordonnance_new', {'rdvId': rdv.id}) }}" class="btn btn-sm btn-success">
+                                            📝 Créer ordonnance
+                                        </a>
                                 {% endif %}
 
                                 {# Si une ordonnance existe déjà #}
                                 {% if rdv.ordonnance %}
-                                    <a href="#" class="btn btn-sm btn-info text-white">
+                                    <a href="{{ path('ordonnance_show', {'id': rdv.ordonnance.id}) }}" class="btn btn-sm btn-info text-white">
                                         📄 Voir Ordonnance
                                     </a>
                                 {% endif %}

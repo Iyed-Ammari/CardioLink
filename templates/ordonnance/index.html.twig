@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Liste des ordonnances{% endblock %}
+
+{% block body %}
+<h1>Liste des ordonnances</h1>
+
+<a href="{{ path('ordonnance_new') }}" class="btn btn-success mb-3">Nouvelle ordonnance</a>
+
+<table class="table table-bordered">
+    <thead class="thead-light">
+        <tr>
+            <th>ID</th>
+            <th>Référence</th>
+            <th>Date de création</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for o in ordonnances %}
+        <tr>
+            <td>{{ o.id }}</td>
+            <td>{{ o.reference }}</td>
+            <td>{{ o.dateCreation ? o.dateCreation|date('Y-m-d H:i') : '' }}</td>
+            <td>
+                <!-- Bouton Consulter -->
+                <a href="{{ path('ordonnance_show', {'id': o.id}) }}" class="btn btn-primary">Consulter</a>
+
+                <!-- Bouton Éditer -->
+                <a href="{{ path('ordonnance_edit', {'id': o.id}) }}" class="btn btn-primary">Éditer</a>
+
+                <!-- Bouton Supprimer -->
+                <form method="post" action="{{ path('ordonnance_delete', {'id': o.id}) }}" style="display:inline">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ o.id) }}">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Voulez-vous vraiment supprimer cette ordonnance ?');">Supprimer</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4">Aucune ordonnance trouvée.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier Ordonnance{% endblock %}
+
+{% block body %}
+<h1>Modifier l'ordonnance #{{ ordonnance.id }}</h1>
+
+{{ form_start(form) }}
+
+    {{ form_row(form.reference) }}
+    {{ form_row(form.diagnostic) }}
+    {{ form_row(form.notes) }}
+
+    <button class="btn btn-primary mt-3">Mettre à jour</button>
+
+{{ form_end(form) }}
+
+<a href="{{ path('ordonnance_index') }}" class="btn btn-secondary mt-2">Retour à la liste</a>
+{% endblock %}
