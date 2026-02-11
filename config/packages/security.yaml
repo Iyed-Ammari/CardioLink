@@ -2,6 +2,13 @@ security:
     # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+    
+    # ✅ Hiérarchie des rôles
+    role_hierarchy:
+        ROLE_PATIENT:     ROLE_USER
+        ROLE_MEDECIN:     ROLE_PATIENT
+        ROLE_ADMIN:       [ROLE_MEDECIN, ROLE_ALLOWED_TO_SWITCH]
+    
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
         # used to reload user from session & other features (e.g. switch_user)
@@ -27,23 +34,17 @@ security:
                 path: app_logout
                 # where to redirect after logout
                 target: app_login
-
-            # activate different ways to authenticate
-            # https://symfony.com/doc/current/security.html#the-firewall
-
-            # https://symfony.com/doc/current/security/impersonating_user.html
-            # switch_user: true
-
-    # Easy way to control access for large sections of your site
-    # Note: Only the *first* access control that matches will be used
+    
     access_control:
-        # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
-        # On autorise tout le monde à voir les pages d'inscription, de login, et de vérification d'email
+        # ✅ Routes publiques (avant authentification)
         - { path: ^/login, roles: PUBLIC_ACCESS }
         - { path: ^/register, roles: PUBLIC_ACCESS }
         - { path: ^/verify/email, roles: PUBLIC_ACCESS }
-        # On oblige l'utilisateur à être connecté pour tout le reste (le dashboard, etc.)
+        # ✅ Routes admin (ROLE_ADMIN uniquement)
+        - { path: ^/admin, roles: ROLE_ADMIN }
+        # ✅ Routes patient (ROLE_PATIENT uniquement)
+        - { path: ^/patient, roles: ROLE_PATIENT }
+        # ✅ Tout le reste (utilisateur connecté)
         - { path: ^/, roles: ROLE_USER }
 
 when@test:

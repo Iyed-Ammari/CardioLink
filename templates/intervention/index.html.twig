@@ -58,7 +58,7 @@
                                             {{ intervention.statut }}
                                         </span>
                                     </td>
-                                    <td>{{ intervention.datePlanifiee|format_datetime('short', 'short', locale='fr') }}</td>
+                                    <td>{{ intervention.datePlanifiee|format_datetime('short', 'short') }}</td>
                                     <td>
                                         {% if intervention.medecin %}
                                             {{ intervention.medecin.prenom }} {{ intervention.medecin.nom }}

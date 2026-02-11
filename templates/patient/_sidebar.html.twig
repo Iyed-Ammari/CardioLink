@@ -1,0 +1,58 @@
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-badge" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 21s-7-4.35-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2.5 4.65-9.5 9-9.5 9Z"/>
+      </svg>
+    </div>
+    <div class="brand-title">
+      <div class="name">CardioLink</div>
+      <div class="sub">Espace Patient</div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    {% set r = app.request.attributes.get('_route') %}
+
+    <a href="{{ path('patient_produit_index') }}" class="{{ r starts with 'patient_produit' ? 'active' : '' }}">
+      <span class="icon">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M4 7h16" stroke-width="2" stroke-linecap="round"/>
+          <path d="M6 7l1-3h10l1 3" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M6 7v13h12V7" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <span class="label">Produits</span>
+    </a>
+
+    <a href="{{ path('patient_panier_show') }}" class="{{ r starts with 'patient_panier' ? 'active' : '' }}">
+      <span class="icon">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M6 6h15l-1.5 9h-12z" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M6 6L5 3H2" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="label">Mon panier</span>
+    </a>
+
+    <a href="{{ path('patient_commandes_index') }}" class="{{ r starts with 'patient_commande' or r starts with 'patient_commandes' ? 'active' : '' }}">
+      <span class="icon">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M7 3h10v18H7z" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M9 7h6" stroke-width="2" stroke-linecap="round"/>
+          <path d="M9 11h6" stroke-width="2" stroke-linecap="round"/>
+          <path d="M9 15h6" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="label">Mes commandes</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="avatar">P</div>
+    <div class="who">
+      <div class="user">{{ app.user ? app.user.email : 'Invité' }}</div>
+      <div class="role">ROLE_USER</div>
+    </div>
+  </div>
+</aside>

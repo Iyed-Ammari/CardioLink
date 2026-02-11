@@ -1,0 +1,104 @@
+{% extends 'patient/base.html.twig' %}
+
+{% block title %}Mes commandes{% endblock %}
+{% block page_title %}Mes commandes{% endblock %}
+{% block page_hint %}Tu peux annuler uniquement PANIER ou EN_ATTENTE_PAIEMENT{% endblock %}
+
+{% block styles %}
+<style>
+  .list{ display:flex; flex-direction:column; gap:12px; }
+  .c-card{
+    border:1px solid rgba(229,231,235,.9);
+    border-radius:18px;
+    background:#fff;
+    padding:14px;
+    box-shadow: var(--shadow-soft);
+    display:flex;
+    gap:12px;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+  }
+  .left{ display:flex; flex-direction:column; gap:6px; }
+  .id{ font-weight:950; }
+  .meta{ color:var(--muted); font-weight:800; font-size:12.5px; }
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    padding:6px 10px;
+    border-radius:999px;
+    font-weight:950;
+    font-size:12px;
+    border: 1px solid rgba(229,231,235,.9);
+    background:#fff;
+  }
+  .b-blue{ border-color: rgba(47,96,245,.25); background: rgba(47,96,245,.08); color:#1D4ED8; }
+  .b-red{ border-color: rgba(248,34,57,.25); background: rgba(248,34,57,.08); color:#B42318; }
+  .b-green{ border-color: rgba(13,148,136,.25); background: rgba(13,148,136,.08); color:#0F766E; }
+
+  .amount{ font-weight:950; }
+  .actions{ display:flex; gap:10px; align-items:center; }
+  .mini-btn{
+    height:40px;
+    padding:0 12px;
+    border-radius:12px;
+    border:1px solid rgba(229,231,235,.9);
+    background:#fff;
+    font-weight:950;
+    cursor:pointer;
+  }
+  .danger{
+    border-color: rgba(248,34,57,.25);
+    background: rgba(248,34,57,.08);
+    color:#B42318;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+  <div class="card">
+    <div class="list">
+      {% for c in commandes %}
+        <div class="c-card">
+          <div class="left">
+            <div class="id">Commande #{{ c.id }}</div>
+            <div class="meta">
+              {{ c.dateCommande ? (c.dateCommande|date('Y-m-d H:i')) : '-' }}
+              • Total: <span class="amount">{{ c.montantTotal }} TND</span>
+            </div>
+          </div>
+
+          <div class="actions">
+            {% set s = c.statut %}
+            {% if s == 'PANIER' %}
+              <span class="badge b-blue">PANIER</span>
+            {% elseif s == 'EN_ATTENTE_PAIEMENT' %}
+              <span class="badge b-blue">EN ATTENTE PAIEMENT</span>
+            {% elseif s == 'PAYEE' %}
+              <span class="badge b-green">PAYÉE</span>
+            {% elseif s == 'LIVREE' %}
+              <span class="badge b-green">LIVRÉE</span>
+            {% else %}
+              <span class="badge b-red">ANNULÉE</span>
+            {% endif %}
+
+            {% if c.statut in ['EN_ATTENTE_PAIEMENT','PANIER'] %}
+              <form method="post" action="{{ path('patient_commande_cancel', {id: c.id}) }}"
+                    style="margin:0;"
+                    onsubmit="return confirm('Annuler cette commande ?');">
+                <button class="mini-btn danger" type="submit">Annuler</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      {% else %}
+        <div style="color:var(--muted); font-weight:900;">Aucune commande.</div>
+      {% endfor %}
+    </div>
+
+    <div style="margin-top:12px;">
+      <a class="btn btn-ghost" href="{{ path('patient_produit_index') }}">⬅ Retour produits</a>
+      <a class="btn btn-ghost" href="{{ path('patient_panier_show') }}">🛒 Voir panier</a>
+    </div>
+  </div>
+{% endblock %}
