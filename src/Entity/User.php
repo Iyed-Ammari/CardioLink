@@ -9,6 +9,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
@@ -67,7 +68,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private bool $isVerified = false;
 
-    // ✅ AJOUT: un patient a plusieurs commandes (panier inclus)
+    // --- RELATIONS MASTER ---
+
+    #[ORM\OneToMany(mappedBy: 'patient', targetEntity: Suivi::class, cascade: ['persist', 'remove'])]
+    private Collection $suivis;
+
+    #[ORM\OneToMany(mappedBy: 'medecin', targetEntity: Intervention::class)]
+    private Collection $interventions;
+
+    // --- RELATIONS COMMUNES ---
+
     /**
      * @var Collection<int, Commande>
      */
@@ -104,22 +114,32 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Message::class, mappedBy: 'sender')]
     private Collection $messages;
 
+    // --- RELATIONS FORUM (AJOUTS) ---
+
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Post::class, orphanRemoval: true)]
+    private Collection $posts;
+
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Comment::class, orphanRemoval: true)]
+    private Collection $comments;
+
     public function __construct()
     {
+        // Initialisations existantes (Master + Commun)
         $this->suivis = new ArrayCollection();
         $this->interventions = new ArrayCollection();
         $this->conversationsAsPatient = new ArrayCollection();
         $this->conversationsAsMedecin = new ArrayCollection();
         $this->messages = new ArrayCollection();
-        $this->posts = new ArrayCollection();
-        $this->comments = new ArrayCollection();
         $this->rendezVouses = new ArrayCollection();
         $this->rendezVousMedecin = new ArrayCollection();
-        
         $this->commandes = new ArrayCollection();
+
+        // Initialisations Forum (Ajout)
+        $this->posts = new ArrayCollection();
+        $this->comments = new ArrayCollection();
     }
 
-   
+    // --- GETTERS & SETTERS STANDARDS ---
 
     public function getId(): ?int { return $this->id; }
 
@@ -154,6 +174,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getAdresse(): ?string { return $this->adresse; }
     public function setAdresse(string $adresse): static { $this->adresse = $adresse; return $this; }
 
+    public function getCabinet(): ?string { return $this->cabinet; }
+    public function setCabinet(?string $cabinet): static { $this->cabinet = $cabinet; return $this; }
+
     public function getDossierMedical(): ?DossierMedical { return $this->dossierMedical; }
     public function setDossierMedical(DossierMedical $dossierMedical): static
     {
@@ -161,152 +184,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             $dossierMedical->setUser($this);
         }
         $this->dossierMedical = $dossierMedical;
-    public function setEmail(string $email): static
-    {
-        $this->email = $email;
         return $this;
     }
 
-    public function getUserIdentifier(): string
-    {
-        return (string) $this->email;
-    }
+    public function isVerified(): bool { return $this->isVerified; }
+    public function setIsVerified(bool $isVerified): static { $this->isVerified = $isVerified; return $this; }
 
-    public function getRoles(): array
-    {
-        $roles = $this->roles;
-        $roles[] = 'ROLE_USER'; // toujours
-        return array_unique($roles);
-    }
+    // --- GETTERS & SETTERS MASTER (SUIVIS & INTERVENTIONS) ---
 
-    /**
-     * @param list<string> $roles
-     */
-    public function setRoles(array $roles): static
-    {
-        $this->roles = $roles;
-        return $this;
-    }
-
-    public function getPassword(): ?string
-    {
-        return $this->password;
-    }
-
-    public function setPassword(string $password): static
-    {
-        $this->password = $password;
-        return $this;
-    }
-
-    #[\Deprecated]
-    public function eraseCredentials(): void
-    {
-        // Symfony 8
-    }
-
-    public function getNom(): ?string { return $this->nom; }
-    public function setNom(string $nom): static { $this->nom = $nom; return $this; }
-
-    public function getPrenom(): ?string { return $this->prenom; }
-    public function setPrenom(string $prenom): static { $this->prenom = $prenom; return $this; }
-
-    public function getTel(): ?string { return $this->tel; }
-    public function setTel(string $tel): static { $this->tel = $tel; return $this; }
-
-    public function getAdresse(): ?string { return $this->adresse; }
-    public function setAdresse(string $adresse): static { $this->adresse = $adresse; return $this; }
-
-    public function getCabinet(): ?string
-    {
-        return $this->cabinet;
-    }
-
-    public function setCabinet(?string $cabinet): static
-    {
-        $this->cabinet = $cabinet;
-
-        return $this;
-    }
-
-    public function getDossierMedical(): ?DossierMedical
-    {
-        return $this->dossierMedical;
-    }
-
-    public function setDossierMedical(DossierMedical $dossierMedical): static
-    {
-        if ($dossierMedical->getUser() !== $this) {
-            $dossierMedical->setUser($this);
-        }
-        $this->dossierMedical = $dossierMedical;
-        return $this;
-    }
-
-    public function isVerified(): bool
-    {
-        return $this->isVerified;
-    }
-
-    public function setIsVerified(bool $isVerified): static
-    {
-        $this->isVerified = $isVerified;
-        return $this;
-    }
-
-    // ✅ commandes
-    /**
-     * @return Collection<int, Commande>
-     */
-    public function getCommandes(): Collection
-    {
-        return $this->commandes;
-    }
-
-    public function addCommande(Commande $commande): static
-    {
-        if (!$this->commandes->contains($commande)) {
-            $this->commandes->add($commande);
-            $commande->setUser($this);
-        }
-        return $this;
-    }
-
-    public function removeCommande(Commande $commande): static
-    {
-        if ($this->commandes->removeElement($commande)) {
-            if ($commande->getUser() === $this) {
-                // ⚠️ comme JoinColumn(nullable=false) côté Commande, on ne met pas à null.
-                // orphanRemoval=true va supprimer la commande si tu la retires de la collection.
-            }
-        }
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, RendezVous>
-     */
-    public function getRendezVouses(): Collection
-    {
-        return $this->rendezVouses;
-    }
-
-    public function addRendezVouse(RendezVous $rendezVouse): static
-    {
-        if (!$this->rendezVouses->contains($rendezVouse)) {
-            $this->rendezVouses->add($rendezVouse);
-            $rendezVouse->setPatient($this);
-        }
-        return $this;
-    }
-    /**
-     * @return Collection<int, Suivi>
-     */
-    public function getSuivis(): Collection
-    {
-        return $this->suivis;
-    }
-
+    public function getSuivis(): Collection { return $this->suivis; }
     public function addSuivi(Suivi $suivi): static
     {
         if (!$this->suivis->contains($suivi)) {
@@ -315,24 +201,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         }
         return $this;
     }
-
-    // ✅ commandes
-    /**
-     * @return Collection<int, Commande>
-     */
-
-
-    public function removeRendezVouse(RendezVous $rendezVouse): static
-    {
-        if ($this->rendezVouses->removeElement($rendezVouse)) {
-            // set the owning side to null (unless already changed)
-            if ($rendezVouse->getPatient() === $this) {
-                $rendezVouse->setPatient(null);
-            }
-        }
-        return $this;
-    }
-    
     public function removeSuivi(Suivi $suivi): static
     {
         if ($this->suivis->removeElement($suivi)) {
@@ -340,18 +208,69 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
                 $suivi->setPatient(null);
             }
         }
-
         return $this;
     }
 
-    /**
-     * @return Collection<int, RendezVous>
-     */
-    public function getRendezVousMedecin(): Collection
+    public function getInterventions(): Collection { return $this->interventions; }
+    public function addIntervention(Intervention $intervention): static
     {
-        return $this->rendezVousMedecin;
+        if (!$this->interventions->contains($intervention)) {
+            $this->interventions->add($intervention);
+            $intervention->setMedecin($this);
+        }
+        return $this;
+    }
+    public function removeIntervention(Intervention $intervention): static
+    {
+        if ($this->interventions->removeElement($intervention)) {
+            if ($intervention->getMedecin() === $this) {
+                $intervention->setMedecin(null);
+            }
+        }
+        return $this;
     }
 
+    // --- GETTERS & SETTERS COMMUNS (COMMANDES, RDV, MESSAGES) ---
+
+    public function getCommandes(): Collection { return $this->commandes; }
+    public function addCommande(Commande $commande): static
+    {
+        if (!$this->commandes->contains($commande)) {
+            $this->commandes->add($commande);
+            $commande->setUser($this);
+        }
+        return $this;
+    }
+    public function removeCommande(Commande $commande): static
+    {
+        if ($this->commandes->removeElement($commande)) {
+            if ($commande->getUser() === $this) {
+                // orphanRemoval=true gère la suppression
+            }
+        }
+        return $this;
+    }
+
+    public function getRendezVouses(): Collection { return $this->rendezVouses; }
+    public function addRendezVouse(RendezVous $rendezVouse): static
+    {
+        if (!$this->rendezVouses->contains($rendezVouse)) {
+            $this->rendezVouses->add($rendezVouse);
+            $rendezVouse->setPatient($this);
+        }
+        return $this;
+    }
+    public function removeRendezVouse(RendezVous $rendezVouse): static
+    {
+        if ($this->rendezVouses->removeElement($rendezVouse)) {
+            if ($rendezVouse->getPatient() === $this) {
+                $rendezVouse->setPatient(null);
+            }
+        }
+        return $this;
+    }
+
+    public function getRendezVousMedecin(): Collection { return $this->rendezVousMedecin; }
     public function addRendezVousMedecin(RendezVous $rendezVousMedecin): static
     {
         if (!$this->rendezVousMedecin->contains($rendezVousMedecin)) {
@@ -360,45 +279,74 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         }
         return $this;
     }
-    /**
-     * @return Collection<int, Intervention>
-     */
-    public function getInterventions(): Collection
-    {
-        return $this->interventions;
-    }
-
-    public function addIntervention(Intervention $intervention): static
-    {
-        if (!$this->interventions->contains($intervention)) {
-            $this->interventions->add($intervention);
-            $intervention->setMedecin($this);
-        }
-
-        return $this;
-    }
-
     public function removeRendezVousMedecin(RendezVous $rendezVousMedecin): static
     {
         if ($this->rendezVousMedecin->removeElement($rendezVousMedecin)) {
-            // set the owning side to null (unless already changed)
             if ($rendezVousMedecin->getMedecin() === $this) {
                 $rendezVousMedecin->setMedecin(null);
             }
         }
         return $this;
     }
-    
-    public function removeIntervention(Intervention $intervention): static
-    {
-        if ($this->interventions->removeElement($intervention)) {
-            if ($intervention->getMedecin() === $this) {
-                $intervention->setMedecin(null);
-            }
-        }
 
+    public function getConversationsAsPatient(): Collection { return $this->conversationsAsPatient; }
+    public function addConversationAsPatient(Conversation $conversation): static
+    {
+        if (!$this->conversationsAsPatient->contains($conversation)) {
+            $this->conversationsAsPatient->add($conversation);
+            $conversation->setPatient($this);
+        }
         return $this;
     }
+    public function removeConversationAsPatient(Conversation $conversation): static
+    {
+        if ($this->conversationsAsPatient->removeElement($conversation)) {
+            if ($conversation->getPatient() === $this) {
+                $conversation->setPatient(null);
+            }
+        }
+        return $this;
+    }
+
+    public function getConversationsAsMedecin(): Collection { return $this->conversationsAsMedecin; }
+    public function addConversationAsMedecin(Conversation $conversation): static
+    {
+        if (!$this->conversationsAsMedecin->contains($conversation)) {
+            $this->conversationsAsMedecin->add($conversation);
+            $conversation->setMedecin($this);
+        }
+        return $this;
+    }
+    public function removeConversationAsMedecin(Conversation $conversation): static
+    {
+        if ($this->conversationsAsMedecin->removeElement($conversation)) {
+            if ($conversation->getMedecin() === $this) {
+                $conversation->setMedecin(null);
+            }
+        }
+        return $this;
+    }
+
+    public function getMessages(): Collection { return $this->messages; }
+    public function addMessage(Message $message): static
+    {
+        if (!$this->messages->contains($message)) {
+            $this->messages->add($message);
+            $message->setSender($this);
+        }
+        return $this;
+    }
+    public function removeMessage(Message $message): static
+    {
+        if ($this->messages->removeElement($message)) {
+            if ($message->getSender() === $this) {
+                $message->setSender(null);
+            }
+        }
+        return $this;
+    }
+
+    // --- GETTERS & SETTERS FORUM (AJOUTS) ---
 
     public function getPosts(): Collection
     {
@@ -445,18 +393,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
                 $comment->setUser(null);
             }
         }
-        return $this;
-    }
-
-    public function isVerified(): bool
-    {
-        return $this->isVerified;
-    }
-
-    public function setIsVerified(bool $isVerified): static
-    {
-        $this->isVerified = $isVerified;
-
         return $this;
     }
 }
