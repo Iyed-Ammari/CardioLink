@@ -1,0 +1,241 @@
+{# templates/admin/produit/index.html.twig #}
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Marketplace • Produits{% endblock %}
+
+{% block styles %}
+<style>
+  .filters{ position:relative; }
+  .filters-panel{
+    position:absolute;
+    top:48px;
+    left:0;
+    min-width:260px;
+    background:#fff;
+    border:1px solid rgba(229,231,235,.9);
+    border-radius:14px;
+    box-shadow: var(--shadow);
+    padding:12px;
+    z-index:20;
+  }
+  .filters-panel label{
+    display:block;
+    font-weight:900;
+    font-size:12px;
+    color:#111827;
+    margin-bottom:6px;
+  }
+  .select{
+    height:42px;
+    width:100%;
+    padding:0 12px;
+    border-radius:12px;
+    border:1px solid rgba(229,231,235,.9);
+    outline:none;
+    background:#fff;
+  }
+  .select:focus{
+    border-color: rgba(47,96,245,.35);
+    box-shadow: 0 0 0 4px rgba(47,96,245,.10);
+  }
+
+  .btn-sm{ height:34px; padding:0 10px; border-radius:10px; font-weight:900; }
+  .muted{ color:var(--muted); font-weight:800; font-size:13px; }
+
+  .product-cell{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    min-width:280px;
+  }
+  .pimg{
+    width:46px;height:46px;border-radius:14px;
+    overflow:hidden;
+    border:1px solid rgba(229,231,235,.9);
+    background:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex:0 0 auto;
+  }
+  .pimg img{width:100%;height:100%;object-fit:cover;}
+  .pimg .fallback{
+    width:100%;height:100%;
+    background:linear-gradient(135deg, rgba(248,34,57,.18), rgba(47,96,245,.18));
+    display:flex;align-items:center;justify-content:center;
+    font-weight:900;
+  }
+  .pname{ font-weight:900; }
+  .pdesc{ color:var(--muted); font-size:12.5px; max-width:520px; }
+  .price{ font-weight:900; white-space:nowrap; }
+
+  .actions{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    justify-content:flex-end;
+  }
+
+  /* ✅ delete disabled style */
+  .btn[disabled]{
+    opacity:.45;
+    cursor:not-allowed;
+    transform:none !important;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+  <div class="page-head">
+    <div>
+      <h1>Marketplace — Produits</h1>
+    </div>
+
+    <a class="btn btn-primary" href="{{ path('admin_produit_new') }}">
+      + Ajouter un produit
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="left">
+        <form method="get" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <input
+            type="text"
+            name="q"
+            value="{{ q ?? '' }}"
+            placeholder="Recherche (nom, description)"
+          >
+
+          <button class="btn btn-ghost" type="submit">Rechercher</button>
+          <a class="btn btn-ghost" href="{{ path('admin_produit_index') }}">Réinitialiser</a>
+
+          <div class="filters" data-filters>
+            <button class="btn btn-ghost" type="button" data-filters-btn>Filtres</button>
+
+            <div class="filters-panel" data-filters-panel hidden>
+              <label>Catégorie</label>
+              <select name="categorie" class="select">
+                <option value="" {{ (categorie ?? '') == '' ? 'selected' : '' }}>Toutes catégories</option>
+                <option value="MEDICAL" {{ (categorie ?? '') == 'MEDICAL' ? 'selected' : '' }}>Médical</option>
+                <option value="ACCESSOIRE" {{ (categorie ?? '') == 'ACCESSOIRE' ? 'selected' : '' }}>Accessoire</option>
+                <option value="AUTRE" {{ (categorie ?? '') == 'AUTRE' ? 'selected' : '' }}>Autre</option>
+              </select>
+
+              <div style="display:flex; gap:10px; margin-top:10px;">
+                <button class="btn btn-ghost btn-sm" type="submit">Appliquer</button>
+                <a class="btn btn-ghost btn-sm" href="{{ path('admin_produit_index') }}">Effacer</a>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="muted">Total: {{ produits|length }}</div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>Prix</th>
+          <th>Stock</th>
+          <th>Statut</th>
+          <th style="width:260px; text-align:right;">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for p in produits %}
+          {% set locked = lockedIds is defined and (p.id in lockedIds) %}
+
+          <tr>
+            <td>
+              <div class="product-cell">
+                <div class="pimg">
+                  {% set img = p.imageUrl %}
+                  {% if img %}
+                    {% if img starts with '/' %}
+                      <img src="{{ asset(img) }}" alt="{{ p.nom }}">
+                    {% else %}
+                      <img src="{{ img }}" alt="{{ p.nom }}">
+                    {% endif %}
+                  {% else %}
+                    <div class="fallback">CL</div>
+                  {% endif %}
+                </div>
+
+                <div>
+                  <div class="pname">{{ p.nom }}</div>
+                  <div class="pdesc">
+                    {{ p.description ? p.description|slice(0, 90) ~ (p.description|length > 90 ? '…' : '') : '—' }}
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <td class="price">{{ p.prix }} TND</td>
+            <td>{{ p.stock }}</td>
+
+            <td>
+              {% if p.stock > 0 %}
+                <span class="badge badge-ok">DISPONIBLE</span>
+              {% else %}
+                <span class="badge badge-no">RUPTURE</span>
+              {% endif %}
+            </td>
+
+            <td>
+              <div class="actions">
+                <a class="link" href="{{ path('admin_produit_edit', {id: p.id}) }}">Modifier</a>
+
+                {% if locked %}
+                  <button class="btn btn-ghost btn-sm" type="button" disabled
+                          title="Produit déjà utilisé dans une commande : suppression impossible.">
+                    Supprimer
+                  </button>
+                {% else %}
+                  <form
+                    method="post"
+                    action="{{ path('admin_produit_delete', {id: p.id}) }}"
+                    onsubmit="return confirm('Supprimer ce produit ?');"
+                    style="margin:0;"
+                  >
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete_produit_' ~ p.id) }}">
+                    <button class="btn btn-ghost btn-sm" type="submit">Supprimer</button>
+                  </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="5" style="padding:18px; color:var(--muted); font-weight:800;">
+              Aucun produit trouvé.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+  (function(){
+    const root = document.querySelector('[data-filters]');
+    if(!root) return;
+
+    const btn = root.querySelector('[data-filters-btn]');
+    const panel = root.querySelector('[data-filters-panel]');
+
+    btn.addEventListener('click', () => {
+      panel.hidden = !panel.hidden;
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!root.contains(e.target)) panel.hidden = true;
+    });
+  })();
+</script>
+{% endblock %}

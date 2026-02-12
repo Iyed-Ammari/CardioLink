@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Détails de l'ordonnance{% endblock %}
+
+{% block body %}
+<h1>Détails de l'ordonnance #{{ ordonnance.id }}</h1>
+
+<ul class="list-group">
+    <li class="list-group-item"><strong>Référence :</strong> {{ ordonnance.reference }}</li>
+    <li class="list-group-item"><strong>Date :</strong> {{ ordonnance.dateCreation ? ordonnance.dateCreation|date('Y-m-d H:i') : '' }}</li>
+    <li class="list-group-item"><strong>Patient :</strong> {{ ordonnance.patientNom }}</li>
+    <li class="list-group-item"><strong>Médecin :</strong> {{ ordonnance.medecinNom }}</li>
+    <li class="list-group-item"><strong>Diagnostic :</strong><br> {{ ordonnance.diagnostic }}</li>
+    <li class="list-group-item"><strong>Notes :</strong><br> {{ ordonnance.notes }}</li>
+</ul>
+
+<a href="{{ path('ordonnance_index') }}" class="btn btn-secondary mt-3">Retour</a>
+<a href="{{ path('ordonnance_edit', {'id': ordonnance.id}) }}" class="btn btn-primary mt-3">Modifier</a>
+
+<button class="btn btn-success mt-3" onclick="window.print()">Imprimer</button>
+{% endblock %}

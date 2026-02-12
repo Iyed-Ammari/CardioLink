@@ -1,0 +1,271 @@
+{# templates/admin/produit/form.html.twig #}
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}
+  {{ mode == 'edit' ? 'Modifier produit' : 'Ajouter produit' }}
+{% endblock %}
+
+{% block styles %}
+<style>
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .field{display:flex; flex-direction:column; gap:8px;}
+  .field label{font-weight:900; font-size:13px; color:#111827;}
+
+  .control{
+    height:44px;
+    padding:0 12px;
+    border-radius:12px;
+    border:1px solid rgba(229,231,235,.9);
+    outline:none;
+    background:#fff;
+    width:100%;
+  }
+  .control:focus{
+    border-color: rgba(47,96,245,.35);
+    box-shadow: 0 0 0 4px rgba(47,96,245,.10);
+  }
+  textarea.control{
+    height:auto;
+    padding:12px;
+    min-height:120px;
+    resize:vertical;
+  }
+  .full{grid-column:1 / -1;}
+  .errors{
+    margin-top:6px;
+    color:#B42318;
+    font-weight:800;
+    font-size:12px;
+  }
+
+  .preview{
+    display:flex; gap:12px; align-items:center;
+    padding:12px;
+    border:1px solid rgba(229,231,235,.9);
+    border-radius:14px;
+    background:#fff;
+    margin-bottom:14px;
+  }
+  .pimg{
+    width:64px;height:64px;border-radius:16px;
+    overflow:hidden;
+    border:1px solid rgba(229,231,235,.9);
+    background:#fff;
+    flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .pimg img{width:100%;height:100%;object-fit:cover;}
+  .pimg .fallback{
+    width:100%;height:100%;
+    background:linear-gradient(135deg, rgba(248,34,57,.18), rgba(47,96,245,.18));
+    display:flex;align-items:center;justify-content:center;
+    font-weight:900;
+  }
+  .pmeta .title{font-weight:900;}
+  .pmeta .sub{color:var(--muted); font-size:12.5px; margin-top:2px;}
+
+  .img-combo{
+    display:flex;
+    align-items:center;
+    gap:0;
+    border-radius:12px;
+  }
+
+  .img-btn{
+    height:44px;
+    width:46px;
+    border:1px solid rgba(229,231,235,.9);
+    border-right:0;
+    border-radius:12px 0 0 12px;
+    background:#fff;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:.15s ease;
+    user-select:none;
+    position:relative;
+    z-index:5;
+  }
+  .img-btn:hover{ background: rgba(47,96,245,.06); }
+  .img-btn:active{ transform: translateY(1px); }
+  .img-btn svg{ width:18px; height:18px; stroke:#374151; pointer-events:none; }
+
+  .control-img{
+    border-left:0 !important;
+    border-radius:0 12px 12px 0 !important;
+    position:relative;
+    z-index:1;
+  }
+
+  .file-hidden{
+    position:absolute !important;
+    left:-9999px !important;
+    width:1px !important;
+    height:1px !important;
+    overflow:hidden !important;
+  }
+
+  .mini-note{
+    margin-top:8px;
+    font-size:12.5px;
+    color:var(--muted);
+    font-weight:700;
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .file-name{ color:#111827; font-weight:900; }
+</style>
+{% endblock %}
+
+{% block body %}
+  <div class="page-head">
+    <div>
+      <h1>{{ mode == 'edit' ? 'Modifier un produit' : 'Ajouter un produit' }}</h1>
+    </div>
+    <a class="btn btn-ghost" href="{{ path('admin_produit_index') }}">⬅ Retour</a>
+  </div>
+
+  <div class="card" style="max-width:860px;">
+
+    {% if mode == 'edit' and produit is defined %}
+      <div class="preview">
+        <div class="pimg">
+          {% set img = produit.imageUrl %}
+          {% if img %}
+            {% if img starts with '/' %}
+              <img src="{{ asset(img) }}" alt="{{ produit.nom }}">
+            {% else %}
+              <img src="{{ img }}" alt="{{ produit.nom }}">
+            {% endif %}
+          {% else %}
+            <div class="fallback">CL</div>
+          {% endif %}
+        </div>
+        <div class="pmeta">
+          <div class="title">{{ produit.nom }}</div>
+          <div class="sub">
+            {% if produit.imageUrl %}
+              Image actuelle affichée. Si tu laisses vide, elle sera conservée.
+            {% else %}
+              Aucune image. Tu peux mettre une URL ou importer un fichier.
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {{ form_start(form) }}
+
+    <div class="form-grid">
+      <div class="field">
+        {{ form_label(form.nom) }}
+        {{ form_widget(form.nom, {attr: {class: 'control', placeholder:'Nom du produit'}}) }}
+        <div class="errors">{{ form_errors(form.nom) }}</div>
+      </div>
+
+      <div class="field">
+        {{ form_label(form.categorie) }}
+        {{ form_widget(form.categorie, {attr: {class: 'control'}}) }}
+        <div class="errors">{{ form_errors(form.categorie) }}</div>
+      </div>
+
+      <div class="field full">
+        {{ form_label(form.description) }}
+        {{ form_widget(form.description, {attr: {class: 'control', placeholder:'Description'}}) }}
+        <div class="errors">{{ form_errors(form.description) }}</div>
+      </div>
+
+      <div class="field">
+        {{ form_label(form.prix) }}
+        {{ form_widget(form.prix, {attr: {class: 'control', placeholder:'Prix'}}) }}
+        <div class="errors">{{ form_errors(form.prix) }}</div>
+      </div>
+
+      <div class="field">
+        {{ form_label(form.stock) }}
+        {{ form_widget(form.stock, {attr: {class: 'control', placeholder:'Stock'}}) }}
+        <div class="errors">{{ form_errors(form.stock) }}</div>
+      </div>
+
+      <div class="field full">
+        <label>Image</label>
+
+        <div class="img-combo">
+          <label class="img-btn" for="{{ form.imageFile.vars.id }}" title="Importer une image">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 16V4" stroke-width="2" stroke-linecap="round"/>
+              <path d="M7 8l5-4 5 4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 20h16" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </label>
+
+          {{ form_widget(form.imageUrl, {
+            attr: {
+              class: 'control control-img',
+              id: form.imageUrl.vars.id,
+              placeholder: 'Lien image (optionnel)'
+            }
+          }) }}
+        </div>
+
+        {{ form_widget(form.imageFile, {
+          attr: {
+            class: 'file-hidden',
+            id: form.imageFile.vars.id,
+            accept: 'image/*'
+          }
+        }) }}
+
+        <div class="mini-note">
+          <span>Tu peux coller une URL OU importer un fichier.</span>
+          <span class="file-name" id="fileName">Aucun fichier choisi</span>
+        </div>
+
+        <div class="errors">
+          {{ form_errors(form.imageUrl) }}
+          {{ form_errors(form.imageFile) }}
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:18px; display:flex; gap:10px;">
+      <button class="btn btn-primary" type="submit">
+        {{ mode == 'edit' ? 'Enregistrer' : 'Créer' }}
+      </button>
+
+      <a class="btn btn-ghost" href="{{ path('admin_produit_index') }}">
+        Annuler
+      </a>
+    </div>
+
+    {{ form_end(form) }}
+  </div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+  (function(){
+    const fileInput = document.getElementById('{{ form.imageFile.vars.id }}');
+    const urlInput  = document.getElementById('{{ form.imageUrl.vars.id }}');
+    const fileName  = document.getElementById('fileName');
+
+    if (!fileInput || !urlInput || !fileName) return;
+
+    fileInput.addEventListener('change', () => {
+      const f = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+      fileName.textContent = f ? f.name : 'Aucun fichier choisi';
+      if (f) urlInput.value = '';
+    });
+
+    urlInput.addEventListener('input', () => {
+      if (urlInput.value.trim() !== '') {
+        fileInput.value = '';
+        fileName.textContent = 'Aucun fichier choisi';
+      }
+    });
+  })();
+</script>
+{% endblock %}

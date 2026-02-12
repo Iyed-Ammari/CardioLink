@@ -1,0 +1,187 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes Rendez-vous{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+   
+    {# En-tête : Titre + Bouton "Nouveau" (seulement pour les patients) #}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>🗓️ Mes Rendez-vous</h1>
+       
+        {% if is_granted('ROLE_PATIENT') %}
+            <a href="{{ path('app_rdv_new') }}" class="btn btn-primary btn-lg shadow">
+                + Prendre un RDV
+            </a>
+        {% endif %}
+    </div>
+
+    {# Carte principale #}
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0 align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Date & Heure</th>
+                           
+                            {# Affichage conditionnel de la colonne "Avec qui ?" #}
+                            {% if is_granted('ROLE_MEDECIN') %}
+                                <th>Patient</th>
+                            {% else %}
+                                <th>Médecin</th>
+                            {% endif %}
+                           
+                            <th>Type</th>
+                            <th>Lieu / Lien</th>
+                            <th>Statut</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for rdv in rendez_vous %}
+                        <tr>
+                            {# 1. Date #}
+                            <td class="fw-bold text-primary">
+                                {{ rdv.dateHeure|date('d/m/Y') }} <br>
+                                <small class="text-muted">{{ rdv.dateHeure|date('H:i') }}</small>
+                            </td>
+
+                            {# 2. Interlocuteur #}
+                            <td>
+                                {% if is_granted('ROLE_MEDECIN') %}
+                                    👤 {{ rdv.patient.nom }} {{ rdv.patient.prenom }}
+                                {% else %}
+                                    👨‍⚕️ Dr. {{ rdv.medecin.nom }} {{ rdv.medecin.prenom }}
+                                {% endif %}
+                            </td>
+
+                            {# 3. Type (Présentiel ou Télé) #}
+                            <td>
+                                {% if rdv.type == 'Télémédecine' %}
+                                    <span class="badge bg-info text-dark">💻 Visio</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">🏥 Cabinet</span>
+                                {% endif %}
+                            </td>
+
+                            {# 4. Lieu ou Lien Visio #}
+                            <td>
+                                {% if rdv.type == 'Télémédecine' %}
+                                    {% if rdv.lienVisio %}
+                                        <a href="{{ path('app_rdv_join_visio', {'id': rdv.id}) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            Rejoindre la réunion
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">Lien en attente</span>
+                                    {% endif %}
+                                {% else %}
+                                    {# Si c'est en présentiel, on affiche le lieu #}
+                                    {% if rdv.lieu %}
+                                        {{ rdv.lieu.nom }}<br>
+                                        <small class="text-muted">{{ rdv.lieu.ville }}</small>
+                                    {% else %}
+                                        <span class="text-muted">À définir</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+
+                            {# 5. Statut (Code couleur) #}
+                            <td>
+                                {# Si c'est un MEDECIN, permet de changer le statut #}
+                                {% if is_granted('ROLE_MEDECIN') %}
+                                    {% if rdv.canDoctorEdit() %}
+                                        {# Formulaire pour changer le statut #}
+                                        <form method="post" action="{{ path('app_rdv_update_status', {'id': rdv.id}) }}" class="d-inline">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('status' ~ rdv.id) }}">
+                                            <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                                                <option value="En attente" {% if rdv.statut == 'En attente' %}selected{% endif %}>En attente</option>
+                                                <option value="Accepté" {% if rdv.statut == 'Accepté' %}selected{% endif %}>Accepté</option>
+                                                <option value="Refusé" {% if rdv.statut == 'Refusé' %}selected{% endif %}>Refusé</option>
+                                                <option value="Complété" {% if rdv.statut == 'Complété' %}selected{% endif %}>Complété</option>
+                                            </select>
+                                        </form>
+                                    {% else %}
+                                        {# Si la consultation est passée, affichage simple du statut #}
+                                        {% if rdv.statut == 'Accepté' %}
+                                            <span class="badge bg-success">{{ rdv.statut }}</span>
+                                        {% elseif rdv.statut == 'Refusé' %}
+                                            <span class="badge bg-danger">{{ rdv.statut }}</span>
+                                        {% elseif rdv.statut == 'Complété' %}
+                                            <span class="badge bg-info">{{ rdv.statut }}</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">{{ rdv.statut }}</span>
+                                        {% endif %}
+                                    {% endif %}
+                                {% else %}
+                                    {# Pour les patients, affichage simple du statut #}
+                                    {% if rdv.statut == 'Accepté' %}
+                                        <span class="badge bg-success">{{ rdv.statut }}</span>
+                                    {% elseif rdv.statut == 'Refusé' %}
+                                        <span class="badge bg-danger">{{ rdv.statut }}</span>
+                                    {% elseif rdv.statut == 'Complété' %}
+                                        <span class="badge bg-info">{{ rdv.statut }}</span>
+                                    {% elseif rdv.statut == 'En attente' %}
+                                        <span class="badge bg-warning text-dark">En attente</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">{{ rdv.statut }}</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+
+                            {# 6. Actions (Boutons) #}
+                            <td class="text-end">
+                                {# Si c'est un MEDECIN et que le RDV est passé ou confirmé #}
+                                {% if is_granted('ROLE_MEDECIN') and rdv.ordonnance is null %}
+                                        <a href="{{ path('ordonnance_new', {'rdvId': rdv.id}) }}" class="btn btn-sm btn-success">
+                                            📝 Créer ordonnance
+                                        </a>
+                                {% endif %}
+
+                                {# Si une ordonnance existe déjà #}
+                                {% if rdv.ordonnance %}
+                                    <a href="{{ path('ordonnance_show', {'id': rdv.ordonnance.id}) }}" class="btn btn-sm btn-info text-white">
+                                        📄 Voir Ordonnance
+                                    </a>
+                                {% endif %}
+
+                                {# Bouton Suppression pour PATIENT #}
+                                {% if is_granted('ROLE_PATIENT') and rdv.canPatientDelete() %}
+                                    <form method="post" action="{{ path('app_rdv_delete', {'id': rdv.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce rendez-vous ?');" class="d-inline">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ rdv.id) }}">
+                                        <button class="btn btn-sm btn-danger" type="submit">🗑️</button>
+                                    </form>
+                                {% endif %}
+
+                                {# Bouton Suppression pour MEDECIN #}
+                                {% if is_granted('ROLE_MEDECIN') and rdv.canDoctorDelete() %}
+                                    <form method="post" action="{{ path('app_rdv_delete', {'id': rdv.id}) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce rendez-vous ?');" class="d-inline">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ rdv.id) }}">
+                                        <button class="btn btn-sm btn-danger" type="submit">🗑️</button>
+                                    </form>
+                                {% endif %}
+
+                                {# Bouton Édition pour PATIENT seulement (seulement si modifiable) #}
+                                {% if is_granted('ROLE_PATIENT') and rdv.canPatientEdit() %}
+                                    <a href="{{ path('app_rdv_edit', {'id': rdv.id}) }}" class="btn btn-sm btn-warning text-dark">✏️</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        {# Si la liste est vide #}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <h4 class="text-muted">Aucun rendez-vous trouvé 😕</h4>
+                                {% if is_granted('ROLE_PATIENT') %}
+                                    <a href="{{ path('app_rdv_new') }}" class="btn btn-primary mt-3">Prendre mon premier RDV</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
