@@ -30,7 +30,7 @@ class ForumController extends AbstractController
         EntityManagerInterface $em
     ): Response {
         // Création d'un post
-        if ($request->isMethod('POST')) {
+        if ($request->isMethod('POST') && !$request->query->get('search') && !$request->query->get('sort')) {
             $user = $this->getUser();
 
             if (!$user) {
@@ -51,9 +51,38 @@ class ForumController extends AbstractController
             return $this->redirectToRoute('forum_frontoffice');
         }
 
+        // Récupérer tous les posts
+        $allPosts = $postRepository->findAll();
+
+        // Récupérer les paramètres de recherche et tri
+        $search = $request->query->get('search', '');
+        $sort = $request->query->get('sort', 'recent');
+
+        // Filtrer par recherche (titre)
+        if ($search) {
+            $allPosts = array_filter($allPosts, function($post) use ($search) {
+                return stripos($post->getTitle(), $search) !== false;
+            });
+        }
+
+        // Trier les posts
+        usort($allPosts, function($a, $b) use ($sort) {
+            if ($sort === 'titre-asc') {
+                return strcasecmp($a->getTitle(), $b->getTitle());
+            } elseif ($sort === 'titre-desc') {
+                return strcasecmp($b->getTitle(), $a->getTitle());
+            } elseif ($sort === 'ancien') {
+                return $a->getCreatedAt() <=> $b->getCreatedAt();
+            } else { // 'recent' ou défaut
+                return $b->getCreatedAt() <=> $a->getCreatedAt();
+            }
+        });
+
         // Affichage
         return $this->render('forum/frontoffice.html.twig', [
-            'posts' => $postRepository->findAll(),
+            'posts' => $allPosts,
+            'search' => $search,
+            'sort' => $sort,
         ]);
     }
 
@@ -125,8 +154,14 @@ class ForumController extends AbstractController
     {
         $user = $this->getUser();
 
-        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
-            $this->addFlash('error', 'Vous devez être administrateur pour supprimer un post');
+        if (!$user) {
+            $this->addFlash('error', 'Vous devez être connecté');
+            return $this->redirectToRoute('app_login');
+        }
+
+        // Vérifier si l'utilisateur est propriétaire du post ou admin
+        if ($post->getUser()->getId() !== $user->getId() && !in_array('ROLE_ADMIN', $user->getRoles())) {
+            $this->addFlash('error', 'Vous n\'avez pas le droit de supprimer ce post');
             return $this->redirectToRoute('forum_frontoffice');
         }
 
@@ -140,7 +175,12 @@ class ForumController extends AbstractController
         $em->flush();
 
         $this->addFlash('success', 'Post supprimé avec succès');
-        return $this->redirectToRoute('forum_backoffice');
+        
+        // Redirection selon le rôle
+        if (in_array('ROLE_ADMIN', $user->getRoles())) {
+            return $this->redirectToRoute('forum_backoffice');
+        }
+        return $this->redirectToRoute('forum_frontoffice');
     }
 
     // =============================
@@ -153,4 +193,14 @@ class ForumController extends AbstractController
             'post' => $post,
         ]);
     }
+#[Route('/post/{id}/like', name:'post_like', methods:['POST'])]
+public function like(Post $post, EntityManagerInterface $em): JsonResponse
+{
+    $post->setLikes($post->getLikes() + 1);
+    $em->flush();
+
+    return new JsonResponse([
+        'likes' => $post->getLikes()
+    ]);
+}
 }

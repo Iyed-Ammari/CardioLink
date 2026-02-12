@@ -559,4 +559,227 @@ body {
 .badge.new {
     animation: bounce 0.5s ease;
 }
+
+/* ===============================
+   AMÉLIORATIONS MODERNES - FORMULAIRES ET POSTS
+   =============================== */
+
+/* Boutons modernes */
+button, [type="submit"] {
+    transition: all 0.3s ease;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover, [type="submit"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+button:active, [type="submit"]:active {
+    transform: translateY(0);
+}
+
+/* Inputs et textarea modernes */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+    padding: 0.8rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    background-color: #f9fafb;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: #2F60F5;
+    background-color: #fff;
+    box-shadow: 0 0 0 4px rgba(47, 96, 245, 0.1);
+}
+
+textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* Post card amélioré */
+.post-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+
+.post-card:hover {
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    border-color: #2F60F5;
+}
+
+.post-card h3 {
+    color: #1f2937;
+    font-size: 1.3rem;
+    margin-bottom: 0.8rem;
+    font-weight: 700;
+}
+
+.post-card p {
+    color: #4b5563;
+    line-height: 1.6;
+    margin-bottom: 0.8rem;
+}
+
+.post-meta {
+    font-size: 0.9rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.post-card small {
+    color: #9ca3af;
+    font-size: 0.85rem;
+}
+
+/* Créer post - Formulaire moderne */
+.create-post {
+    background: linear-gradient(135deg, #fff 0%, #f9fafb 100%);
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.fb-textarea {
+    font-size: 1rem;
+    color: #333;
+    padding: 0.8rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    resize: none;
+    transition: all 0.3s ease;
+}
+
+.fb-textarea:focus {
+    border-color: #2F60F5;
+    background-color: #fff;
+    box-shadow: 0 0 0 4px rgba(47, 96, 245, 0.1);
+}
+
+/* Boutons d'action modernes */
+.btn-edit, .btn-cancel, .btn-edit-comment, .btn-cancel-comment {
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+
+.btn-edit {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: #fff;
+}
+
+.btn-edit:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-cancel, .btn-cancel-comment {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.btn-cancel:hover, .btn-cancel-comment:hover {
+    background: #d1d5db;
+    transform: translateY(-2px);
+}
+
+/* Commentaires modernes */
+.comment-item {
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.8rem;
+    transition: all 0.3s ease;
+}
+
+.comment-item:hover {
+    background: #f9fafb;
+    border-color: #2F60F5;
+}
+
+.comment-display strong {
+    color: #1f2937;
+    font-weight: 600;
+}
+
+.comment-display {
+    color: #4b5563;
+    line-height: 1.5;
+}
+
+.comment-actions {
+    margin-top: 0.8rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.comment-actions button {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
+}
+
+/* Barre de recherche et tri */
+.search-input {
+    border: 2px solid #e5e7eb !important;
+    border-radius: 8px !important;
+    padding: 0.8rem 1rem !important;
+    transition: all 0.3s ease;
+}
+
+.search-input:focus {
+    border-color: #2F60F5 !important;
+    box-shadow: 0 0 0 4px rgba(47, 96, 245, 0.1) !important;
+}
+
+/* Divider moderne */
+.divider {
+    border-top: 1px solid #e5e7eb;
+    margin: 1.5rem 0;
+}
+
+/* Animation entrée */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.post-card {
+    animation: slideIn 0.3s ease;
+}
+
 }

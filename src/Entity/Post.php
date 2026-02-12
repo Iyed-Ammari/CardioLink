@@ -31,6 +31,9 @@ class Post
     #[ORM\JoinColumn(nullable: false)]
     private ?User $user = null;
 
+    #[ORM\Column(type: 'integer')]
+    private int $likes = 0; // <-- ajout du champ likes
+
     /**
      * @var Collection<int, Comment>
      */
@@ -41,6 +44,8 @@ class Post
     {
         $this->comments = new ArrayCollection();
     }
+
+    // ====================== GETTERS & SETTERS ======================
 
     public function getId(): ?int
     {
@@ -66,7 +71,6 @@ class Post
     public function setTitle(string $title): static
     {
         $this->title = $title;
-
         return $this;
     }
 
@@ -78,7 +82,6 @@ class Post
     public function setContent(string $content): static
     {
         $this->content = $content;
-
         return $this;
     }
 
@@ -90,7 +93,31 @@ class Post
     public function setCreatedAT(\DateTimeImmutable $createdAT): static
     {
         $this->createdAT = $createdAT;
+        return $this;
+    }
 
+    public function getLikes(): int
+    {
+        return $this->likes;
+    }
+
+    public function setLikes(int $likes): static
+    {
+        $this->likes = $likes;
+        return $this;
+    }
+
+    public function addLike(): static
+    {
+        $this->likes++;
+        return $this;
+    }
+
+    public function removeLike(): static
+    {
+        if ($this->likes > 0) {
+            $this->likes--;
+        }
         return $this;
     }
 
@@ -108,7 +135,6 @@ class Post
             $this->comments->add($comment);
             $comment->setPost($this);
         }
-
         return $this;
     }
 
@@ -119,7 +145,6 @@ class Post
                 $comment->setPost(null);
             }
         }
-
         return $this;
     }
 }
