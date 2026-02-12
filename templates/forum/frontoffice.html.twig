@@ -60,7 +60,9 @@
   <!-- ================= SIDEBAR GAUCHE ================= -->
   <nav class="sidebar">
     <div class="logo">CardioLink</div>
+    {% if app.user and 'ROLE_ADMIN' in app.user.roles %}
     <a href="{{ path('forum_backoffice') }}" style="color:#000000;">Aller au Back-Office</a>
+    {% endif %}
     <a href="{{ path('forum_frontoffice') }}" class="active">Community</a>
     <a href="{{ path('app_home') }}">Home</a>
     {% if is_granted('ROLE_PATIENT') %}
@@ -376,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Fonction pour parser la date au format "d/m/Y H:i"
   function parseDate(dateStr) {
-    const parts = dateStr.trim().split(' ');
+    const parts = dateStr.trim().split(' ');      
     if (parts.length >= 2) {
       const [day, month, year] = parts[0].split('/');
       const [hours, minutes] = parts[1].split(':');

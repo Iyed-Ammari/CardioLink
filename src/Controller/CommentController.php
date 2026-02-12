@@ -118,6 +118,15 @@ class CommentController extends AbstractController
             return $this->redirectToRoute('forum_frontoffice');
         }
 
+        // Si admin, peut supprimer n'importe quel commentaire
+        if (in_array('ROLE_ADMIN', $user->getRoles())) {
+            $this->em->remove($comment);
+            $this->em->flush();
+            $this->addFlash('success', 'Commentaire supprimé avec succès');
+            return $this->redirectToRoute('forum_backoffice');
+        }
+
+        // Sinon, peut supprimer uniquement son propre commentaire
         if ($comment->getUser()->getId() !== $user->getId()) {
             $this->addFlash('error', 'Vous ne pouvez pas supprimer ce commentaire');
             return $this->redirectToRoute('forum_frontoffice');

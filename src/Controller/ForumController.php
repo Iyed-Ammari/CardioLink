@@ -125,14 +125,8 @@ class ForumController extends AbstractController
     {
         $user = $this->getUser();
 
-        if (!$user) {
-            $this->addFlash('error', 'Vous devez être connecté');
-            return $this->redirectToRoute('app_login');
-        }
-
-        // Vérifier que l'utilisateur est propriétaire du post
-        if ($post->getUser()->getId() !== $user->getId()) {
-            $this->addFlash('error', 'Vous n\'avez pas le droit de supprimer ce post');
+        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+            $this->addFlash('error', 'Vous devez être administrateur pour supprimer un post');
             return $this->redirectToRoute('forum_frontoffice');
         }
 
@@ -146,7 +140,7 @@ class ForumController extends AbstractController
         $em->flush();
 
         $this->addFlash('success', 'Post supprimé avec succès');
-        return $this->redirectToRoute('forum_frontoffice');
+        return $this->redirectToRoute('forum_backoffice');
     }
 
     // =============================
