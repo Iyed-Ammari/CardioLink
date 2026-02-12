@@ -9,7 +9,6 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
@@ -65,12 +64,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
     private ?DossierMedical $dossierMedical = null;
 
-    #[ORM\OneToMany(mappedBy: 'patient', targetEntity: Suivi::class, cascade: ['persist', 'remove'])]
-    private Collection $suivis;
-
-    #[ORM\OneToMany(mappedBy: 'medecin', targetEntity: Intervention::class)]
-    private Collection $interventions;
-
     #[ORM\Column]
     private bool $isVerified = false;
 
@@ -118,22 +111,56 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->conversationsAsPatient = new ArrayCollection();
         $this->conversationsAsMedecin = new ArrayCollection();
         $this->messages = new ArrayCollection();
+        $this->posts = new ArrayCollection();
+        $this->comments = new ArrayCollection();
         $this->rendezVouses = new ArrayCollection();
         $this->rendezVousMedecin = new ArrayCollection();
         
         $this->commandes = new ArrayCollection();
     }
 
-    public function getId(): ?int
+   
+
+    public function getId(): ?int { return $this->id; }
+
+    public function getEmail(): ?string { return $this->email; }
+    public function setEmail(string $email): static { $this->email = $email; return $this; }
+
+    public function getUserIdentifier(): string { return (string) $this->email; }
+
+    public function getRoles(): array
     {
-        return $this->id;
+        $roles = $this->roles;
+        $roles[] = 'ROLE_USER';
+        return array_unique($roles);
     }
 
-    public function getEmail(): ?string
-    {
-        return $this->email;
-    }
+    public function setRoles(array $roles): static { $this->roles = $roles; return $this; }
 
+    public function getPassword(): ?string { return $this->password; }
+    public function setPassword(string $password): static { $this->password = $password; return $this; }
+
+    public function eraseCredentials(): void { }
+
+    public function getNom(): ?string { return $this->nom; }
+    public function setNom(string $nom): static { $this->nom = $nom; return $this; }
+
+    public function getPrenom(): ?string { return $this->prenom; }
+    public function setPrenom(string $prenom): static { $this->prenom = $prenom; return $this; }
+
+    public function getTel(): ?string { return $this->tel; }
+    public function setTel(string $tel): static { $this->tel = $tel; return $this; }
+
+    public function getAdresse(): ?string { return $this->adresse; }
+    public function setAdresse(string $adresse): static { $this->adresse = $adresse; return $this; }
+
+    public function getDossierMedical(): ?DossierMedical { return $this->dossierMedical; }
+    public function setDossierMedical(DossierMedical $dossierMedical): static
+    {
+        if ($dossierMedical->getUser() !== $this) {
+            $dossierMedical->setUser($this);
+        }
+        $this->dossierMedical = $dossierMedical;
     public function setEmail(string $email): static
     {
         $this->email = $email;
@@ -373,76 +400,63 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    // Getters et Setters pour les collections
-    public function getConversationsAsPatient(): Collection
+    public function getPosts(): Collection
     {
-        return $this->conversationsAsPatient;
+        return $this->posts;
     }
 
-    public function addConversationAsPatient(Conversation $conversation): static
+    public function addPost(Post $post): static
     {
-        if (!$this->conversationsAsPatient->contains($conversation)) {
-            $this->conversationsAsPatient->add($conversation);
-            $conversation->setPatient($this);
+        if (!$this->posts->contains($post)) {
+            $this->posts->add($post);
+            $post->setUser($this);
         }
         return $this;
     }
 
-    public function removeConversationAsPatient(Conversation $conversation): static
+    public function removePost(Post $post): static
     {
-        if ($this->conversationsAsPatient->removeElement($conversation)) {
-            if ($conversation->getPatient() === $this) {
-                $conversation->setPatient(null);
+        if ($this->posts->removeElement($post)) {
+            if ($post->getUser() === $this) {
+                $post->setUser(null);
             }
         }
         return $this;
     }
 
-    public function getConversationsAsMedecin(): Collection
+    public function getComments(): Collection
     {
-        return $this->conversationsAsMedecin;
+        return $this->comments;
     }
 
-    public function addConversationAsMedecin(Conversation $conversation): static
+    public function addComment(Comment $comment): static
     {
-        if (!$this->conversationsAsMedecin->contains($conversation)) {
-            $this->conversationsAsMedecin->add($conversation);
-            $conversation->setMedecin($this);
+        if (!$this->comments->contains($comment)) {
+            $this->comments->add($comment);
+            $comment->setUser($this);
         }
         return $this;
     }
 
-    public function removeConversationAsMedecin(Conversation $conversation): static
+    public function removeComment(Comment $comment): static
     {
-        if ($this->conversationsAsMedecin->removeElement($conversation)) {
-            if ($conversation->getMedecin() === $this) {
-                $conversation->setMedecin(null);
+        if ($this->comments->removeElement($comment)) {
+            if ($comment->getUser() === $this) {
+                $comment->setUser(null);
             }
         }
         return $this;
     }
 
-    public function getMessages(): Collection
+    public function isVerified(): bool
     {
-        return $this->messages;
+        return $this->isVerified;
     }
 
-    public function addMessage(Message $message): static
+    public function setIsVerified(bool $isVerified): static
     {
-        if (!$this->messages->contains($message)) {
-            $this->messages->add($message);
-            $message->setSender($this);
-        }
-        return $this;
-    }
+        $this->isVerified = $isVerified;
 
-    public function removeMessage(Message $message): static
-    {
-        if ($this->messages->removeElement($message)) {
-            if ($message->getSender() === $this) {
-                $message->setSender(null);
-            }
-        }
         return $this;
     }
 }

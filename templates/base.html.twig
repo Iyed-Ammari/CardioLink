@@ -43,6 +43,7 @@
           <div class="nav-items">
             {% if app.user %}
               <a href="{{ path('app_home') }}" class="nav-link">Home</a>
+              <a href="{{ path('forum_frontoffice') }}" class="nav-link">👥 Community</a>
               {% if is_granted('ROLE_PATIENT') %}
                 <a href="{{ path('app_suivi_index') }}" class="nav-link">📊 Mes Suivis</a>
                 {# <a href="{{ path('app_mon_dossier') }}" class="nav-link">Mon Dossier Médical</a> #}

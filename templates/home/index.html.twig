@@ -11,7 +11,7 @@
         <div class="hero-buttons">
             {% if app.user %}
                 <a href="#" class="btn btn-primary btn-lg">View Dashboard</a>
-                <a href="#" class="btn btn-secondary btn-lg">Browse Records</a>
+                <a href="{{ path('forum_frontoffice') }}" class="btn btn-secondary btn-lg">Community</a>
             {% else %}
                 <a href="{{ path('app_register') }}" class="btn btn-primary btn-lg">Get Started</a>
                 <a href="{{ path('app_login') }}" class="btn btn-secondary btn-lg">Sign In</a>

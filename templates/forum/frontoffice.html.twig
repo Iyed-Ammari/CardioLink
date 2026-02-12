@@ -1,0 +1,393 @@
+<link rel="stylesheet" href="{{ asset('assets/forum.css') }}">
+
+<!-- ================= TOP HEADER ================= -->
+<header class="top-header" style="display:flex; justify-content:space-between; align-items:center; padding:1rem 2rem; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.05); border-bottom-left-radius:1rem; border-bottom-right-radius:1rem;">
+
+  <!-- ===== LEFT ===== -->
+  <div class="header-left" style="display:flex; align-items:center; gap:0.8rem;">
+    <img src="{{ asset('assets/image/logo.png') }}" alt="Logo" class="logo" style="width:80px; height:100px;">
+    <div class="platform-name" style="display:flex; flex-direction:column;">
+      <span class="title" style="font-weight:700; font-size:1.2rem;">CardioLink</span>
+      <span class="subtitle" style="font-size:0.9rem; color:#555;">Healthcare Platform</span>
+    </div>
+    {% if app.user and 'ROLE_ADMIN' in app.user.roles %}
+    <a href="{{ path('forum_backoffice') }}" style="margin-left:2rem; color:#2F60F5; font-weight:600; text-decoration:none;">Aller au Back-Office</a>
+    {% endif %}
+  </div>
+
+  <!-- ===== CENTER ===== -->
+  <div class="header-center" style="display:flex; flex-direction:column; align-items:center; flex:1; margin:0 1rem;">
+    <span class="community-name" style="font-weight:600; font-size:1.1rem;">Wellness <strong>Community</strong></span>
+    <span class="community-subtitle" style="font-size:0.85rem; color:#666;">Connect, Share, and Grow Together • Active Members: {{ posts|length }}</span>
+
+    <!-- Barre de recherche et tri -->
+    <div style="display:flex; gap:0.5rem; margin-top:0.5rem; align-items:center;">
+      <input 
+        type="text" 
+        id="search-post"
+        placeholder="Rechercher par titre..."
+        class="search-input"
+        style="padding:0.5rem 0.8rem; width:250px; border-radius:6px; border:1px solid #ccc; outline:none;"
+      />
+      
+      <!-- Boutons de tri -->
+      <select id="sort-posts" style="padding:0.5rem 0.8rem; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; outline:none;">
+        <option value="recent">Récent</option>
+        <option value="ancien">Ancien</option>
+        <option value="titre-asc">Titre (A-Z)</option>
+        <option value="titre-desc">Titre (Z-A)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="header-right" style="display:flex; align-items:center; gap:1rem;">
+    <div class="notification" id="notification" style="position:relative; cursor:pointer;">
+        <span class="bell" style="font-size:1.4rem;">🔔</span>
+        <span class="badge" style="position:absolute; top:-6px; right:-6px; background:red; color:#fff; font-size:0.75rem; padding:2px 6px; border-radius:50%; font-weight:700;">{{ posts|length }}</span>
+    </div>
+  </div>
+
+</header>
+    <!-- Popup pour posts récents -->
+    <div id="notif-popup" style="display:none; position:absolute; right:0; top:50px; width:300px; background:#fff; box-shadow:0 2px 10px rgba(0,0,0,0.2); border-radius:6px; z-index:1000; padding:0.5rem;">
+        {% include 'forum/_recent_posts.html.twig' with {'posts': posts} %}
+    </div>
+</div>
+</header>
+
+<div class="container">
+
+  <!-- ================= SIDEBAR GAUCHE ================= -->
+  <nav class="sidebar">
+    <div class="logo">CardioLink</div>
+    <a href="{{ path('forum_backoffice') }}" style="color:#000000;">Aller au Back-Office</a>
+    <a href="{{ path('forum_frontoffice') }}" class="active">Community</a>
+    <a href="{{ path('app_home') }}">Home</a>
+    {% if is_granted('ROLE_PATIENT') %}
+    <a href="{{ path('app_suivi_index') }}">📊 Mes Suivis</a>
+    <a href="#">Mon Dossier Médical</a>
+    {% endif %}
+    {% if is_granted('ROLE_MEDECIN') %}
+    <a href="{{ path('app_intervention_index') }}">🏥 Interventions</a>
+    <a href="{{ path('app_intervention_urgent') }}">🚨 SOS</a>
+    <a href="#">Gérer mes Patients</a>
+    {% endif %}
+    {% if is_granted('ROLE_ADMIN') %}
+    <a href="#">Administration</a>
+    {% endif %}
+    <a href="{{ logout_path() }}">Logout</a>
+  </nav>
+
+  <!-- ================= CONTENT ================= -->
+  <div class="content-area">
+    <div class="main-content">
+
+      <!-- ========== CREATE POST FACEBOOK STYLE ========== -->
+      <div class="create-post card-shadow" style="margin-bottom:1rem; border-radius:10px; background:#fff; padding:1rem;">
+        <form method="post" action="{{ path('forum_frontoffice') }}" class="fb-post-form">
+          <div style="display:flex; align-items:center; gap:0.7rem;">
+            <div style="width:40px;height:40px;border-radius:50%; background:#dbeafe; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#2563eb;">
+              U
+            </div>
+            <textarea name="content" rows="1" placeholder="Quoi de neuf ?" class="fb-textarea"></textarea>
+            <span class="error-msg" style="color:red; font-size:0.85rem;"></span>
+          </div>
+
+          <div class="fb-hidden-zone" style="display:none; margin-top:0.8rem; flex-direction:column; gap:0.5rem;">
+            <input name="title" placeholder="Titre du post">
+            <span class="error-msg" style="color:red; font-size:0.85rem;"></span>
+
+            <div style="display:flex; justify-content:flex-end;">
+              <button type="submit" style="background:#2F60F5; color:#fff; border:none; padding:0.5rem 1rem; border-radius:6px; font-weight:600;">
+                Publier
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <h2>ACCUEIL</h2>
+
+      <!-- ================= POSTS ================= -->
+      <div id="posts-container">
+        {% for post in posts %}
+        <article class="post-card card-shadow" style="margin-bottom:1rem; padding:1rem; border-radius:8px;">
+
+          <!-- ===== POST ===== -->
+          <div class="post-display">
+            <h3 class="post-title">{{ post.title }}</h3>
+            <p>{{ post.content }}</p>
+            <p class="post-meta">Par {{ post.user.nom }} {{ post.user.prenom }}</p>
+            <small>{{ post.createdAt|date('d/m/Y H:i') }}</small>
+          </div>
+
+          <!-- ===== EDIT POST ===== -->
+          <form method="post"
+                action="{{ path('forum_edit', {'id': post.id}) }}"
+                class="edit-form"
+                style="display:none; margin-top:0.6rem; flex-direction:column; gap:0.4rem;">
+
+            <input name="title" value="{{ post.title }}" placeholder="Titre du post">
+            <span class="error-msg" style="color:red; font-size:0.85rem;"></span>
+
+            <textarea name="content" rows="3">{{ post.content }}</textarea>
+            <span class="error-msg" style="color:red; font-size:0.85rem;"></span>
+
+            <div style="display:flex; gap:0.4rem;">
+              <button type="submit" style="background:#2563eb; color:#fff;">Enregistrer</button>
+              <button type="button" class="btn-cancel" style="background:#9ca3af; color:#fff;">Annuler</button>
+            </div>
+          </form>
+
+          <!-- ===== ACTIONS ===== -->
+          {% if app.user and post.user.id == app.user.id %}
+          <div style="margin-top:0.6rem; display:flex; gap:0.5rem;">
+            <button type="button"
+                    class="btn-edit"
+                    style="background:#3b82f6;color:#fff;padding:0.4rem 0.8rem;border:none;border-radius:5px;">
+              Modifier
+            </button>
+
+            <form method="post" action="{{ path('forum_delete', {'id': post.id}) }}" style="display:inline;">
+              <button type="submit" style="background:#ef4444;color:#fff;">Supprimer</button>
+            </form>
+          </div>
+          {% endif %}
+
+          <!-- ================= COMMENTAIRES ================= -->
+          <div style="margin-top:1rem; padding-top:0.5rem; border-top:1px solid #e5e7eb;">
+
+            {% for comment in post.comments %}
+            <div class="comment-item" style="margin-bottom:0.4rem; padding:6px 8px; background:#f3f4f6; border-radius:6px;">
+
+              <!-- AFFICHAGE COMMENTAIRE -->
+              <div class="comment-display">
+                <strong>{{ comment.user.nom }} {{ comment.user.prenom }}</strong> :
+                {{ comment.content }}
+              </div>
+
+              <!-- FORM MODIFIER COMMENTAIRE -->
+              <form method="post"
+                    action="{{ path('comment_edit', {'id': comment.id}) }}"
+                    class="comment-edit-form"
+                    style="display:none; margin-top:4px; flex-direction:column; gap:0.4rem;">
+
+                <input type="text" name="content" value="{{ comment.content }}" style="flex:1;">
+                <span class="error-msg" style="color:red; font-size:0.85rem;"></span>
+
+                <div style="display:flex; gap:0.4rem; margin-top:4px;">
+                  <button type="submit">OK</button>
+                  <button type="button" class="btn-cancel-comment">Annuler</button>
+                </div>
+              </form>
+
+              <!-- ACTIONS -->
+              {% if app.user and comment.user.id == app.user.id %}
+              <div class="comment-actions" style="margin-top:2px;">
+                <button type="button" class="btn-edit-comment" style="font-size:0.8rem;">
+                  Modifier
+                </button>
+
+                <form method="post"
+                      action="{{ path('comment_delete', {'id': comment.id}) }}"
+                      style="display:inline;">
+                  <button type="submit" style="font-size:0.8rem; color:red;">
+                    Supprimer
+                  </button>
+                </form>
+              </div>
+              {% endif %}
+
+            </div>
+            {% endfor %}
+
+            <!-- ===== FORM COMMENT ===== -->
+            <form method="post"
+                  action="{{ path('comment_add', {'postId': post.id}) }}"
+                  style="margin-top:0.5rem; display:flex; gap:0.4rem;">
+
+              <input name="content" placeholder="Écrire un commentaire..." style="flex:1;">
+              <span class="error-msg" style="color:red; font-size:0.85rem;"></span>
+
+              <button type="submit" style="background:#2563eb;color:#fff;">Envoyer</button>
+            </form>
+
+          </div>
+
+        </article>
+        {% endfor %}
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ================= JS ================= -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+  // ===== Fonctions édition posts =====
+  document.querySelectorAll('.btn-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const article = btn.closest('.post-card');
+      article.querySelector('.post-display').style.display = 'none';
+      article.querySelector('.edit-form').style.display = 'flex';
+    });
+  });
+
+  document.querySelectorAll('.btn-cancel').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const article = btn.closest('.post-card');
+      article.querySelector('.edit-form').style.display = 'none';
+      article.querySelector('.post-display').style.display = 'block';
+    });
+  });
+
+  // ===== Afficher zone cachée post =====
+  const textarea = document.querySelector(".fb-textarea");
+  const hiddenZone = document.querySelector(".fb-hidden-zone");
+  if (textarea) {
+    textarea.addEventListener("focus", () => {
+      hiddenZone.style.display = "flex";
+      textarea.rows = 3;
+    });
+  }
+
+  // ===== Edition commentaires =====
+  document.querySelectorAll('.btn-edit-comment').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.comment-item');
+      item.querySelector('.comment-display').style.display = 'none';
+      item.querySelector('.comment-edit-form').style.display = 'flex';
+    });
+  });
+
+  document.querySelectorAll('.btn-cancel-comment').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.comment-item');
+      item.querySelector('.comment-edit-form').style.display = 'none';
+      item.querySelector('.comment-display').style.display = 'block';
+    });
+  });
+
+  // ===== VALIDATION INLINE MODERNE =====
+  function clearErrors(form) {
+    form.querySelectorAll('.error-msg').forEach(span => span.textContent = '');
+  }
+
+  function validateField(field) {
+    const value = field.value.trim();
+    const errorSpan = field.nextElementSibling;
+    let error = '';
+
+    if (!value) error = `${field.placeholder || field.name} est requis.`;
+    else if (field.name === 'title' && value.length < 3) error = 'Le titre doit contenir au moins 3 caractères.';
+    else if (field.name === 'content' && field.closest('.fb-post-form') && value.length < 5) error = 'Le contenu du post doit contenir au moins 5 caractères.';
+    else if (field.name === 'content' && (field.closest('.comment-edit-form') || field.closest('form[action*="comment_add"]')) && value.length < 1) error = 'Le commentaire ne peut pas être vide.';
+
+    errorSpan.textContent = error;
+    return !error;
+  }
+
+  document.querySelectorAll('form').forEach(form => {
+    form.addEventListener('submit', e => {
+      clearErrors(form);
+      let valid = true;
+      form.querySelectorAll('input, textarea').forEach(field => {
+        if (!validateField(field)) valid = false;
+      });
+      if (!valid) e.preventDefault();
+    });
+
+    form.querySelectorAll('input, textarea').forEach(field => {
+      field.addEventListener('input', () => validateField(field));
+    });
+  });
+
+  // ===== JS notif =====
+  const notif = document.getElementById('notification');
+  const popup = document.getElementById('notif-popup');
+
+  if (notif) {
+      notif.querySelector('.bell').addEventListener('click', (e) => {
+          e.stopPropagation();
+          popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+      });
+  }
+
+  document.addEventListener('click', () => {
+      if (popup) popup.style.display = 'none';
+  });
+  if (popup) popup.addEventListener('click', e => e.stopPropagation());
+
+  // ===== RECHERCHE POSTS =====
+  const searchInput = document.getElementById('search-post');
+  const sortSelect = document.getElementById('sort-posts');
+  const postsContainer = document.getElementById('posts-container');
+
+  // Fonction pour trier et afficher les posts
+  function sortAndDisplayPosts() {
+    const query = searchInput.value.toLowerCase().trim();
+    const sortValue = sortSelect.value;
+    
+    // Récupérer tous les posts en tant qu'array
+    let allPosts = Array.from(postsContainer.querySelectorAll('.post-card'));
+    
+    // Filtrer par recherche
+    let visiblePosts = allPosts.filter(post => {
+      const title = post.querySelector('.post-title').textContent.toLowerCase();
+      return title.includes(query);
+    });
+
+    // Trier les posts
+    visiblePosts.sort((a, b) => {
+      if (sortValue === 'titre-asc') {
+        const titleA = a.querySelector('.post-title').textContent.toLowerCase();
+        const titleB = b.querySelector('.post-title').textContent.toLowerCase();
+        return titleA.localeCompare(titleB);
+      } else if (sortValue === 'titre-desc') {
+        const titleA = a.querySelector('.post-title').textContent.toLowerCase();
+        const titleB = b.querySelector('.post-title').textContent.toLowerCase();
+        return titleB.localeCompare(titleA);
+      } else if (sortValue === 'recent') {
+        // Récupérer les timestamps depuis data attributes ou créés
+        const dateStrA = a.querySelector('small').textContent;
+        const dateStrB = b.querySelector('small').textContent;
+        // Parser au format "d/m/Y H:i"
+        const dateA = parseDate(dateStrA);
+        const dateB = parseDate(dateStrB);
+        return dateB - dateA;
+      } else if (sortValue === 'ancien') {
+        const dateStrA = a.querySelector('small').textContent;
+        const dateStrB = b.querySelector('small').textContent;
+        const dateA = parseDate(dateStrA);
+        const dateB = parseDate(dateStrB);
+        return dateA - dateB;
+      }
+    });
+
+    // Réorganiser les posts dans le DOM
+    allPosts.forEach(post => post.style.display = 'none');
+    visiblePosts.forEach(post => {
+      post.style.display = 'block';
+      postsContainer.appendChild(post);
+    });
+  }
+
+  // Fonction pour parser la date au format "d/m/Y H:i"
+  function parseDate(dateStr) {
+    const parts = dateStr.trim().split(' ');
+    if (parts.length >= 2) {
+      const [day, month, year] = parts[0].split('/');
+      const [hours, minutes] = parts[1].split(':');
+      return new Date(year, month - 1, day, hours, minutes);
+    }
+    return new Date(0);
+  }
+
+  // Événements pour recherche et tri
+  searchInput.addEventListener('input', sortAndDisplayPosts);
+  sortSelect.addEventListener('change', sortAndDisplayPosts);
+
+});
+</script>
