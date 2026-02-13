@@ -24,76 +24,121 @@ class ForumController extends AbstractController
     // =============================
     // FRONT-OFFICE (affichage + création)
     // =============================
-    #[Route('/forum/frontoffice', name: 'forum_frontoffice')]
-    public function frontoffice(
-        Request $request,
-        PostRepository $postRepository,
-        EntityManagerInterface $em
-    ): Response {
-        // Création d'un post
-        if ($request->isMethod('POST') && !$request->query->get('search') && !$request->query->get('sort')) {
-            $user = $this->getUser();
+   #[Route('/forum/frontoffice', name: 'forum_frontoffice')]
+public function frontoffice(
+    Request $request,
+    PostRepository $postRepository,
+    EntityManagerInterface $em
+): Response {
+    $user = $this->getUser();
 
-            if (!$user) {
-                $this->addFlash('error', 'Vous devez être connecté pour créer un post');
-                return $this->redirectToRoute('app_login');
-            }
-
-            $post = new Post();
-            $post->setUser($user);
-            $post->setTitle($request->request->get('title'));
-            $post->setContent($request->request->get('content'));
-            $post->setCreatedAt(new \DateTimeImmutable());
-
-            $file = $request->files->get('image');
-            if ($file) {
-                $filename = uniqid().'.'.$file->guessExtension();
-                $file->move($this->getParameter('posts_images_directory'), $filename);
-                $post->setImage($filename);
-            }
-
-            $em->persist($post);
-            $em->flush();
-
-            $this->addFlash('success', 'Post créé avec succès');
-            return $this->redirectToRoute('forum_frontoffice');
-        }
-
-        // Récupérer tous les posts
-        $allPosts = $postRepository->findAll();
-
-        // Récupérer les paramètres de recherche et tri
-        $search = $request->query->get('search', '');
-        $sort = $request->query->get('sort', 'recent');
-
-        // Filtrer par recherche (titre)
-        if ($search) {
-            $allPosts = array_filter($allPosts, function($post) use ($search) {
-                return stripos($post->getTitle(), $search) !== false;
-            });
-        }
-
-        // Trier les posts
-        usort($allPosts, function($a, $b) use ($sort) {
-            if ($sort === 'titre-asc') {
-                return strcasecmp($a->getTitle(), $b->getTitle());
-            } elseif ($sort === 'titre-desc') {
-                return strcasecmp($b->getTitle(), $a->getTitle());
-            } elseif ($sort === 'ancien') {
-                return $a->getCreatedAt() <=> $b->getCreatedAt();
-            } else { // 'recent' ou défaut
-                return $b->getCreatedAt() <=> $a->getCreatedAt();
-            }
-        });
-
-        // Affichage
-        return $this->render('forum/frontoffice.html.twig', [
-            'posts' => $allPosts,
-            'search' => $search,
-            'sort' => $sort,
-        ]);
+    if (!$user) {
+        $this->addFlash('error', 'Vous devez être connecté pour créer un post');
+        return $this->redirectToRoute('app_login');
     }
 
+    // ===== CREATION D'UN POST =====
+    if ($request->isMethod('POST') && !$request->query->get('search') && !$request->query->get('sort')) {
+        $post = new Post();
+        $post->setUser($user);
+        $post->setTitle($request->request->get('title'));
+        $post->setContent($request->request->get('content'));
+        $post->setCreatedAT(new \DateTimeImmutable());
+
+        $file = $request->files->get('image');
+        if ($file) {
+            $filename = uniqid().'.'.$file->guessExtension();
+            $file->move($this->getParameter('posts_images_directory'), $filename);
+            $post->setImage($filename);
+        }
+
+        $em->persist($post);
+        $em->flush();
+
+        $this->addFlash('success', 'Post créé avec succès ! 🔥');
+        return $this->redirectToRoute('forum_frontoffice');
+    }
+
+    // ===== CHARGEMENT DES POSTS =====
+    $allPosts = $postRepository->findBy([], ['createdAT' => 'DESC']);
+    // ===== RECHERCHE =====
+    $search = $request->query->get('search', '');
+    if ($search) {
+        $allPosts = array_filter($allPosts, function($post) use ($search) {
+            return stripos($post->getTitle(), $search) !== false;
+        });
+    }
+
+    // ===== TRI =====
+    $sort = $request->query->get('sort', 'recent');
+    usort($allPosts, function($a, $b) use ($sort) {
+        if ($sort === 'titre-asc') {
+            return strcasecmp($a->getTitle(), $b->getTitle());
+        } elseif ($sort === 'titre-desc') {
+            return strcasecmp($b->getTitle(), $a->getTitle());
+        } elseif ($sort === 'ancien') {
+            return $a->getCreatedAT() <=> $b->getCreatedAT();
+        } else { // 'recent' ou défaut
+            return $b->getCreatedAT() <=> $a->getCreatedAT();
+        }
+    });
+
+    // ===== CALCUL DES FLAMMES PAR UTILISATEUR =====
+    // ===== CALCUL DES FLAMMES PAR UTILISATEUR (TEST 1 MINUTE) =====
+// ===== CALCUL DES FLAMMES PAR UTILISATEUR (TEST 1 MINUTE) =====
+// ===== CALCUL DES FLAMMES PAR UTILISATEUR (1 MINUTE TEST) =====
+// ===== CALCUL DES FLAMMES PAR UTILISATEUR =====
+$flamesByUser = [];
+$now = new \DateTimeImmutable();
+$usersProcessed = [];
+
+foreach ($allPosts as $post) {
+    $userId = $post->getUser()->getId();
+
+    if (in_array($userId, $usersProcessed)) {
+        continue;
+    }
+
+    // Récupérer tous les posts de l'utilisateur, du plus récent au plus ancien
+    $userPosts = $postRepository->findBy(['user' => $post->getUser()], ['createdAT' => 'DESC']);
+
+    $flames = 0;
+    $previous = null;
+
+    foreach ($userPosts as $userPost) {
+        if (!$previous) {
+            // Premier post, vérifie si dans la dernière minute
+            $diff = $now->getTimestamp() - $userPost->getCreatedAT()->getTimestamp();
+            if ($diff <= 60) { // 1 minute
+                $flames = 1;
+                $previous = $userPost->getCreatedAT();
+            } else {
+                $flames = 0;
+                break;
+            }
+        } else {
+            // Diff entre ce post et le précédent
+            $diff = $previous->getTimestamp() - $userPost->getCreatedAT()->getTimestamp();
+            if ($diff <= 60) {
+                $flames++;
+                $previous = $userPost->getCreatedAT();
+            } else {
+                break;
+            }
+        }
+    }
+
+    $flamesByUser[$userId] = $flames;
+    $usersProcessed[] = $userId;
+}
+    // ===== RENDER =====
+    return $this->render('forum/frontoffice.html.twig', [
+        'posts' => $allPosts,
+        'search' => $search,
+        'sort' => $sort,
+        'flamesByUser' => $flamesByUser,
+    ]);
+}
     // =============================
     // MODIFIER UN POST (FRONT-OFFICE)
     // =============================

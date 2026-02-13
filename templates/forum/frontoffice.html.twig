@@ -54,16 +54,16 @@
 
 </header>
     <!-- Popup pour posts récents -->
-    <div id="notif-popup" style="display:none; position:absolute; right:0; top:50px; width:300px; background:#fff; box-shadow:0 2px 10px rgba(0,0,0,0.2); border-radius:6px; z-index:1000; padding:0.5rem;">
+    <div id="notif-popup" style="display:none; position:absolute; right:0; top:56px; width:340px; background:linear-gradient(135deg, #F82239 0%, #2F60F5 100%); box-shadow:0 8px 32px rgba(47,96,245,0.13), 0 1.5px 8px rgba(0,0,0,0.08); border-radius:18px; z-index:1000; padding:1.1rem 1.2rem 1.2rem 1.2rem; border:1px solid #2F60F5; transition:box-shadow 0.3s,background 0.3s; color:#fff;">
         {% include 'forum/_recent_posts.html.twig' with {'posts': posts} %}
     </div>
 </div>
 </header>
 
-<div class="container">
+<div class="container" style="display:flex; gap:1.2rem;">
 
   <!-- ================= SIDEBAR GAUCHE ================= -->
-  <nav class="sidebar">
+  <nav class="sidebar" style="min-width:170px; margin-right:0.5rem;">
     <div class="logo">CardioLink</div>
     {% if app.user and 'ROLE_ADMIN' in app.user.roles %}
     <a href="{{ path('forum_backoffice') }}" style="color:#000000;">Aller au Back-Office</a>
@@ -86,12 +86,12 @@
   </nav>
 
   <!-- ================= CONTENT ================= -->
-  <div class="content-area">
+  <div class="content-area" style="flex:1;">
     <div class="main-content">
 
       <!-- ========== CREATE POST FACEBOOK STYLE ========== -->
-      <div class="create-post card-shadow" style="margin-bottom:2rem; border-radius:12px; background:#fff; padding:1.5rem; border:1px solid #e5e7eb;">
-        <form method="post" action="{{ path('forum_frontoffice') }}" class="fb-post-form" enctype="multipart/form-data">
+      <div class="create-post card-shadow" style="margin-bottom:2rem; border-radius:18px; background:linear-gradient(135deg,#f8fafc 80%,#f1f5f9 100%); padding:1.3rem 1.7rem; border:1px solid #e5e7eb; box-shadow:0 4px 24px rgba(47,96,245,0.08); max-width:540px; margin-left:auto; margin-right:auto;">
+        <form method="post" action="{{ path('forum_frontoffice') }}" class="fb-post-form" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:1.1rem;">
           <!-- Auteur du post -->
           <div style="display:flex; align-items:center; gap:0.8rem; margin-bottom:1rem;">
             <div style="width:48px;height:48px;border-radius:50%; background:linear-gradient(135deg, #2F60F5, #F82239); display:flex; align-items:center; justify-content:center; font-weight:bold; color:#fff; font-size:1.2rem;">
@@ -104,18 +104,18 @@
           </div>
 
           <!-- Textarea principal -->
-          <textarea name="content" rows="3" placeholder="Quoi de neuf ? 💭" class="fb-textarea" style="width:100%; padding:1rem; border:2px solid #e5e7eb; border-radius:10px; font-size:1rem; resize:none; transition:all 0.3s ease; font-family:inherit;"></textarea>
+          <textarea name="content" rows="3" placeholder="Quoi de neuf ? 💭" class="fb-textarea" style="width:100%; padding:1.1rem; border:2px solid #e5e7eb; border-radius:12px; font-size:1.05rem; resize:none; transition:all 0.3s; font-family:inherit; background:#f8fafc;"></textarea>
           <span class="error-msg" style="color:red; font-size:0.85rem; display:block; margin-top:0.5rem;"></span>
 
-          <div class="fb-hidden-zone" style="margin-top:1.2rem; flex-direction:column; gap:1rem;">
-            <input name="title" placeholder="✏️ Ajouter un titre (optionnel)" style="padding:0.9rem 1rem; border:2px solid #e5e7eb; border-radius:10px; font-size:0.95rem; transition:all 0.3s ease;">
+          <div class="fb-hidden-zone" style="margin-top:1.1rem; flex-direction:column; gap:0.9rem;">
+            <input name="title" placeholder="✏️ Ajouter un titre (optionnel)" style="padding:0.95rem 1.1rem; border:2px solid #e5e7eb; border-radius:12px; font-size:1.01rem; transition:all 0.3s; background:#f8fafc;">
             <span class="error-msg" style="color:red; font-size:0.85rem;"></span>
             <!-- Image optionnelle -->
-            <input type="file" name="image" accept="image/*" style="padding:0.6rem 1rem; border:2px solid #e5e7eb; border-radius:10px; font-size:0.95rem; transition:all 0.3s ease; cursor:pointer;">
+            <input type="file" name="image" accept="image/*" style="padding:0.7rem 1.1rem; border:2px solid #e5e7eb; border-radius:12px; font-size:1.01rem; transition:all 0.3s; cursor:pointer; background:#f8fafc;">
             <span class="error-msg" style="color:red; font-size:0.85rem;"></span>
-            <div style="display:flex; justify-content:flex-end; gap:0.8rem;">
-              <button type="button" class="btn-cancel" onclick="document.querySelector('.fb-hidden-zone').style.display='none'; document.querySelector('.fb-textarea').rows=3;" style="background:#e5e7eb; color:#374151; padding:0.8rem 1.8rem; border-radius:8px; font-weight:600; cursor:pointer; border:none; transition:all 0.3s ease;">Annuler</button>
-              <button type="submit" style="background:linear-gradient(135deg, #2F60F5, #1d4ed8); color:#fff; border:none; padding:0.8rem 2rem; border-radius:8px; font-weight:600; cursor:pointer; transition:all 0.3s ease;">
+            <div style="display:flex; justify-content:flex-end; gap:0.7rem; margin-top:0.2rem;">
+              <button type="button" class="btn-cancel" onclick="document.querySelector('.fb-hidden-zone').style.display='none'; document.querySelector('.fb-textarea').rows=3;" style="background:#e5e7eb; color:#374151; padding:0.8rem 1.7rem; border-radius:9px; font-weight:600; cursor:pointer; border:none; transition:all 0.3s;">Annuler</button>
+              <button type="submit" style="background:linear-gradient(135deg, #2F60F5, #1d4ed8); color:#fff; border:none; padding:0.8rem 2.1rem; border-radius:9px; font-weight:600; cursor:pointer; transition:all 0.3s; box-shadow:0 2px 8px rgba(47,96,245,0.10);">
                 📤 Publier
               </button>
             </div>
@@ -127,17 +127,26 @@
       <div id="posts-container">
         {% for post in posts %}
         <article class="post-card card-shadow" 
-         style="margin-bottom:2rem; padding:0; border-radius:12px; background:#fff; border:1px solid #e5e7eb; overflow:hidden;"
-         data-post-id="{{ post.id }}">
+         style="margin-bottom:1.5rem; padding:0; border-radius:18px; background:linear-gradient(135deg,#f8fafc 80%,#f1f5f9 100%); border:1px solid #e5e7eb; overflow:hidden; box-shadow:0 4px 24px rgba(47,96,245,0.08); max-width:760px; margin-left:auto; margin-right:auto; transition:box-shadow 0.3s,transform 0.3s;">
 
           <!-- POST HEADER (Avatar + Nom + Date) -->
-          <div style="padding:1rem 1.5rem; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:flex-start;">
+          <div style="padding:0.9rem 1.3rem 0.7rem 1.3rem; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:flex-start; background:transparent;">
             <div style="display:flex; align-items:center; gap:0.8rem; flex:1;">
               <div style="width:44px;height:44px;border-radius:50%; background:linear-gradient(135deg, #2F60F5, #F82239); display:flex; align-items:center; justify-content:center; font-weight:bold; color:#fff; font-size:1rem;">
                 {{ post.user.nom|first }}{{ post.user.prenom|first }}
               </div>
               <div>
-                <div style="font-weight:600; color:#1f2937;">{{ post.user.nom }} {{ post.user.prenom }}</div>
+                <div style="font-weight:600; color:#1f2937; display:flex; align-items:center; gap:0.4rem;">
+                  {{ post.user.nom }} {{ post.user.prenom }}
+                 {% if flamesByUser[post.user.id] is defined and flamesByUser[post.user.id] > 0 %}
+        <span title="Flammes" style="font-size:1.2rem; display:flex; align-items:center; gap:0.2rem;">
+            🔥
+            <span style="font-size:1rem; font-weight:700; margin-left:0.2rem;">
+                {{ flamesByUser[post.user.id] }}
+            </span>
+        </span>
+    {% endif %}
+</div>
                 <div style="font-size:0.85rem; color:#6b7280;" data-time="{{ post.createdAt|date('U') }}">
                   <span class="time-ago">il y a quelques secondes</span>
                 </div>
@@ -164,7 +173,7 @@
 
           <!-- POST CONTENT -->
           <!-- POST CONTENT -->
-<div class="post-display" style="padding:1.5rem;">
+<div class="post-display" style="padding:1.1rem 1.3rem 0.7rem 1.3rem; background:transparent;">
   {% if post.title %}
     <h3 class="post-title" style="margin-bottom:0.8rem; color:#1f2937; font-size:1.2rem; font-weight:700;">
       {{ post.title }}
@@ -176,10 +185,10 @@
 
   {# IMAGE DU POST #}
   {% if post.image %}
-    <div class="post-image" style="margin-top:1rem; border-radius:12px; overflow:hidden;">
-      <img src="{{ asset('uploads/posts/' ~ post.image) }}" 
-           alt="Image du post" 
-           style="width:100%; max-height:500px; object-fit:cover; border-radius:12px;">
+    <div class="post-image" style="display:flex; justify-content:center; margin-top:1.1rem;">
+      <img src="{{ asset('uploads/posts/' ~ post.image) }}"
+           alt="Image du post"
+           style="max-width:320px; width:100%; max-height:220px; object-fit:cover; border-radius:14px; box-shadow:0 2px 12px rgba(47,96,245,0.10); border:1px solid #e5e7eb; padding:4px; background:#f8fafc; transition:box-shadow 0.3s;">
     </div>
   {% endif %}
 </div>
@@ -203,7 +212,7 @@
           </form>
 
  <!-- LIKES SECTION (COEUR INSTAGRAM) -->
-<div style="padding:0.8rem 1.5rem; display:flex; align-items:center; gap:0.5rem;">
+<div style="padding:0.5rem 1.3rem 0.7rem 1.3rem; display:flex; align-items:center; gap:0.5rem; background:transparent;">
   <div class="like-btn" 
      data-post-id="{{ post.id }}" 
      data-liked="{{ post.isLikedByUser(app.user) ? '1' : '0' }}" 
@@ -228,7 +237,7 @@
   </div>
 </div>
           <!-- COMMENTAIRES SECTION -->
-          <div style="border-top:1px solid #e5e7eb; padding:1.5rem;">
+          <div style="border-top:1px solid #e5e7eb; padding:0.9rem 1.3rem; background:linear-gradient(135deg,#f1f5f9 80%,#f8fafc 100%); border-bottom-left-radius:18px; border-bottom-right-radius:18px;">
             <div style="display:flex; gap:0.8rem; margin-bottom:1.2rem; padding-bottom:1rem; border-bottom:1px solid #e5e7eb;">
               <span style="color:#6b7280; font-size:0.9rem;">💬 {{ post.comments|length }} commentaire(s)</span>
             </div>
