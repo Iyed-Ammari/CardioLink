@@ -10,7 +10,8 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
+use Symfony\Component\String\Slugger\SluggerInterface;
 class ForumController extends AbstractController
 {
     // Page d'accueil
@@ -43,6 +44,13 @@ class ForumController extends AbstractController
             $post->setTitle($request->request->get('title'));
             $post->setContent($request->request->get('content'));
             $post->setCreatedAt(new \DateTimeImmutable());
+
+            $file = $request->files->get('image');
+            if ($file) {
+                $filename = uniqid().'.'.$file->guessExtension();
+                $file->move($this->getParameter('posts_images_directory'), $filename);
+                $post->setImage($filename);
+            }
 
             $em->persist($post);
             $em->flush();
@@ -112,7 +120,12 @@ class ForumController extends AbstractController
         if ($request->isMethod('POST')) {
             $post->setTitle($request->request->get('title'));
             $post->setContent($request->request->get('content'));
-
+            $file = $request->files->get('image');
+            if ($file) {
+                $filename = uniqid().'.'.$file->guessExtension();
+                $file->move($this->getParameter('posts_images_directory'), $filename);
+                $post->setImage($filename);
+            }
             $em->flush();
 
             $this->addFlash('success', 'Post modifié avec succès');
@@ -193,14 +206,76 @@ class ForumController extends AbstractController
             'post' => $post,
         ]);
     }
-#[Route('/post/{id}/like', name:'post_like', methods:['POST'])]
-public function like(Post $post, EntityManagerInterface $em): JsonResponse
+#[Route('/post/{id}/like', name: 'post_like')]
+public function like(Post $post, EntityManagerInterface $em): Response
 {
-    $post->setLikes($post->getLikes() + 1);
+    $user = $this->getUser();
+
+    if (!$post->isLikedByUser($user)) {
+        $post->addLikedBy($user);
+    }
+
     $em->flush();
 
-    return new JsonResponse([
-        'likes' => $post->getLikes()
+    return $this->redirectToRoute('forum_frontoffice');
+}
+#[Route('/post/{id}/like', name: 'post_like', methods: ['POST'])]
+public function toggleLike(Post $post, EntityManagerInterface $em): JsonResponse
+{
+    $user = $this->getUser();
+    if (!$user) {
+        return $this->json(['error' => 'Not authenticated'], 403);
+    }
+
+    if ($post->isLikedByUser($user)) {
+        $post->removeLikedBy($user); // retire le like
+        $liked = false;
+    } else {
+        $post->addLikedBy($user); // ajoute le like
+        $liked = true;
+    }
+
+    $em->persist($post);
+    $em->flush();
+
+    return $this->json([
+        'likes' => $post->getLikes(),
+        'liked' => $liked
+    ]);
+}
+public function forumFrontoffice(Request $request, EntityManagerInterface $em)
+{
+    if ($request->isMethod('POST')) {
+
+        dd($request->files->all()); // 🔥 test uniquement quand tu publies
+
+        $post = new Post();
+        $post->setContent($request->request->get('content'));
+        $post->setTitle($request->request->get('title'));
+        $post->setCreatedAT(new \DateTimeImmutable());
+        $post->setUser($this->getUser());
+
+        $file = $request->files->get('image');
+
+        if ($file) {
+            $filename = uniqid().'.'.$file->guessExtension();
+
+            $file->move(
+                $this->getParameter('posts_images_directory'),
+                $filename
+            );
+
+            $post->setImage($filename);
+        }
+
+        $em->persist($post);
+        $em->flush();
+
+        return $this->redirectToRoute('forum_frontoffice');
+    }
+
+    return $this->render('forum/frontoffice.html.twig', [
+        'posts' => $em->getRepository(Post::class)->findAll()
     ]);
 }
 }

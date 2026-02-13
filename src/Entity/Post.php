@@ -26,13 +26,15 @@ class Post
 
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAT = null;
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $image = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
     private ?User $user = null;
 
     #[ORM\Column(type: 'integer')]
-    private int $likes = 0; // <-- ajout du champ likes
+    private int $likes = 0;
 
     /**
      * @var Collection<int, Comment>
@@ -40,9 +42,17 @@ class Post
     #[ORM\OneToMany(targetEntity: Comment::class, mappedBy: 'post')]
     private Collection $comments;
 
+    /**
+     * @var Collection<int, User>
+     */
+    #[ORM\ManyToMany(targetEntity: User::class)]
+    #[ORM\JoinTable(name: "post_likes")]
+    private Collection $likedBy;
+
     public function __construct()
     {
         $this->comments = new ArrayCollection();
+        $this->likedBy = new ArrayCollection();
     }
 
     // ====================== GETTERS & SETTERS ======================
@@ -106,20 +116,62 @@ class Post
         $this->likes = $likes;
         return $this;
     }
-
-    public function addLike(): static
+   public function getImage(): ?string
     {
-        $this->likes++;
-        return $this;
+    return $this->image;
+     }
+
+public function setImage(?string $image): static
+    {
+    $this->image = $image;
+    return $this;
     }
 
-    public function removeLike(): static
+
+    // ====================== LIKE SYSTEM ======================
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function getLikedBy(): Collection
     {
-        if ($this->likes > 0) {
-            $this->likes--;
+        return $this->likedBy;
+    }
+
+    public function addLikedBy(User $user): static
+    {
+        if (!$this->likedBy->contains($user)) {
+            $this->likedBy->add($user);
+            $this->likes++;
         }
+
         return $this;
     }
+
+    public function removeLikedBy(User $user): static
+    {
+        if ($this->likedBy->contains($user)) {
+            $this->likedBy->removeElement($user);
+            if ($this->likes > 0) {
+                $this->likes--;
+            }
+        }
+
+        return $this;
+    }
+    /**
+ * Vérifie si l'utilisateur a déjà liké ce post
+ */
+public function isLikedByUser(?User $user): bool
+{
+    if (!$user) {
+        return false; // utilisateur non connecté
+    }
+
+    return $this->likedBy->contains($user);
+}
+
+    // ====================== COMMENTS ======================
 
     /**
      * @return Collection<int, Comment>
@@ -135,6 +187,7 @@ class Post
             $this->comments->add($comment);
             $comment->setPost($this);
         }
+
         return $this;
     }
 
@@ -145,6 +198,7 @@ class Post
                 $comment->setPost(null);
             }
         }
+
         return $this;
     }
 }

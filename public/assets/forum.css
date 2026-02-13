@@ -559,7 +559,27 @@ body {
 .badge.new {
     animation: bounce 0.5s ease;
 }
+.like-icon {
+  transition: transform 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
+}
 
+.like-icon.liked .heart-path {
+  fill: #ef4444;      /* rouge */
+  stroke: #ef4444;    /* contour rouge */
+}
+
+.like-icon.liked {
+  transform: scale(1.2);  /* petit effet zoom */
+}
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.4); }
+  100% { transform: scale(1.2); }
+}
+
+.like-icon.liked {
+  animation: pop 0.3s ease;
+}
 /* ===============================
    AMÉLIORATIONS MODERNES - FORMULAIRES ET POSTS
    =============================== */

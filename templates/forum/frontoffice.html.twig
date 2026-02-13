@@ -91,7 +91,7 @@
 
       <!-- ========== CREATE POST FACEBOOK STYLE ========== -->
       <div class="create-post card-shadow" style="margin-bottom:2rem; border-radius:12px; background:#fff; padding:1.5rem; border:1px solid #e5e7eb;">
-        <form method="post" action="{{ path('forum_frontoffice') }}" class="fb-post-form">
+        <form method="post" action="{{ path('forum_frontoffice') }}" class="fb-post-form" enctype="multipart/form-data">
           <!-- Auteur du post -->
           <div style="display:flex; align-items:center; gap:0.8rem; margin-bottom:1rem;">
             <div style="width:48px;height:48px;border-radius:50%; background:linear-gradient(135deg, #2F60F5, #F82239); display:flex; align-items:center; justify-content:center; font-weight:bold; color:#fff; font-size:1.2rem;">
@@ -107,10 +107,12 @@
           <textarea name="content" rows="3" placeholder="Quoi de neuf ? 💭" class="fb-textarea" style="width:100%; padding:1rem; border:2px solid #e5e7eb; border-radius:10px; font-size:1rem; resize:none; transition:all 0.3s ease; font-family:inherit;"></textarea>
           <span class="error-msg" style="color:red; font-size:0.85rem; display:block; margin-top:0.5rem;"></span>
 
-          <div class="fb-hidden-zone" style="display:none; margin-top:1.2rem; flex-direction:column; gap:1rem;">
+          <div class="fb-hidden-zone" style="margin-top:1.2rem; flex-direction:column; gap:1rem;">
             <input name="title" placeholder="✏️ Ajouter un titre (optionnel)" style="padding:0.9rem 1rem; border:2px solid #e5e7eb; border-radius:10px; font-size:0.95rem; transition:all 0.3s ease;">
             <span class="error-msg" style="color:red; font-size:0.85rem;"></span>
-
+            <!-- Image optionnelle -->
+            <input type="file" name="image" accept="image/*" style="padding:0.6rem 1rem; border:2px solid #e5e7eb; border-radius:10px; font-size:0.95rem; transition:all 0.3s ease; cursor:pointer;">
+            <span class="error-msg" style="color:red; font-size:0.85rem;"></span>
             <div style="display:flex; justify-content:flex-end; gap:0.8rem;">
               <button type="button" class="btn-cancel" onclick="document.querySelector('.fb-hidden-zone').style.display='none'; document.querySelector('.fb-textarea').rows=3;" style="background:#e5e7eb; color:#374151; padding:0.8rem 1.8rem; border-radius:8px; font-weight:600; cursor:pointer; border:none; transition:all 0.3s ease;">Annuler</button>
               <button type="submit" style="background:linear-gradient(135deg, #2F60F5, #1d4ed8); color:#fff; border:none; padding:0.8rem 2rem; border-radius:8px; font-weight:600; cursor:pointer; transition:all 0.3s ease;">
@@ -161,12 +163,26 @@
           </div>
 
           <!-- POST CONTENT -->
-          <div class="post-display" style="padding:1.5rem;">
-            {% if post.title %}
-            <h3 class="post-title" style="margin-bottom:0.8rem; color:#1f2937; font-size:1.2rem; font-weight:700;">{{ post.title }}</h3>
-            {% endif %}
-            <p style="color:#4b5563; line-height:1.6; margin:0; word-wrap:break-word;">{{ post.content }}</p>
-          </div>
+          <!-- POST CONTENT -->
+<div class="post-display" style="padding:1.5rem;">
+  {% if post.title %}
+    <h3 class="post-title" style="margin-bottom:0.8rem; color:#1f2937; font-size:1.2rem; font-weight:700;">
+      {{ post.title }}
+    </h3>
+  {% endif %}
+  <p style="color:#4b5563; line-height:1.6; margin:0; word-wrap:break-word;">
+    {{ post.content }}
+  </p>
+
+  {# IMAGE DU POST #}
+  {% if post.image %}
+    <div class="post-image" style="margin-top:1rem; border-radius:12px; overflow:hidden;">
+      <img src="{{ asset('uploads/posts/' ~ post.image) }}" 
+           alt="Image du post" 
+           style="width:100%; max-height:500px; object-fit:cover; border-radius:12px;">
+    </div>
+  {% endif %}
+</div>
 
           <!-- EDIT POST (Hidden) -->
           <form method="post"
@@ -187,14 +203,28 @@
           </form>
 
  <!-- LIKES SECTION (COEUR INSTAGRAM) -->
-   <div style="padding:0.8rem 1.5rem; display:flex; align-items:center; gap:0.5rem;">
-  <div class="like-btn" style="cursor:pointer; display:flex; align-items:center; gap:0.3rem;">
+<div style="padding:0.8rem 1.5rem; display:flex; align-items:center; gap:0.5rem;">
+  <div class="like-btn" 
+     data-post-id="{{ post.id }}" 
+     data-liked="{{ post.isLikedByUser(app.user) ? '1' : '0' }}" 
+     style="cursor:pointer; display:flex; align-items:center; gap:0.3rem;">
     <svg class="like-icon" xmlns="http://www.w3.org/2000/svg" 
          viewBox="0 0 24 24" width="24" height="24" style="transition: all 0.3s;">
-      <path class="heart-path" fill="none" stroke="#6b7280" stroke-width="2"
-            d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 21.682l-7.682-7.682a4.5 4.5 0 010-6.364z" />
+      
+      {% if post.isLikedByUser(app.user) %}
+        <path class="heart-path" fill="#ef4444" stroke="#ef4444" stroke-width="2"
+          d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 21.682l-7.682-7.682a4.5 4.5 0 010-6.364z" />
+      {% else %}
+        <path class="heart-path" fill="none" stroke="#6b7280" stroke-width="2"
+          d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 21.682l-7.682-7.682a4.5 4.5 0 010-6.364z" />
+      {% endif %}
+      
     </svg>
-    <span class="like-count" style="font-size:0.85rem; color:#6b7280;">{{ post.likes }}</span>
+
+    <span class="like-count" style="font-size:0.85rem; color:#6b7280;">
+      {{ post.likes }}
+    </span>
+    
   </div>
 </div>
           <!-- COMMENTAIRES SECTION -->
@@ -480,35 +510,55 @@ document.addEventListener('DOMContentLoaded', () => {
 document.querySelectorAll('.like-btn').forEach(el => {
   el.addEventListener('click', function() {
     const icon = this.querySelector('.like-icon');
+    const heart = this.querySelector('.heart-path');
     const countEl = this.querySelector('.like-count');
 
-    // 1️⃣ Mise à jour immédiate côté client
-    let current = parseInt(countEl.textContent);
-    if (!icon.classList.contains('liked')) {
-      current += 1;
-      icon.classList.add('liked'); // cœur rouge immédiatement
+    const postId = this.getAttribute('data-post-id');
+
+    // Récupérer l'état initial du like depuis l'attribut data-liked
+    let liked = this.getAttribute('data-liked') === '1';
+
+    // Inverser l'état local
+    liked = !liked;
+    this.setAttribute('data-liked', liked ? '1' : '0');
+
+    // Mise à jour visuelle immédiate
+    if (liked) {
+      icon.classList.add('liked');
+      heart.setAttribute("fill", "#ef4444");
+      heart.setAttribute("stroke", "#ef4444");
+      countEl.textContent = parseInt(countEl.textContent) + 1;
     } else {
-      current -= 1;
-      icon.classList.remove('liked'); // coeur redevenu vide
+      icon.classList.remove('liked');
+      heart.setAttribute("fill", "none");
+      heart.setAttribute("stroke", "#6b7280");
+      countEl.textContent = parseInt(countEl.textContent) - 1;
     }
-    countEl.textContent = current;
 
-    // 2️⃣ Envoi de la requête au serveur
-    const article = this.closest('article');
-    const postId = article.dataset.postId;
-
+    // Requête serveur
     fetch(`/post/${postId}/like`, {
       method: 'POST',
       headers: {
         'X-Requested-With': 'XMLHttpRequest',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({})  // ou {toggle: true} si besoin côté serveur
+      body: JSON.stringify({})
     })
     .then(res => res.json())
     .then(data => {
-      // Synchronisation serveur/client (optionnelle)
       countEl.textContent = data.likes;
+
+      if (data.liked) {
+        icon.classList.add('liked');
+        heart.setAttribute("fill", "#ef4444");
+        heart.setAttribute("stroke", "#ef4444");
+        this.setAttribute('data-liked', '1');
+      } else {
+        icon.classList.remove('liked');
+        heart.setAttribute("fill", "none");
+        heart.setAttribute("stroke", "#6b7280");
+        this.setAttribute('data-liked', '0');
+      }
     })
     .catch(err => console.error(err));
   });
