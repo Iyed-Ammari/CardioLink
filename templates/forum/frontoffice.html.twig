@@ -147,22 +147,23 @@
         </span>
     {% endif %}
 </div>
-{# ===== BOUTON RÉSUMÉ IA ===== #}
-{% if post.content|length > 2000 %}
-   <form method="post" action="{{ path('generate_summary', {'id': post.id}) }}" style="margin-top:0.8rem;">
+<!-- Bouton Résumé IA -->
+{% if post.content|length > 200 %}
+<form method="post" action="{{ path('generate_summary', {'id': post.id}) }}" style="margin-top:0.8rem;">
     <button type="submit" style="background:linear-gradient(135deg, #2F60F5, #1d4ed8); 
                                 color:#fff; border:none; padding:0.5rem 1rem; 
                                 border-radius:8px; font-weight:600; cursor:pointer;">
         🤖 Générer résumé IA
     </button>
 </form>
+{% endif %}
 
     {% if post.summary is defined and post.summary %}
         <div style="margin-top:0.5rem; padding:0.8rem 1rem; background:#f1f5f9; border-radius:10px; font-size:0.95rem;">
             <strong>Résumé IA :</strong> {{ post.summary }}
         </div>
     {% endif %}
-{% endif %}
+
                 <div style="font-size:0.85rem; color:#6b7280;" data-time="{{ post.createdAt|date('U') }}">
                   <span class="time-ago">il y a quelques secondes</span>
                 </div>
@@ -198,11 +199,11 @@
   <p style="color:#4b5563; line-height:1.6; margin:0; word-wrap:break-word;">
     {{ post.content }}
   </p>
-  <!-- 🔹 Résumé IA si disponible -->
+ <!-- Affichage du résumé IA si disponible -->
 {% if summariesByPost[post.id] is defined %}
-  <div class="post-summary" style="margin-top:0.8rem; padding:0.8rem; background:#f1f5f9; border-radius:10px; font-size:0.95rem; color:#374151;">
-      🤖 <strong>Résumé IA :</strong> {{ summariesByPost[post.id] }}
-  </div>
+<div class="post-summary" style="margin-top:0.8rem; padding:0.8rem; background:#f1f5f9; border-radius:10px; font-size:0.95rem; color:#374151;">
+    🤖 <strong>Résumé IA :</strong> {{ summariesByPost[post.id] }}
+</div>
 {% endif %}
   
   {# IMAGE DU POST #}

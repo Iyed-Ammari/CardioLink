@@ -5,6 +5,7 @@ use App\Entity\PostSummary;
 use App\Entity\Post;
 use App\Repository\PostRepository;
 use App\Repository\CommentRepository;
+use App\Repository\PostSummaryRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -37,7 +38,7 @@ public function frontoffice(
         return $this->redirectToRoute('app_login');
     }
 
-    // ===== CREATION D'UN POST =====
+    // 🔹 Création d'un post
     if ($request->isMethod('POST') && !$request->query->get('search') && !$request->query->get('sort')) {
         $post = new Post();
         $post->setUser($user);
@@ -55,29 +56,29 @@ public function frontoffice(
         $em->persist($post);
         $em->flush();
 
-        $this->addFlash('success', 'Post créé avec succès ! 🔥');
+        $this->addFlash('success', 'Post créé avec succès !');
         return $this->redirectToRoute('forum_frontoffice');
     }
 
-    // ===== CHARGEMENT DES POSTS =====
+    // 🔹 Chargement des posts
     $allPosts = $postRepository->findBy([], ['createdAT' => 'DESC']);
 
-    // ===== RECHERCHE =====
+    // 🔹 Recherche
     $search = $request->query->get('search', '');
     if ($search) {
-        $allPosts = array_filter($allPosts, fn($post) => stripos($post->getTitle(), $search) !== false);
+        $allPosts = array_filter($allPosts, fn($p) => stripos($p->getTitle(), $search) !== false);
     }
 
-    // ===== TRI =====
+    // 🔹 Tri
     $sort = $request->query->get('sort', 'recent');
     usort($allPosts, function($a, $b) use ($sort) {
         if ($sort === 'titre-asc') return strcasecmp($a->getTitle(), $b->getTitle());
         if ($sort === 'titre-desc') return strcasecmp($b->getTitle(), $a->getTitle());
         if ($sort === 'ancien') return $a->getCreatedAT() <=> $b->getCreatedAT();
-        return $b->getCreatedAT() <=> $a->getCreatedAT(); // recent ou défaut
+        return $b->getCreatedAT() <=> $a->getCreatedAT(); // recent par défaut
     });
 
-    // ===== RÉCUPÉRATION DES RÉSUMÉS IA =====
+    // 🔹 Récupérer les résumés pour affichage
     $postIds = array_map(fn($p) => $p->getId(), $allPosts);
     $postSummaries = $em->getRepository(PostSummary::class)
         ->createQueryBuilder('ps')
@@ -95,6 +96,7 @@ public function frontoffice(
         }
     }
 
+   
    
 
     // ===== CALCUL DES FLAMMES PAR UTILISATEUR =====
@@ -338,44 +340,56 @@ public function forumFrontoffice(Request $request, EntityManagerInterface $em)
         'posts' => $em->getRepository(Post::class)->findAll()
     ]);
 }
-#[Route('/forum/post/{id}/summary', name: 'generate_summary', methods: ['POST'])]
-public function generateSummary(Post $post, EntityManagerInterface $em): Response
+#[Route('/forum/post/{id}/generate-summary', name: 'generate_summary', methods: ['POST'])]
+public function generateSummary(Post $post, EntityManagerInterface $em, PostSummaryRepository $summaryRepo): Response
 {
     $content = $post->getContent();
 
-    // Appel à l'API Flask
-    $url = "http://127.0.0.1:5000/summarize";
-    $data = json_encode(["text" => $content]);
+    // 🔹 Chemin du script Python
+    $pythonBinary = '"C:\\Users\\Mon Pc\\CardioLink\\ml_env\\Scripts\\python.exe"';
+$pythonScript = '"C:\\Users\\Mon Pc\\CardioLink\\ml\\summarizer.py"';
 
-    $options = [
-        "http" => [
-            "header"  => "Content-Type: application/json",
-            "method"  => "POST",
-            "content" => $data,
-            "ignore_errors" => true
-        ]
-    ];
+$descriptors = [
+    0 => ['pipe', 'r'], // stdin
+    1 => ['pipe', 'w'], // stdout
+    2 => ['pipe', 'w'], // stderr
+];
 
-    $context  = stream_context_create($options);
-    $result = file_get_contents($url, false, $context);
-    $response = json_decode($result, true);
+$process = proc_open("$pythonBinary $pythonScript", $descriptors, $pipes);
 
-    $summary = $response['summary'] ?? "Résumé non disponible";
+if (is_resource($process)) {
+    fwrite($pipes[0], $content);
+    fclose($pipes[0]);
 
-    // 🔥 Vérifier si un PostSummary existe déjà pour ce Post
-    $postSummary = $em->getRepository(PostSummary::class)->findOneBy(['post' => $post]);
+    $summary = stream_get_contents($pipes[1]);
+    fclose($pipes[1]);
 
-    if (!$postSummary) {
-        // Si aucun résumé → création
-        $postSummary = new PostSummary();
-        $postSummary->setPost($post);
-        $postSummary->setCreatedAt(new \DateTimeImmutable());
+    $errorOutput = stream_get_contents($pipes[2]);
+    fclose($pipes[2]);
+
+    proc_close($process);
+
+    if (!empty($errorOutput)) {
+        $summary = "Erreur Python : " . $errorOutput;
     }
 
-    // Toujours mettre à jour le résumé
-    $postSummary->setSummary($summary);
+    $summary = trim($summary);
+} else {
+    $summary = "Résumé non disponible";
+}
+    // 🔹 Stocker ou mettre à jour le résumé dans PostSummary
+    $existingSummary = $summaryRepo->findOneBy(['post' => $post]);
+    if ($existingSummary) {
+        $existingSummary->setSummary($summary);
+        $existingSummary->setCreatedAt(new \DateTimeImmutable());
+    } else {
+        $postSummary = new PostSummary();
+        $postSummary->setPost($post);
+        $postSummary->setSummary($summary);
+        $postSummary->setCreatedAt(new \DateTimeImmutable());
+        $em->persist($postSummary);
+    }
 
-    $em->persist($postSummary);
     $em->flush();
 
     $this->addFlash('success', 'Résumé généré avec succès !');
