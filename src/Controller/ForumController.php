@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Controller;
-
+use App\Entity\PostSummary;
 use App\Entity\Post;
 use App\Repository\PostRepository;
 use App\Repository\CommentRepository;
@@ -24,7 +24,7 @@ class ForumController extends AbstractController
     // =============================
     // FRONT-OFFICE (affichage + création)
     // =============================
-   #[Route('/forum/frontoffice', name: 'forum_frontoffice')]
+ #[Route('/forum/frontoffice', name: 'forum_frontoffice')]
 public function frontoffice(
     Request $request,
     PostRepository $postRepository,
@@ -61,27 +61,41 @@ public function frontoffice(
 
     // ===== CHARGEMENT DES POSTS =====
     $allPosts = $postRepository->findBy([], ['createdAT' => 'DESC']);
+
     // ===== RECHERCHE =====
     $search = $request->query->get('search', '');
     if ($search) {
-        $allPosts = array_filter($allPosts, function($post) use ($search) {
-            return stripos($post->getTitle(), $search) !== false;
-        });
+        $allPosts = array_filter($allPosts, fn($post) => stripos($post->getTitle(), $search) !== false);
     }
 
     // ===== TRI =====
     $sort = $request->query->get('sort', 'recent');
     usort($allPosts, function($a, $b) use ($sort) {
-        if ($sort === 'titre-asc') {
-            return strcasecmp($a->getTitle(), $b->getTitle());
-        } elseif ($sort === 'titre-desc') {
-            return strcasecmp($b->getTitle(), $a->getTitle());
-        } elseif ($sort === 'ancien') {
-            return $a->getCreatedAT() <=> $b->getCreatedAT();
-        } else { // 'recent' ou défaut
-            return $b->getCreatedAT() <=> $a->getCreatedAT();
-        }
+        if ($sort === 'titre-asc') return strcasecmp($a->getTitle(), $b->getTitle());
+        if ($sort === 'titre-desc') return strcasecmp($b->getTitle(), $a->getTitle());
+        if ($sort === 'ancien') return $a->getCreatedAT() <=> $b->getCreatedAT();
+        return $b->getCreatedAT() <=> $a->getCreatedAT(); // recent ou défaut
     });
+
+    // ===== RÉCUPÉRATION DES RÉSUMÉS IA =====
+    $postIds = array_map(fn($p) => $p->getId(), $allPosts);
+    $postSummaries = $em->getRepository(PostSummary::class)
+        ->createQueryBuilder('ps')
+        ->where('ps.post IN (:postIds)')
+        ->setParameter('postIds', $postIds)
+        ->orderBy('ps.createdAt', 'DESC')
+        ->getQuery()
+        ->getResult();
+
+    $summariesByPost = [];
+    foreach ($postSummaries as $ps) {
+        $postId = $ps->getPost()->getId();
+        if (!isset($summariesByPost[$postId])) {
+            $summariesByPost[$postId] = $ps->getSummary();
+        }
+    }
+
+   
 
     // ===== CALCUL DES FLAMMES PAR UTILISATEUR =====
     // ===== CALCUL DES FLAMMES PAR UTILISATEUR (TEST 1 MINUTE) =====
@@ -137,6 +151,7 @@ foreach ($allPosts as $post) {
         'search' => $search,
         'sort' => $sort,
         'flamesByUser' => $flamesByUser,
+        'summariesByPost' => $summariesByPost,
     ]);
 }
     // =============================
@@ -322,5 +337,49 @@ public function forumFrontoffice(Request $request, EntityManagerInterface $em)
     return $this->render('forum/frontoffice.html.twig', [
         'posts' => $em->getRepository(Post::class)->findAll()
     ]);
+}
+#[Route('/forum/post/{id}/summary', name: 'generate_summary', methods: ['POST'])]
+public function generateSummary(Post $post, EntityManagerInterface $em): Response
+{
+    $content = $post->getContent();
+
+    // Appel à l'API Flask
+    $url = "http://127.0.0.1:5000/summarize";
+    $data = json_encode(["text" => $content]);
+
+    $options = [
+        "http" => [
+            "header"  => "Content-Type: application/json",
+            "method"  => "POST",
+            "content" => $data,
+            "ignore_errors" => true
+        ]
+    ];
+
+    $context  = stream_context_create($options);
+    $result = file_get_contents($url, false, $context);
+    $response = json_decode($result, true);
+
+    $summary = $response['summary'] ?? "Résumé non disponible";
+
+    // 🔥 Vérifier si un PostSummary existe déjà pour ce Post
+    $postSummary = $em->getRepository(PostSummary::class)->findOneBy(['post' => $post]);
+
+    if (!$postSummary) {
+        // Si aucun résumé → création
+        $postSummary = new PostSummary();
+        $postSummary->setPost($post);
+        $postSummary->setCreatedAt(new \DateTimeImmutable());
+    }
+
+    // Toujours mettre à jour le résumé
+    $postSummary->setSummary($summary);
+
+    $em->persist($postSummary);
+    $em->flush();
+
+    $this->addFlash('success', 'Résumé généré avec succès !');
+
+    return $this->redirectToRoute('forum_frontoffice');
 }
 }

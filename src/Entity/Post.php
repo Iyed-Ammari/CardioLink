@@ -48,6 +48,8 @@ class Post
     #[ORM\ManyToMany(targetEntity: User::class)]
     #[ORM\JoinTable(name: "post_likes")]
     private Collection $likedBy;
+    #[ORM\OneToOne(mappedBy: 'post', targetEntity: PostSummary::class)]
+    private ?PostSummary $summary = null;
 
     public function __construct()
     {
