@@ -90,38 +90,64 @@
     <div class="main-content">
 
       <!-- ========== CREATE POST FACEBOOK STYLE ========== -->
-      <div class="create-post card-shadow" style="margin-bottom:2rem; border-radius:18px; background:linear-gradient(135deg,#f8fafc 80%,#f1f5f9 100%); padding:1.3rem 1.7rem; border:1px solid #e5e7eb; box-shadow:0 4px 24px rgba(47,96,245,0.08); max-width:540px; margin-left:auto; margin-right:auto;">
-        <form method="post" action="{{ path('forum_frontoffice') }}" class="fb-post-form" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:1.1rem;">
-          <!-- Auteur du post -->
-          <div style="display:flex; align-items:center; gap:0.8rem; margin-bottom:1rem;">
+<div class="create-post card-shadow" style="margin-bottom:2rem; border-radius:18px; background:linear-gradient(135deg,#f8fafc 80%,#f1f5f9 100%); padding:1.3rem 1.7rem; border:1px solid #e5e7eb; box-shadow:0 4px 24px rgba(47,96,245,0.08); max-width:540px; margin-left:auto; margin-right:auto;">
+
+    <form method="post" action="{{ path('forum_frontoffice') }}" class="fb-post-form" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:1.1rem;">
+
+        <!-- Auteur du post -->
+        <div style="display:flex; align-items:center; gap:0.8rem; margin-bottom:1rem;">
             <div style="width:48px;height:48px;border-radius:50%; background:linear-gradient(135deg, #2F60F5, #F82239); display:flex; align-items:center; justify-content:center; font-weight:bold; color:#fff; font-size:1.2rem;">
-              {{ app.user.nom|first }}
+                {{ app.user.nom|first }}
             </div>
             <div>
-              <div style="font-weight:600; color:#1f2937;">{{ app.user.nom }} {{ app.user.prenom }}</div>
-              <div style="font-size:0.85rem; color:#6b7280;">À votre communauté</div>
+                <div style="font-weight:600; color:#1f2937;">{{ app.user.nom }} {{ app.user.prenom }}</div>
+                <div style="font-size:0.85rem; color:#6b7280;">À votre communauté</div>
             </div>
-          </div>
+        </div>
 
-          <!-- Textarea principal -->
-          <textarea name="content" rows="3" placeholder="Quoi de neuf ? 💭" class="fb-textarea" style="width:100%; padding:1.1rem; border:2px solid #e5e7eb; border-radius:12px; font-size:1.05rem; resize:none; transition:all 0.3s; font-family:inherit; background:#f8fafc;"></textarea>
-          <span class="error-msg" style="color:red; font-size:0.85rem; display:block; margin-top:0.5rem;"></span>
+       <!-- Formulaire complet pour publication avec audio -->
+<form id="postForm">
+    <!-- Bouton micro / audio -->
+    <button type="button" id="startRecording">🎤 Parler</button>
 
-          <div class="fb-hidden-zone" style="margin-top:1.1rem; flex-direction:column; gap:0.9rem;">
-            <input name="title" placeholder="✏️ Ajouter un titre (optionnel)" style="padding:0.95rem 1.1rem; border:2px solid #e5e7eb; border-radius:12px; font-size:1.01rem; transition:all 0.3s; background:#f8fafc;">
-            <span class="error-msg" style="color:red; font-size:0.85rem;"></span>
-            <!-- Image optionnelle -->
-            <input type="file" name="image" accept="image/*" style="padding:0.7rem 1.1rem; border:2px solid #e5e7eb; border-radius:12px; font-size:1.01rem; transition:all 0.3s; cursor:pointer; background:#f8fafc;">
-            <span class="error-msg" style="color:red; font-size:0.85rem;"></span>
-            <div style="display:flex; justify-content:flex-end; gap:0.7rem; margin-top:0.2rem;">
-              <button type="button" class="btn-cancel" onclick="document.querySelector('.fb-hidden-zone').style.display='none'; document.querySelector('.fb-textarea').rows=3;" style="background:#e5e7eb; color:#374151; padding:0.8rem 1.7rem; border-radius:9px; font-weight:600; cursor:pointer; border:none; transition:all 0.3s;">Annuler</button>
-              <button type="submit" style="background:linear-gradient(135deg, #2F60F5, #1d4ed8); color:#fff; border:none; padding:0.8rem 2.1rem; border-radius:9px; font-weight:600; cursor:pointer; transition:all 0.3s; box-shadow:0 2px 8px rgba(47,96,245,0.10);">
+    <!-- Résultat de la transcription -->
+    <div id="result" style="margin:0.5rem 0; color:#111;"></div>
+
+    <!-- Textarea principale pour le contenu -->
+    <textarea id="postContent" name="content" rows="3"
+        placeholder="Quoi de neuf ? 💭"
+        class="fb-textarea"
+        style="width:100%; padding:1.1rem; border:2px solid #e5e7eb; border-radius:12px; font-size:1.05rem; resize:none; transition:all 0.3s; font-family:inherit; background:#f8fafc;">
+    </textarea>
+    <span class="error-msg" style="color:red; font-size:0.85rem; display:block; margin-top:0.5rem;"></span>
+
+    <!-- Zone cachée pour titre et image -->
+    <div class="fb-hidden-zone" style="margin-top:1.1rem; flex-direction:column; gap:0.9rem; display:flex;">
+        <!-- Titre optionnel -->
+        <input type="text" name="title" placeholder="✏️ Ajouter un titre (optionnel)"
+            style="padding:0.95rem 1.1rem; border:2px solid #e5e7eb; border-radius:12px; font-size:1.01rem; transition:all 0.3s; background:#f8fafc;">
+        <span class="error-msg" style="color:red; font-size:0.85rem;"></span>
+
+        <!-- Image optionnelle -->
+        <input type="file" name="image" accept="image/*"
+            style="padding:0.7rem 1.1rem; border:2px solid #e5e7eb; border-radius:12px; font-size:1.01rem; transition:all 0.3s; cursor:pointer; background:#f8fafc;">
+        <span class="error-msg" style="color:red; font-size:0.85rem;"></span>
+
+        <!-- Boutons Annuler et Publier -->
+        <div style="display:flex; justify-content:flex-end; gap:0.7rem; margin-top:0.2rem;">
+            <button type="button" class="btn-cancel"
+                onclick="document.querySelector('.fb-hidden-zone').style.display='none'; document.querySelector('.fb-textarea').rows=3;"
+                style="background:#e5e7eb; color:#374151; padding:0.8rem 1.7rem; border-radius:9px; font-weight:600; cursor:pointer; border:none; transition:all 0.3s;">
+                Annuler
+            </button>
+
+            <button type="submit"
+                style="background:linear-gradient(135deg, #2F60F5, #1d4ed8); color:#fff; border:none; padding:0.8rem 2.1rem; border-radius:9px; font-weight:600; cursor:pointer; transition:all 0.3s; box-shadow:0 2px 8px rgba(47,96,245,0.10);">
                 📤 Publier
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
+            </button>
+        </div>
+    </div>
+</form>
 
       <!-- ================= POSTS ================= -->
       <div id="posts-container">
@@ -498,7 +524,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   document.addEventListener('click', () => {
-      if (popup) popup.style.display = 'none';
+      if (popuap) popup.style.display = 'none';
   });
   if (popup) popup.addEventListener('click', e => e.stopPropagation());
 
@@ -595,4 +621,46 @@ document.querySelectorAll('.like-btn').forEach(el => {
     .catch(err => console.error(err));
   });
 });
+
+</script>
+<script>
+// Vérifier si le navigateur supporte
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (!SpeechRecognition) {
+    alert("Votre navigateur ne supporte pas la reconnaissance vocale !");
+} else {
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    const btn = document.getElementById('startRecording');
+    const resultDiv = document.getElementById('result');
+    const textarea = document.getElementById('postContent');
+
+    btn.addEventListener('click', () => {
+        recognition.start();
+        btn.disabled = true;
+        btn.textContent = "🎙️ Écoute...";
+        resultDiv.textContent = "";
+    });
+
+    recognition.addEventListener('result', (event) => {
+        const transcript = event.results[0][0].transcript;
+        resultDiv.textContent = transcript;
+        textarea.value = transcript; // Remplit automatiquement le textarea
+    });
+
+    recognition.addEventListener('end', () => {
+        btn.disabled = false;
+        btn.textContent = "🎤 Parler";
+    });
+
+    recognition.addEventListener('error', (e) => {
+        alert("Erreur reconnaissance vocale : " + e.error);
+        btn.disabled = false;
+        btn.textContent = "🎤 Parler";
+    });
+}
 </script>

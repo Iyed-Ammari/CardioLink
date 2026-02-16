@@ -396,4 +396,6 @@ if (is_resource($process)) {
 
     return $this->redirectToRoute('forum_frontoffice');
 }
+
+
 }
