@@ -286,97 +286,100 @@
   </div>
 </div>
           <!-- COMMENTAIRES SECTION -->
-          <div style="border-top:1px solid #e5e7eb; padding:0.9rem 1.3rem; background:linear-gradient(135deg,#f1f5f9 80%,#f8fafc 100%); border-bottom-left-radius:18px; border-bottom-right-radius:18px;">
-            <div style="display:flex; gap:0.8rem; margin-bottom:1.2rem; padding-bottom:1rem; border-bottom:1px solid #e5e7eb;">
-              <span style="color:#6b7280; font-size:0.9rem;">💬 {{ post.comments|length }} commentaire(s)</span>
-            </div>
+<div style="border-top:1px solid #e5e7eb; padding:0.9rem 1.3rem; background:linear-gradient(135deg,#f1f5f9 80%,#f8fafc 100%); border-bottom-left-radius:18px; border-bottom-right-radius:18px;">
+    <div style="display:flex; gap:0.8rem; margin-bottom:1.2rem; padding-bottom:1rem; border-bottom:1px solid #e5e7eb;">
+        <span style="color:#6b7280; font-size:0.9rem;">💬 {{ post.comments|length }} commentaire(s)</span>
+    </div>
 
-            <!-- COMMENTAIRES LIST -->
-            {% for comment in post.comments %}
-            <div class="comment-item" style="margin-bottom:1rem; padding:1rem; background:#f9fafb; border-radius:8px; border:1px solid #e5e7eb;">
+    {% for comment in post.comments %}
+    <div class="comment-item" style="margin-bottom:1rem; padding:1rem; background:#f9fafb; border-radius:8px; border:1px solid #e5e7eb;">
 
-              <!-- COMMENT HEADER -->
-              <div style="display:flex; gap:0.8rem; margin-bottom:0.8rem; justify-content:space-between; align-items:flex-start;">
-                <div style="display:flex; gap:0.8rem; flex:1;">
-                  <div style="width:32px;height:32px;border-radius:50%; background:linear-gradient(135deg, #9333ea, #6366f1); display:flex; align-items:center; justify-content:center; font-weight:bold; color:#fff; font-size:0.9rem;">
+        <div style="display:flex; gap:0.8rem; margin-bottom:0.8rem; justify-content:space-between; align-items:flex-start;">
+            <div style="display:flex; gap:0.8rem; flex:1;">
+                <div style="width:32px;height:32px;border-radius:50%; background:linear-gradient(135deg, #9333ea, #6366f1); display:flex; align-items:center; justify-content:center; font-weight:bold; color:#fff; font-size:0.9rem;">
                     {{ comment.user.nom|first }}
-                  </div>
-                  <div style="flex:1;">
+                </div>
+                <div style="flex:1;">
                     <div style="font-weight:600; color:#1f2937; font-size:0.9rem;">{{ comment.user.nom }} {{ comment.user.prenom }}</div>
                     <div style="font-size:0.8rem; color:#9ca3af;" data-time="{{ comment.createdAt|date('U') }}">
-                      <span class="comment-time-ago">il y a quelques secondes</span>
+                        <span class="comment-time-ago">il y a quelques secondes</span>
                     </div>
-                  </div>
                 </div>
-                
-                <!-- MENU 3 POINTS COMMENT -->
-                {% if app.user and comment.user.id == app.user.id %}
-                <div style="position:relative;">
-                  <button class="btn-menu-comment" style="background:none; border:none; font-size:1.2rem; cursor:pointer; color:#6b7280; padding:0; transition:all 0.2s ease;">⋯</button>
-                  <div class="comment-menu" style="display:none; position:absolute; top:100%; right:0; background:#fff; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:8px; z-index:100; min-width:120px; border:1px solid #e5e7eb;">
+            </div>
+            
+            {% if app.user and comment.user.id == app.user.id %}
+            <div style="position:relative;">
+                <button class="btn-menu-comment" style="background:none; border:none; font-size:1.2rem; cursor:pointer; color:#6b7280; padding:0; transition:all 0.2s ease;">⋯</button>
+                <div class="comment-menu" style="display:none; position:absolute; top:100%; right:0; background:#fff; box-shadow:0 4px 12px rgba(0,0,0,0.15); border-radius:8px; z-index:100; min-width:120px; border:1px solid #e5e7eb;">
                     <button type="button" class="btn-edit-comment-menu" style="width:100%; text-align:left; padding:0.6rem 0.8rem; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#374151; transition:all 0.2s ease; border-bottom:1px solid #e5e7eb;">
-                      ✏️ Modifier
+                        ✏️ Modifier
                     </button>
                     <form method="post" action="{{ path('comment_delete', {'id': comment.id}) }}" style="display:block;">
-                      <button type="submit" style="width:100%; text-align:left; padding:0.6rem 0.8rem; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#ef4444; transition:all 0.2s ease; font-weight:500;">
-                        🗑️ Supprimer
-                      </button>
+                        <button type="submit" style="width:100%; text-align:left; padding:0.6rem 0.8rem; background:none; border:none; cursor:pointer; font-size:0.9rem; color:#ef4444; transition:all 0.2s ease; font-weight:500;">
+                            🗑️ Supprimer
+                        </button>
                     </form>
-                  </div>
                 </div>
-                {% endif %}
-              </div>
-
-              <!-- COMMENT DISPLAY -->
-              <div class="comment-display" style="color:#4b5563; margin-bottom:0.8rem;">
-                {{ comment.content }}
-              </div>
-
-              <!-- COMMENT EDIT FORM (Hidden) -->
-              <form method="post"
-                    action="{{ path('comment_edit', {'id': comment.id}) }}"
-                    class="comment-edit-form"
-                    style="display:none; margin-top:0.8rem; flex-direction:column; gap:0.8rem;">
-
-                <input type="text" name="content" value="{{ comment.content }}" style="padding:0.8rem 1rem; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; transition:all 0.3s ease; flex:1;">
-                <span class="error-msg" style="color:red; font-size:0.85rem;"></span>
-
-                <div style="display:flex; gap:0.6rem;">
-                  <button type="submit" style="background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; padding:0.6rem 1.2rem; border-radius:8px; font-weight:600; cursor:pointer; transition:all 0.3s ease; border:none;">OK</button>
-                  <button type="button" class="btn-cancel-comment" style="background:#e5e7eb; color:#374151; padding:0.6rem 1.2rem; border-radius:8px; font-weight:600; cursor:pointer; transition:all 0.3s ease; border:none;">Annuler</button>
-                </div>
-              </form>
-
-
-
             </div>
-            {% endfor %}
+            {% endif %}
+        </div>
 
-            <!-- FORM AJOUTER COMMENT -->
-            <form method="post"
-                  action="{{ path('comment_add', {'postId': post.id}) }}"
-                  style="margin-top:1.2rem; display:flex; gap:0.8rem; align-items:center;">
+        <div class="comment-display" style="color:#4b5563; margin-bottom:0.8rem;">
+            {{ comment.content }}
+        </div>
 
-              <div style="width:32px;height:32px;border-radius:50%; background:linear-gradient(135deg, #2F60F5, #F82239); display:flex; align-items:center; justify-content:center; font-weight:bold; color:#fff; font-size:0.9rem;">
-                {{ app.user.nom|first }}
-              </div>
-              <input name="content" placeholder="✍️ Commentez..." style="flex:1; padding:0.8rem 1rem; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; transition:all 0.3s ease;">
-              <span class="error-msg" style="color:red; font-size:0.85rem; position:absolute;"></span>
+        <form method="post"
+              action="{{ path('comment_edit', {'id': comment.id}) }}"
+              class="comment-edit-form"
+              style="display:none; margin-top:0.8rem; flex-direction:column; gap:0.8rem;">
 
-              <button type="submit" style="background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; padding:0.8rem 1.5rem; border-radius:8px; font-weight:600; cursor:pointer; white-space:nowrap; transition:all 0.3s ease; border:none;">💬 Envoyer</button>
-            </form>
+            <input type="text" name="content" value="{{ comment.content }}" style="padding:0.8rem 1rem; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; transition:all 0.3s ease; flex:1;">
+            <span class="error-msg" style="color:red; font-size:0.85rem;"></span>
 
-          </div>
-
-        </article>
-        {% endfor %}
-      </div>
-
+            <div style="display:flex; gap:0.6rem;">
+                <button type="submit" style="background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; padding:0.6rem 1.2rem; border-radius:8px; font-weight:600; cursor:pointer; transition:all 0.3s ease; border:none;">OK</button>
+                <button type="button" class="btn-cancel-comment" style="background:#e5e7eb; color:#374151; padding:0.6rem 1.2rem; border-radius:8px; font-weight:600; cursor:pointer; transition:all 0.3s ease; border:none;">Annuler</button>
+            </div>
+        </form>
     </div>
-  </div>
-</div>
+    {% endfor %}
 
-<!-- ================= JS ================= -->
+    <hr style="border:0; border-top:1px solid #e5e7eb; margin: 1.5rem 0;">
+
+    {# --- AFFICHAGE DES MESSAGES FLASH --- #}
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <div style="padding: 0.8rem 1rem; margin-bottom: 1rem; border-radius: 8px; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem;
+                {% if label == 'error' %}
+                    background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca;
+                {% else %}
+                    background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0;
+                {% endif %}">
+                {% if label == 'error' %} ⚠️ {% else %} ✅ {% endif %}
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+   <form method="post"
+          action="{{ path('comment_add', {'postId': post.id}) }}"
+          style="margin-top:1.2rem; display:flex; gap:0.8rem; align-items:center;">
+
+        <div style="width:32px;height:32px;border-radius:50%; background:linear-gradient(135deg, #2F60F5, #F82239); display:flex; align-items:center; justify-content:center; font-weight:bold; color:#fff; font-size:0.9rem;">
+            {{ app.user ? app.user.nom|first : '?' }}
+        </div>
+        <input name="content" placeholder="✍️ Commentez..." style="flex:1; padding:0.8rem 1rem; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95rem; transition:all 0.3s ease;" required>
+        
+        <button type="submit" style="background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; padding:0.8rem 1.5rem; border-radius:8px; font-weight:600; cursor:pointer; white-space:nowrap; transition:all 0.3s ease; border:none;">💬 Envoyer</button>
+    </form>
+
+</div> {# Ferme la div COMMENTAIRES SECTION #}
+
+</article> {# Ferme l'article du post #}
+{% endfor %} {# Ferme la boucle des posts (celle qui commence en haut de ta page) #}
+
+{# Si tu as un block body, assure-toi d'avoir aussi {% endblock %} plus bas #}
+</div><!-- ================= JS ================= -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
