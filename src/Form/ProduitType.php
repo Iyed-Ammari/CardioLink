@@ -7,7 +7,6 @@ use App\Entity\Produit;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
-use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -15,6 +14,7 @@ use Symfony\Component\Validator\Constraints\Image;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\PositiveOrZero;
+use Symfony\Component\Validator\Constraints\Regex;
 
 final class ProduitType extends AbstractType
 {
@@ -34,16 +34,19 @@ final class ProduitType extends AbstractType
                 'required' => false,
             ])
 
-            ->add('prix', NumberType::class, [
-                'scale' => 2,
-                'input' => 'string',
+            // ✅ PRIX: ENTIER ONLY (serveur)
+            ->add('prix', TextType::class, [
                 'constraints' => [
                     new NotBlank(['message' => 'Le prix est obligatoire.']),
-                    new PositiveOrZero(['message' => 'Le prix doit être positif.']),
+                    new Regex([
+                        'pattern' => '/^\d+$/',
+                        'message' => 'Le prix doit contenir uniquement des chiffres (entier).',
+                    ]),
                 ],
                 'attr' => [
-                    'step' => '0.01',
-                    'inputmode' => 'decimal',
+                    'inputmode' => 'numeric',
+                    'pattern' => '\d*',
+                    'autocomplete' => 'off',
                 ],
             ])
 
@@ -55,6 +58,8 @@ final class ProduitType extends AbstractType
                 'attr' => [
                     'min' => 0,
                     'inputmode' => 'numeric',
+                    'pattern' => '\d*',
+                    'autocomplete' => 'off',
                 ],
             ])
 

@@ -1,4 +1,5 @@
 <?php
+// src/Controller/PatientPanierController.php
 
 namespace App\Controller;
 
@@ -8,49 +9,41 @@ use App\Entity\User;
 use App\Repository\CommandeRepository;
 use App\Repository\LigneCommandeRepository;
 use App\Repository\ProduitRepository;
-use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/patient/panier')]
+#[IsGranted('ROLE_USER')]
 final class PatientPanierController extends AbstractController
 {
     private function getLocalUser(EntityManagerInterface $em): User
     {
-        // ✅ email de test (mets celui qui existe dans ta DB)
-        $email = 'patient@cardiolink.tn';
-
         $user = $this->getUser();
-        if ($user instanceof User) {
-            return $user;
-        }
+        if ($user instanceof User) return $user;
 
-        $user = $em->getRepository(User::class)->findOneBy(['email' => $email]);
+        $user = $em->getRepository(User::class)->findOneBy(['email' => 'patient@cardiolink.tn']);
         if (!$user) {
-            throw $this->createNotFoundException("User local introuvable: $email. Crée-le en base.");
+            throw $this->createNotFoundException("User introuvable.");
         }
         return $user;
     }
 
     private function getOrCreatePanier(CommandeRepository $commandeRepo, EntityManagerInterface $em): Commande
     {
-        // ✅ au lieu de getUser() (null), on prend un user de test
-        $user = $this->getLocalUser($em);
-
+        $user   = $this->getLocalUser($em);
         $panier = $commandeRepo->findPanierByUser($user);
         if ($panier) return $panier;
 
         $panier = new Commande();
-        $panier->setUser($user); // ✅ user obligatoire => OK
+        $panier->setUser($user);
         $panier->setStatut(Commande::STATUT_PANIER);
         $panier->recalculateTotal();
-
         $em->persist($panier);
         $em->flush();
-
         return $panier;
     }
 
@@ -58,7 +51,6 @@ final class PatientPanierController extends AbstractController
     public function show(CommandeRepository $commandeRepo, EntityManagerInterface $em)
     {
         $panier = $this->getOrCreatePanier($commandeRepo, $em);
-
         return $this->render('patient/panier/show.html.twig', [
             'commande' => $panier,
         ]);
@@ -73,11 +65,10 @@ final class PatientPanierController extends AbstractController
     ): RedirectResponse {
 
         $produitId = (int) $request->request->get('produitId', 0);
-        $quantite = (int) $request->request->get('quantite', 1);
-        if ($quantite < 1) $quantite = 1;
+        $quantite  = max(1, (int) $request->request->get('quantite', 1));
 
         if ($produitId <= 0) {
-            $this->addFlash('danger', 'produitId requis');
+            $this->addFlash('danger', 'Produit invalide');
             return $this->redirectToRoute('patient_produit_index');
         }
 
@@ -97,23 +88,20 @@ final class PatientPanierController extends AbstractController
         foreach ($panier->getLignes() as $ligne) {
             if ($ligne->getProduit()->getId() === $produit->getId()) {
                 $newQty = $ligne->getQuantite() + $quantite;
-
                 if (($produit->getStock() ?? 0) < $newQty) {
-                    $this->addFlash('danger', 'Stock insuffisant: '.$produit->getNom());
+                    $this->addFlash('danger', 'Stock insuffisant : '.$produit->getNom());
                     return $this->redirectToRoute('patient_produit_index');
                 }
-
                 $ligne->setQuantite($newQty);
                 $panier->recalculateTotal();
                 $em->flush();
-
-                $this->addFlash('success', 'Quantité mise à jour dans le panier');
+                $this->addFlash('success', 'Quantité mise à jour');
                 return $this->redirectToRoute('patient_panier_show');
             }
         }
 
         if (($produit->getStock() ?? 0) < $quantite) {
-            $this->addFlash('danger', 'Stock insuffisant: '.$produit->getNom());
+            $this->addFlash('danger', 'Stock insuffisant : '.$produit->getNom());
             return $this->redirectToRoute('patient_produit_index');
         }
 
@@ -124,11 +112,10 @@ final class PatientPanierController extends AbstractController
 
         $panier->addLigne($ligne);
         $panier->recalculateTotal();
-
         $em->persist($ligne);
         $em->flush();
 
-        $this->addFlash('success', 'Produit ajouté au panier');
+        $this->addFlash('success', 'Produit ajouté au panier ✅');
         return $this->redirectToRoute('patient_panier_show');
     }
 
@@ -137,13 +124,12 @@ final class PatientPanierController extends AbstractController
         int $id,
         Request $request,
         LigneCommandeRepository $ligneRepo,
-        CommandeRepository $commandeRepo,
         EntityManagerInterface $em
     ): RedirectResponse {
 
-        $user = $this->getLocalUser($em);
-
+        $user  = $this->getLocalUser($em);
         $ligne = $ligneRepo->find($id);
+
         if (!$ligne) {
             $this->addFlash('danger', 'Ligne introuvable');
             return $this->redirectToRoute('patient_panier_show');
@@ -159,12 +145,11 @@ final class PatientPanierController extends AbstractController
             return $this->redirectToRoute('patient_panier_show');
         }
 
-        $quantite = (int) $request->request->get('quantite', 1);
-        if ($quantite < 1) $quantite = 1;
+        $quantite = max(1, (int) $request->request->get('quantite', 1));
+        $produit  = $ligne->getProduit();
 
-        $produit = $ligne->getProduit();
         if (($produit->getStock() ?? 0) < $quantite) {
-            $this->addFlash('danger', 'Stock insuffisant: '.$produit->getNom());
+            $this->addFlash('danger', 'Stock insuffisant : '.$produit->getNom());
             return $this->redirectToRoute('patient_panier_show');
         }
 
@@ -183,9 +168,9 @@ final class PatientPanierController extends AbstractController
         EntityManagerInterface $em
     ): RedirectResponse {
 
-        $user = $this->getLocalUser($em);
-
+        $user  = $this->getLocalUser($em);
         $ligne = $ligneRepo->find($id);
+
         if (!$ligne) {
             $this->addFlash('danger', 'Ligne introuvable');
             return $this->redirectToRoute('patient_panier_show');
@@ -203,7 +188,6 @@ final class PatientPanierController extends AbstractController
 
         $commande->removeLigne($ligne);
         $commande->recalculateTotal();
-
         $em->remove($ligne);
         $em->flush();
 
@@ -214,9 +198,9 @@ final class PatientPanierController extends AbstractController
     #[Route('/checkout', name: 'patient_panier_checkout', methods: ['POST'])]
     public function checkout(CommandeRepository $commandeRepo, EntityManagerInterface $em): RedirectResponse
     {
-        $user = $this->getLocalUser($em);
-
+        $user   = $this->getLocalUser($em);
         $panier = $commandeRepo->findPanierByUser($user);
+
         if (!$panier) {
             $this->addFlash('danger', 'Panier introuvable');
             return $this->redirectToRoute('patient_panier_show');
@@ -230,37 +214,23 @@ final class PatientPanierController extends AbstractController
             return $this->redirectToRoute('patient_panier_show');
         }
 
-        $em->beginTransaction();
+        foreach ($panier->getLignes() as $l) {
+            $p = $l->getProduit();
+            if (($p->getStock() ?? 0) < $l->getQuantite()) {
+                $this->addFlash('danger', 'Stock insuffisant : '.$p->getNom());
+                return $this->redirectToRoute('patient_panier_show');
+            }
+        }
+
         try {
-            foreach ($panier->getLignes() as $l) {
-                $em->lock($l->getProduit(), LockMode::PESSIMISTIC_WRITE);
-            }
-
-            foreach ($panier->getLignes() as $l) {
-                $p = $l->getProduit();
-                if (($p->getStock() ?? 0) < $l->getQuantite()) {
-                    $em->rollback();
-                    $this->addFlash('danger', 'Stock insuffisant: '.$p->getNom());
-                    return $this->redirectToRoute('patient_panier_show');
-                }
-            }
-
-            foreach ($panier->getLignes() as $l) {
-                $p = $l->getProduit();
-                $p->setStock(($p->getStock() ?? 0) - $l->getQuantite());
-            }
-
             $panier->recalculateTotal();
             $panier->validerCommande();
-
             $em->flush();
-            $em->commit();
 
-            $this->addFlash('success', 'Commande validée (EN_ATTENTE_PAIEMENT)');
+            $this->addFlash('success', '✅ Commande validée ! Procédez au paiement.');
             return $this->redirectToRoute('patient_commandes_index');
         } catch (\Throwable $e) {
-            $em->rollback();
-            $this->addFlash('danger', 'Checkout échoué: '.$e->getMessage());
+            $this->addFlash('danger', 'Erreur : '.$e->getMessage());
             return $this->redirectToRoute('patient_panier_show');
         }
     }
