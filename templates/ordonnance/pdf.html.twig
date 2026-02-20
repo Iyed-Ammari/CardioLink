@@ -1,0 +1,59 @@
+<style>
+body { font-family: DejaVu Sans; }
+
+.header {
+    text-align: center;
+    border-bottom: 2px solid black;
+    padding-bottom: 10px;
+}
+
+.doctor {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.patient {
+    margin-top: 30px;
+    font-size: 14px;
+}
+
+.prescription {
+    margin-top: 40px;
+    min-height: 300px;
+    border: 1px solid #000;
+    padding: 20px;
+}
+
+.footer {
+    position: absolute;
+    bottom: 50px;
+    right: 50px;
+}
+</style>
+
+<div class="header">
+    <div class="doctor">Dr {{ ordonnance.medecinNom }}</div>
+    <div>Médecin Généraliste</div>
+    <div>Tél : +216 XX XXX XXX</div>
+</div>
+
+<div class="patient">
+    <strong>Patient :</strong> {{ ordonnance.patientNom }}<br>
+    <strong>Date :</strong> {{ ordonnance.dateCreation|date('d/m/Y') }}<br>
+    <strong>Réf :</strong> {{ ordonnance.reference }}
+</div>
+
+<div class="prescription">
+    <h3>Diagnostic</h3>
+    {{ ordonnance.diagnostic|nl2br }}
+
+    <h3 style="margin-top:30px;">Prescription</h3>
+    {{ ordonnance.notes|nl2br }}
+</div>
+
+<div class="footer">
+    Signature & Cachet
+</div>
+<div style="margin-top:40px;">
+    <img src="data:image/png;base64,{{ barcode }}">
+</div>

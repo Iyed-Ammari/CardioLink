@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\OrdonnanceRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use App\Entity\RendezVous;
 
 #[ORM\Entity(repositoryClass: OrdonnanceRepository::class)]
 class Ordonnance
@@ -15,10 +16,10 @@ class Ordonnance
     private ?int $id = null;
 
     #[ORM\Column(length: 50, unique: true)]
-    private ?string $reference = null;
+    private string $reference;
 
-    #[ORM\Column]
-    private ?\DateTime $dateCreation = null;
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    private \DateTimeImmutable $dateCreation;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $diagnostic = null;
@@ -27,48 +28,37 @@ class Ordonnance
     private ?string $notes = null;
 
     #[ORM\Column(length: 255)]
-    private ?string $patientNom = null;
+    private string $patientNom;
 
     #[ORM\Column(length: 255)]
-    private ?string $medecinNom = null;
+    private string $medecinNom;
+
+    #[ORM\OneToOne(inversedBy: 'ordonnance', targetEntity: RendezVous::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?RendezVous $consultation = null;
 
     public function __construct()
     {
-        $this->dateCreation = new \DateTime();
+        $this->dateCreation = new \DateTimeImmutable();
+        $this->reference = 'ORDO-' . date('Y') . '-' . strtoupper(bin2hex(random_bytes(4)));
     }
 
     public function getId(): ?int { return $this->id; }
-
-    public function getReference(): ?string { return $this->reference; }
-    public function setReference(string $reference): static { $this->reference = $reference; return $this; }
-
-    public function getDateCreation(): ?\DateTime { return $this->dateCreation; }
-    public function setDateCreation(\DateTime $dateCreation): static { $this->dateCreation = $dateCreation; return $this; }
+    public function getReference(): string { return $this->reference; }
+    public function getDateCreation(): \DateTimeImmutable { return $this->dateCreation; }
 
     public function getDiagnostic(): ?string { return $this->diagnostic; }
-    public function setDiagnostic(?string $diagnostic): static { $this->diagnostic = $diagnostic; return $this; }
+    public function setDiagnostic(?string $diagnostic): self { $this->diagnostic = $diagnostic; return $this; }
 
     public function getNotes(): ?string { return $this->notes; }
-    public function setNotes(?string $notes): static { $this->notes = $notes; return $this; }
+    public function setNotes(?string $notes): self { $this->notes = $notes; return $this; }
 
-    public function getPatientNom(): ?string { return $this->patientNom; }
-    public function setPatientNom(string $patientNom): static { $this->patientNom = $patientNom; return $this; }
+    public function getPatientNom(): string { return $this->patientNom; }
+    public function setPatientNom(string $patientNom): self { $this->patientNom = $patientNom; return $this; }
 
-    public function getMedecinNom(): ?string { return $this->medecinNom; }
-    public function setMedecinNom(string $medecinNom): static { $this->medecinNom = $medecinNom; return $this; }
-    // ...existing code...
+    public function getMedecinNom(): string { return $this->medecinNom; }
+    public function setMedecinNom(string $medecinNom): self { $this->medecinNom = $medecinNom; return $this; }
 
-    #[ORM\OneToOne(inversedBy: 'ordonnance')]
-    private ?RendezVous $consultation = null;
-
-    public function getConsultation(): ?RendezVous
-    {
-        return $this->consultation;
-    }
-
-    public function setConsultation(?RendezVous $consultation): static
-    {
-        $this->consultation = $consultation;
-        return $this;
-    }
+    public function getConsultation(): ?RendezVous { return $this->consultation; }
+    public function setConsultation(?RendezVous $consultation): self { $this->consultation = $consultation; return $this; }
 }

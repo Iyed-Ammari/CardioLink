@@ -3,17 +3,26 @@
 {% block title %}Nouvelle Ordonnance{% endblock %}
 
 {% block body %}
-<h1>Créer une nouvelle ordonnance</h1>
+<div class="container mt-5">
+    <h1 class="mb-4">Créer une nouvelle ordonnance</h1>
 
-{{ form_start(form) }}
+    {# Flash messages #}
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="alert alert-{{ label }}">{{ message }}</div>
+        {% endfor %}
+    {% endfor %}
 
-    {{ form_row(form.reference) }}
-    {{ form_row(form.diagnostic) }}
-    {{ form_row(form.notes) }}
+    {{ form_start(form) }}
 
-    <button class="btn btn-success mt-3">Créer</button>
+        {{ form_row(form.reference) }}
+        {{ form_row(form.diagnostic) }}
+        {{ form_row(form.notes) }}
 
-{{ form_end(form) }}
+        <button class="btn btn-success mt-3">Créer</button>
 
-<a href="{{ path('ordonnance_index') }}" class="btn btn-secondary mt-2">Retour à la liste</a>
+    {{ form_end(form) }}
+
+    <a href="{{ path('ordonnance_index') }}" class="btn btn-secondary mt-2">Retour à la liste</a>
+</div>
 {% endblock %}

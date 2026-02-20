@@ -5,6 +5,9 @@ namespace App\Entity;
 use App\Repository\RendezVousRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
+
 
 #[ORM\Entity(repositoryClass: RendezVousRepository::class)]
 class RendezVous
@@ -15,25 +18,44 @@ class RendezVous
     private ?int $id = null;
 
     #[ORM\Column]
+    #[Assert\NotNull(message: "Veuillez choisir une date")]
+    #[Assert\GreaterThan("now", message: "Le rendez-vous doit être dans le futur")]
     private ?\DateTime $dateHeure = null;
 
+
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank(message: 'Le statut est obligatoire')]
+    #[Assert\Choice(choices: ['En attente', 'Confirmé', 'Annulé', 'Complété'], message: 'Le statut doit être valide')]
     private ?string $statut = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank(message: "Choisissez un type de consultation")]
+    #[Assert\Choice(['Présentiel', 'Télémédecine'])]
     private ?string $type = null;
 
+
     #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Url(message: 'Le lien de visio doit être une URL valide')]
     private ?string $lienVisio = null;
 
     #[ORM\Column(type: Types::TEXT)]
+    #[Assert\NotBlank(message: "Veuillez décrire votre problème")]
+    #[Assert\Length(
+        min: 10,
+        minMessage: "Veuillez donner plus de détails (minimum 10 caractères)",
+        max: 500
+    )]
     private ?string $remarques = null;
 
+
     #[ORM\ManyToOne(inversedBy: 'rendezVouses')]
+    #[Assert\NotBlank(message: 'Le patient est obligatoire')]
     private ?User $patient = null;
 
     #[ORM\ManyToOne(inversedBy: 'rendezVousMedecin')]
+    #[Assert\NotNull(message: "Veuillez sélectionner un médecin")]
     private ?User $medecin = null;
+
 
     #[ORM\ManyToOne(inversedBy: 'rendezVouses')]
     private ?Lieu $lieu = null;
@@ -163,75 +185,15 @@ class RendezVous
 
         return $this;
     }
+    #[Assert\Callback]
+public function validateTypeLieu(ExecutionContextInterface $context): void
+{
+    
 
-    // ============= MÉTHODES UTILITAIRES =============
-
-    /**
-     * Vérifie si la consultation est passée (plus d'1h après l'heure prévue)
-     */
-    public function isPassedConsultation(): bool
-    {
-        if (!$this->dateHeure) {
-            return false;
-        }
-
-        $now = new \DateTime();
-        $consultationEndTime = (clone $this->dateHeure)->add(new \DateInterval('PT1H'));
-
-        return $now > $consultationEndTime;
+    if ($this->type === 'Télémédecine' && $this->lieu !== null) {
+        $context->buildViolation('Un rendez-vous en visio ne doit pas avoir de lieu physique')
+            ->atPath('lieu')
+            ->addViolation();
     }
-
-    /**
-     * Vérifie si le RDV est finalisé (accepté ou refusé)
-     */
-    public function isFinalized(): bool
-    {
-        return in_array($this->statut, ['Accepté', 'Refusé']);
-    }
-
-    /**
-     * Vérifie si le patient peut modifier ce RDV
-     */
-    public function canPatientEdit(): bool
-    {
-        // Le patient ne peut pas modifier si le RDV est finalisé ou passé
-        return !$this->isFinalized() && !$this->isPassedConsultation();
-    }
-
-    /**
-     * Vérifie si le patient peut supprimer ce RDV
-     */
-    public function canPatientDelete(): bool
-    {
-        // Même conditions que pour l'édition
-        return $this->canPatientEdit();
-    }
-
-    /**
-     * Vérifie si le médecin peut modifier ce RDV
-     */
-    public function canDoctorEdit(): bool
-    {
-        // Le médecin ne peut modifier que si le RDV n'est pas encore passé (ou en cours de la consultation)
-        return !$this->isPassedConsultation();
-    }
-
-    /**
-     * Vérifie si le médecin peut supprimer ce RDV
-     */
-    public function canDoctorDelete(): bool
-    {
-        // Le médecin ne peut supprimer que si le RDV n'est pas encore passé
-        return !$this->isPassedConsultation();
-    }
-
-    /**
-     * Met à jour automatiquement le statut si la consultation est passée
-     */
-    public function updateStatusIfPassed(): void
-    {
-        if ($this->isPassedConsultation() && $this->statut === 'En attente') {
-            $this->statut = 'Complété';
-        }
-    }
+}
 }
