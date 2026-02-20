@@ -9,8 +9,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Mailer\MailerInterface;
-use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Annotation\Route;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -31,7 +29,7 @@ class DossierMedicalController extends AbstractController
     }
 
     #[Route('/mon-dossier/edit', name: 'app_mon_dossier_edit')]
-    public function editMonDossier(Request $request, EntityManagerInterface $em, MailerInterface $mailer): Response
+    public function editMonDossier(Request $request, EntityManagerInterface $em): Response
     {
         $user = $this->getUser();
         $dossier = $em->getRepository(DossierMedical::class)->findOneBy(['user' => $user]);
@@ -55,26 +53,6 @@ class DossierMedicalController extends AbstractController
             );
 
             $em->flush();
-
-            // Email automatique si risque CRITIQUE
-            if ($dossier->getRisqueCardiaque() === 'CRITIQUE') {
-                $email = (new Email())
-                    ->from('cardiolinkpidev@gmail.com')
-                    ->to($user->getEmail())
-                    ->subject('⚠️ Alerte CardioLink - Risque Cardiaque Critique')
-                    ->html('
-                        <h2>⚠️ Alerte Risque Cardiaque</h2>
-                        <p>Bonjour <strong>'.$user->getNom().' '.$user->getPrenom().'</strong>,</p>
-                        <p>Votre dossier médical indique un <strong style="color:red;">risque cardiaque CRITIQUE</strong>.</p>
-                        <p>Nous vous recommandons de consulter un médecin immédiatement.</p>
-                        <p>IMC : <strong>'.$dossier->getIMC().'</strong></p>
-                        <p>Cordialement,<br>L\'équipe CardioLink</p>
-                    ');
-
-                $mailer->send($email);
-                $this->addFlash('warning', '⚠️ Risque critique détecté ! Un email vous a été envoyé.');
-            }
-
             $this->addFlash('success', 'Dossier mis à jour avec succès.');
             return $this->redirectToRoute('app_mon_dossier');
         }

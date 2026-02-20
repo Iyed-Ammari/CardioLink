@@ -6,12 +6,7 @@
 
 {% if dossier %}
 
-    {% if dossier.IMC and dossier.IMC > 30 %}
-    <div style="padding:15px; border-radius:12px; margin-bottom:20px; background:#ffedd5; border-left:5px solid orange;">
-        ⚠️ <strong>Attention :</strong> Votre IMC est de <strong>{{ dossier.IMC }}</strong>, ce qui indique une <strong>obésité</strong>. 
-        Cela augmente significativement votre risque cardiaque. Consultez un médecin.
-    </div>
-    {% endif %}
+    
 
     {% set risque = dossier.risqueCardiaque %}
     <div style="padding:15px; border-radius:12px; margin-bottom:20px;
