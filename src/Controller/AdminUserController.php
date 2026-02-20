@@ -156,6 +156,30 @@ class AdminUserController extends AbstractController
 
             $em->flush();
 
+            // Modifier dossier médical si ROLE_PATIENT
+            if ($request->request->get('role') === 'ROLE_PATIENT') {
+                $dossier = $em->getRepository(DossierMedical::class)->findOneBy(['user' => $user]);
+
+                if (!$dossier) {
+                    $dossier = new DossierMedical();
+                    $dossier->setUser($user);
+                    $em->persist($dossier);
+                }
+
+                $dossier->edit(
+                    $request->request->get('groupeSanguin') ?? 'O+',
+                    $request->request->get('antecedents'),
+                    $request->request->get('allergies'),
+                    $request->request->get('poids') ? (float)$request->request->get('poids') : null,
+                    $request->request->get('taille') ? (float)$request->request->get('taille') : null,
+                    $request->request->get('tensionSystolique') ? (int)$request->request->get('tensionSystolique') : null,
+                    $request->request->get('tensionDiastolique') ? (int)$request->request->get('tensionDiastolique') : null,
+                    $request->request->get('frequenceCardiaque') ? (int)$request->request->get('frequenceCardiaque') : null
+                );
+
+                $em->flush();
+            }
+
             $this->addFlash('success', 'Utilisateur modifié avec succès.');
             return $this->redirectToRoute('admin_user_index');
         }

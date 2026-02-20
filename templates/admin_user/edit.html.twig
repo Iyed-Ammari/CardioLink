@@ -35,6 +35,60 @@
             <option value="ROLE_ADMIN" {{ 'ROLE_ADMIN' in user.roles ? 'selected' : '' }}>Admin</option>
         </select>
     </div>
+    {# Section dossier médical si patient #}
+<div id="dossierMedical" style="border:2px solid #2F60F5; border-radius:12px; padding:15px; display:none;">
+    <h3 style="color:#2F60F5; margin-top:0;">📋 Dossier Médical</h3>
+
+    <div style="margin-bottom:10px;">
+        <label>Groupe Sanguin</label>
+        <select name="groupeSanguin" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+            {% for gs in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
+                <option value="{{ gs }}" {{ user.dossierMedical and user.dossierMedical.groupeSanguin == gs ? 'selected' : '' }}>{{ gs }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div style="margin-bottom:10px;">
+        <label>Antécédents</label>
+        <textarea name="antecedents" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd; height:80px;">{{ user.dossierMedical ? user.dossierMedical.antecedents : '' }}</textarea>
+    </div>
+    <div style="margin-bottom:10px;">
+        <label>Allergies</label>
+        <textarea name="allergies" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd; height:60px;">{{ user.dossierMedical ? user.dossierMedical.allergies : '' }}</textarea>
+    </div>
+    <div style="margin-bottom:10px;">
+        <label>Poids (kg)</label>
+        <input type="number" step="0.1" name="poids" value="{{ user.dossierMedical ? user.dossierMedical.poids : '' }}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+    <div style="margin-bottom:10px;">
+        <label>Taille (cm)</label>
+        <input type="number" name="taille" value="{{ user.dossierMedical ? user.dossierMedical.taille : '' }}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+    <div style="margin-bottom:10px;">
+        <label>Tension Systolique (mmHg)</label>
+        <input type="number" name="tensionSystolique" value="{{ user.dossierMedical ? user.dossierMedical.tensionSystolique : '' }}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+    <div style="margin-bottom:10px;">
+        <label>Tension Diastolique (mmHg)</label>
+        <input type="number" name="tensionDiastolique" value="{{ user.dossierMedical ? user.dossierMedical.tensionDiastolique : '' }}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+    <div>
+        <label>Fréquence Cardiaque (bpm)</label>
+        <input type="number" name="frequenceCardiaque" value="{{ user.dossierMedical ? user.dossierMedical.frequenceCardiaque : '' }}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+</div>
+
+<script>
+function toggleDossier() {
+    var role = document.getElementById('roleSelect').value;
+    var dossier = document.getElementById('dossierMedical');
+    dossier.style.display = role === 'ROLE_PATIENT' ? 'block' : 'none';
+}
+
+// Ajoute id au select rôle
+document.querySelector('select[name="role"]').id = 'roleSelect';
+toggleDossier();
+document.getElementById('roleSelect').addEventListener('change', toggleDossier);
+</script>
     <div>
         <label>Nouveau mot de passe <small>(laisser vide pour ne pas changer)</small></label>
         <input type="password" name="password" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
