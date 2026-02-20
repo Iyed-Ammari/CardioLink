@@ -44,6 +44,8 @@ security:
         - { path: ^/admin, roles: ROLE_ADMIN }
         # ✅ Routes patient (ROLE_PATIENT uniquement)
         - { path: ^/patient, roles: ROLE_PATIENT }
+        
+        - {path: ^/reset-password, roles: PUBLIC_ACCESS}
         # ✅ Tout le reste (utilisateur connecté)
         - { path: ^/, roles: ROLE_USER }
 

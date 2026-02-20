@@ -56,6 +56,11 @@
                 <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;">
                     Sign In
                 </button>
+                <div style="text-align: center; margin-bottom: 1rem;">
+                  <a href="{{ path('app_forgot_password_request') }}" style="color: var(--text-secondary); font-size: 0.9rem;">
+                    Forgot your password?
+                  </a>
+                </div>
             </form>
 
             <div style="text-align: center; padding-top: 1rem; border-top: 1px solid var(--border-color);">
@@ -66,7 +71,7 @@
             </div>
         {% endif %}
     </div>
-
+    
     <div class="auth-illustration">
         <div class="illustration-content">🔐</div>
     </div>

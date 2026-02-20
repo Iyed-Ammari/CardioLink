@@ -1,0 +1,96 @@
+{% extends 'dashboard/base_dashboard.html.twig' %}
+
+{% block body %}
+
+<h2>👥 Gestion des Utilisateurs</h2>
+
+<a href="{{ path('admin_user_create') }}" style="display:inline-block; margin-bottom:15px; background:linear-gradient(90deg,#F82239,#2F60F5); color:#fff; padding:10px 20px; border-radius:12px; text-decoration:none; font-weight:800;">
+    ➕ Ajouter un utilisateur
+</a>
+
+<form method="get" style="margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap;">
+    <input type="text" name="search" value="{{ search }}" placeholder="Rechercher nom, prénom, email...">
+
+    <select name="role">
+        <option value="">-- Tous les rôles --</option>
+        <option value="ROLE_PATIENT" {{ role == 'ROLE_PATIENT' ? 'selected' : '' }}>Patient</option>
+        <option value="ROLE_MEDECIN" {{ role == 'ROLE_MEDECIN' ? 'selected' : '' }}>Médecin</option>
+        <option value="ROLE_ADMIN" {{ role == 'ROLE_ADMIN' ? 'selected' : '' }}>Admin</option>
+    </select>
+
+    <select name="sort">
+        <option value="id" {{ sort == 'id' ? 'selected' : '' }}>-- Trier --</option>
+        <option value="nom" {{ sort == 'nom' ? 'selected' : '' }}>Nom</option>
+        <option value="email" {{ sort == 'email' ? 'selected' : '' }}>Email</option>
+        <option value="createdAt" {{ sort == 'createdAt' ? 'selected' : '' }}>Date inscription</option>
+    </select>
+
+    <select name="order">
+        <option value="ASC" {{ order == 'ASC' ? 'selected' : '' }}>Croissant</option>
+        <option value="DESC" {{ order == 'DESC' ? 'selected' : '' }}>Décroissant</option>
+    </select>
+
+    <button type="submit" style="background:linear-gradient(90deg,#F82239,#2F60F5); color:#fff; border:none; padding:10px 20px; border-radius:12px; font-weight:800; cursor:pointer;">
+        Rechercher
+    </button>
+</form>
+
+<table border="1">
+    <tr>
+        <th>Nom</th>
+        <th>Prénom</th>
+        <th>Email</th>
+        <th>Rôle</th>
+        <th>Inscription</th>
+        <th>Statut</th>
+        <th>Actions</th>
+    </tr>
+    {% for user in users %}
+    <tr>
+        <td>{{ user.nom }}</td>
+        <td>{{ user.prenom }}</td>
+        <td>{{ user.email }}</td>
+        <td>
+            {% if 'ROLE_ADMIN' in user.roles %}
+                <span style="color:red;">Admin</span>
+            {% elseif 'ROLE_MEDECIN' in user.roles %}
+                <span style="color:blue;">Médecin</span>
+            {% else %}
+                <span style="color:green;">Patient</span>
+            {% endif %}
+        </td>
+        <td>{{ user.createdAt ? user.createdAt|date('d/m/Y') : '-' }}</td>
+        <td>
+            {% if user.isActive %}
+                <span style="color:green;">✅ Actif</span>
+            {% else %}
+                <span style="color:red;">🔒 Bloqué</span>
+            {% endif %}
+        </td>
+        <td>
+            <a href="{{ path('admin_user_show', {id: user.id}) }}">👁️ Voir</a>
+            &nbsp;
+            <a href="{{ path('admin_user_edit', {id: user.id}) }}">✏️ Modifier</a>
+            &nbsp;
+            <a href="{{ path('admin_user_toggle', {id: user.id}) }}">
+                {{ user.isActive ? '🔒 Bloquer' : '✅ Activer' }}
+            </a>
+            &nbsp;
+            <form method="post" action="{{ path('admin_user_delete', {id: user.id}) }}"
+                  style="display:inline;"
+                  onsubmit="return confirm('Supprimer cet utilisateur ?')">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ user.id) }}">
+                <button type="submit" style="color:red; background:none; border:none; cursor:pointer;">
+                    🗑️ Supprimer
+                </button>
+            </form>
+        </td>
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="7">Aucun utilisateur trouvé.</td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}

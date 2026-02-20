@@ -1,0 +1,48 @@
+{% extends 'dashboard/base_dashboard.html.twig' %}
+
+{% block body %}
+
+<h2>📋 Dossiers Médicaux</h2>
+
+<table border="1">
+    <tr>
+        <th>Patient</th>
+        <th>Groupe Sanguin</th>
+        <th>IMC</th>
+        <th>Risque Cardiaque</th>
+        <th>Actions</th>
+    </tr>
+    {% for dossier in dossiers %}
+    <tr>
+        <td>{{ dossier.user.nom }} {{ dossier.user.prenom }}</td>
+        <td>{{ dossier.groupeSanguin }}</td>
+        <td>{{ dossier.IMC ?? '-' }}</td>
+        <td>
+            {% set risque = dossier.risqueCardiaque %}
+            {% if risque == 'CRITIQUE' %}
+                <span style="color:red;">🔴 CRITIQUE</span>
+            {% elseif risque == 'ÉLEVÉ' %}
+                <span style="color:orange;">🟠 ÉLEVÉ</span>
+            {% elseif risque == 'MODÉRÉ' %}
+                <span style="color:#ca8a04;">🟡 MODÉRÉ</span>
+            {% else %}
+                <span style="color:green;">🟢 NORMAL</span>
+            {% endif %}
+        </td>
+        <td>
+            <a href="{{ path('admin_dossier_show', {id: dossier.id}) }}">👁️ Voir</a>
+            &nbsp;
+            <a href="{{ path('admin_dossier_edit', {id: dossier.id}) }}">✏️ Modifier</a>
+            &nbsp;
+            <form method="post" action="{{ path('admin_dossier_delete', {id: dossier.id}) }}" style="display:inline;" onsubmit="return confirm('Supprimer ce dossier ?')">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ dossier.id) }}">
+                <button type="submit" style="color:red; background:none; border:none; cursor:pointer;">🗑️ Supprimer</button>
+            </form>
+        </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5">Aucun dossier médical.</td></tr>
+    {% endfor %}
+</table>
+
+{% endblock %}
