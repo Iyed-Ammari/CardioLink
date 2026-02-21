@@ -4,6 +4,16 @@
 
 <h2>📋 Dossiers Médicaux</h2>
 
+{# Filtre par groupe sanguin #}
+<form method="get" style="margin-bottom:20px;">
+    <select name="groupeSanguin" onchange="this.form.submit()" style="padding:8px; border-radius:8px; border:1px solid #ddd;">
+        <option value="">🩸 Tous les groupes sanguins</option>
+        {% for gs in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
+            <option value="{{ gs }}" {{ groupeSanguin == gs ? 'selected' : '' }}>{{ gs }}</option>
+        {% endfor %}
+    </select>
+</form>
+
 <table border="1">
     <tr>
         <th>Patient</th>

@@ -116,12 +116,22 @@ class DossierMedicalController extends AbstractController
     // ========== ADMIN ==========
 
     #[Route('/admin/dossiers', name: 'admin_dossier_index')]
-    public function adminIndex(DossierMedicalRepository $repo): Response
+    public function adminIndex(DossierMedicalRepository $repo, Request $request): Response
     {
-        $dossiers = $repo->findAll();
+        $groupeSanguin = $request->query->get('groupeSanguin');
+
+        $qb = $repo->createQueryBuilder('d');
+
+        if ($groupeSanguin) {
+            $qb->andWhere('d.groupeSanguin = :gs')
+               ->setParameter('gs', $groupeSanguin);
+        }
+
+        $dossiers = $qb->getQuery()->getResult();
 
         return $this->render('dossier_medical/admin_index.html.twig', [
-            'dossiers' => $dossiers
+            'dossiers' => $dossiers,
+            'groupeSanguin' => $groupeSanguin
         ]);
     }
 
