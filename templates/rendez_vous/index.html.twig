@@ -4,176 +4,154 @@
 
 {% block body %}
 <div class="container mt-5">
-
     <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h3 class="mb-0">📅 Liste des Rendez-vous</h3>
+            <div class="d-flex gap-2">
+                
+
+                {# Bouton Nouveau RDV pour le Patient #}
+                {% if is_granted('ROLE_PATIENT') %}
+                    <a href="{{ path('app_rdv_new') }}" class="btn btn-light btn-sm">
+                        <i class="fas fa-plus"></i> Prendre un rendez-vous
+                    </a>
+                {% endif %}
+            </div>
         </div>
 
         <div class="card-body">
+            {# ================= BARRE DE RECHERCHE ================= #}
+            <form method="get" class="mb-4">
+                <div class="input-group shadow-sm">
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="🔎 Rechercher par patient, médecin, statut, type..." 
+                           value="{{ app.request.get('search') }}">
+                    <button class="btn btn-primary" type="submit">Rechercher</button>
+                    {% if app.request.get('search') %}
+                        <a href="{{ path('app_rdv_index') }}" class="btn btn-outline-secondary">✖</a>
+                    {% endif %}
+                </div>
+            </form>
 
-            {# Flash messages #}
+            {# ================= FLASH MESSAGES ================= #}
             {% for label, messages in app.flashes %}
                 {% for message in messages %}
-                    <div class="alert alert-{{ label }}">
+                    <div class="alert alert-{{ label }} alert-dismissible fade show" role="alert">
                         {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
             {% endfor %}
 
-            <table class="table table-bordered table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Date & Heure</th>
-                        <th>Patient</th>
-                        <th>Médecin</th>
-                        <th>Type</th>
-                        <th>Statut</th>
-                        <th>Ordonnance</th>
-                        <th>Actions RDV</th>
-                    </tr>
-                </thead>
+            {# ================= TABLEAU ================= #}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>
+                                Date & Heure
+                                <div class="btn-group btn-group-sm float-end">
+                                    <a href="{{ path('app_rdv_index', app.request.query.all | merge({'sort':'dateHeure','order':'ASC'})) }}" class="btn btn-link p-0 text-decoration-none">⬆️</a>
+                                    <a href="{{ path('app_rdv_index', app.request.query.all | merge({'sort':'dateHeure','order':'DESC'})) }}" class="btn btn-link p-0 text-decoration-none">⬇️</a>
+                                </div>
+                            </th>
 
-                <tbody>
-                {% for rdv in rendez_vous %}
-                    <tr>
-
-                        <td>{{ rdv.dateHeure ? rdv.dateHeure|date('d/m/Y H:i') : '' }}</td>
-
-                        <td>
-                            {{ rdv.patient.nom }} {{ rdv.patient.prenom }}
-                        </td>
-
-                        <td>
-                            {{ rdv.medecin.nom }} {{ rdv.medecin.prenom }}
-                        </td>
-
-                        <td>{{ rdv.type }}</td>
-
-                        {# ================= STATUT ================= #}
-                        <td>
                             {% if is_granted('ROLE_MEDECIN') %}
-                                <form method="post"
-                                      action="{{ path('app_rdv_update_status', {'id': rdv.id}) }}">
-                                    <input type="hidden"
-                                           name="_token"
-                                           value="{{ csrf_token('update_status' ~ rdv.id) }}">
-
-                                    <select name="statut"
-                                            class="form-select form-select-sm"
-                                            onchange="this.form.submit()">
-
-                                        <option value="En attente"
-                                            {{ rdv.statut == 'En attente' ? 'selected' : '' }}>
-                                            En attente
-                                        </option>
-
-                                        <option value="Confirmé"
-                                            {{ rdv.statut == 'Confirmé' ? 'selected' : '' }}>
-                                            Confirmé
-                                        </option>
-
-                                        <option value="Annulé"
-                                            {{ rdv.statut == 'Annulé' ? 'selected' : '' }}>
-                                            Annulé
-                                        </option>
-
-                                        <option value="Complété"
-                                            {{ rdv.statut == 'Complété' ? 'selected' : '' }}>
-                                            Complété
-                                        </option>
-                                    </select>
-                                </form>
+                                <th>Patient</th>
                             {% else %}
-                                {{ rdv.statut }}
+                                <th>Médecin</th>
                             {% endif %}
-                        </td>
 
-                        {# ================= ORDONNANCE ================= #}
-                        <td>
-                            {% if is_granted('ROLE_MEDECIN') %}
+                            <th>Type</th>
+                            <th>Statut</th>
+                            <th>Ordonnance</th>
+                            <th>Actions RDV</th>
+                        </tr>
+                    </thead>
 
-                                {% if rdv.ordonnance %}
-                                    <a href="{{ path('ordonnance_show', {'id': rdv.ordonnance.id}) }}"
-                                       class="btn btn-info btn-sm mb-1">
-                                        Consulter
-                                    </a>
+                    <tbody>
+                    {% for rdv in rendez_vous %}
+                        <tr>
+                            <td>{{ rdv.dateHeure ? rdv.dateHeure|date('d/m/Y H:i') : '' }}</td>
 
-                                    <a href="{{ path('ordonnance_edit', {'id': rdv.ordonnance.id}) }}"
-                                       class="btn btn-warning btn-sm mb-1">
-                                        Modifier
-                                    </a>
+                            <td>
+                                {% if is_granted('ROLE_MEDECIN') %}
+                                    <strong>{{ rdv.patient.nom|upper }}</strong> {{ rdv.patient.prenom }}
+                                {% else %}
+                                    Dr. <strong>{{ rdv.medecin.nom }}</strong> {{ rdv.medecin.prenom }}
+                                {% endif %}
+                            </td>
 
-                                    <form method="post"
-                                          action="{{ path('ordonnance_delete', {'id': rdv.ordonnance.id}) }}"
-                                          style="display:inline;">
-                                        <input type="hidden"
-                                               name="_token"
-                                               value="{{ csrf_token('delete' ~ rdv.ordonnance.id) }}">
-                                        <button class="btn btn-danger btn-sm mb-1"
-                                                onclick="return confirm('Confirmer la suppression ?');">
-                                            Supprimer
-                                        </button>
+                            <td>
+                                <span class="badge {{ rdv.type == 'Télémédecine' ? 'bg-info text-dark' : 'bg-secondary' }}">
+                                    <i class="fas {{ rdv.type == 'Télémédecine' ? 'fa-video' : 'fa-hospital' }}"></i> {{ rdv.type }}
+                                </span>
+                            </td>
+
+                            <td>
+                                {% if is_granted('ROLE_MEDECIN') %}
+                                    <form method="post" action="{{ path('app_rdv_update_status', {'id': rdv.id}) }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('update_status' ~ rdv.id) }}">
+                                        <select name="statut" class="form-select form-select-sm" onchange="this.form.submit()">
+                                            <option value="En attente" {{ rdv.statut == 'En attente' ? 'selected' : '' }}>En attente</option>
+                                            <option value="Confirmé" {{ rdv.statut == 'Confirmé' ? 'selected' : '' }}>Confirmé</option>
+                                            <option value="Annulé" {{ rdv.statut == 'Annulé' ? 'selected' : '' }}>Annulé</option>
+                                            <option value="Complété" {{ rdv.statut == 'Complété' ? 'selected' : '' }}>Complété</option>
+                                        </select>
                                     </form>
-
                                 {% else %}
-                                    <a href="{{ path('ordonnance_new', {'rdvId': rdv.id}) }}"
-                                       class="btn btn-success btn-sm">
-                                        Créer
-                                    </a>
+                                    {% set color = 'secondary' %}
+                                    {% if rdv.statut == 'Confirmé' %}{% set color = 'success' %}
+                                    {% elseif rdv.statut == 'En attente' %}{% set color = 'warning text-dark' %}
+                                    {% elseif rdv.statut == 'Annulé' %}{% set color = 'danger' %}
+                                    {% endif %}
+                                    <span class="badge bg-{{ color }}">{{ rdv.statut }}</span>
                                 {% endif %}
+                            </td>
 
-                            {% else %}
-
+                            <td>
                                 {% if rdv.ordonnance %}
-                                    <a href="{{ path('ordonnance_show', {'id': rdv.ordonnance.id}) }}"
-                                       class="btn btn-primary btn-sm">
-                                        Consulter
-                                    </a>
-
-                                    <a href="{{ path('ordonnance_pdf', {'id': rdv.ordonnance.id}) }}"
-                                       class="btn btn-secondary btn-sm">
-                                        📄 PDF
-                                    </a>
+                                    <div class="btn-group">
+                                        <a href="{{ path('ordonnance_show', {'id': rdv.ordonnance.id}) }}" class="btn btn-outline-info btn-sm">Consulter</a>
+                                        {% if not is_granted('ROLE_MEDECIN') %}
+                                            <a href="{{ path('ordonnance_pdf', {'id': rdv.ordonnance.id}) }}" class="btn btn-outline-secondary btn-sm">📄</a>
+                                        {% endif %}
+                                    </div>
+                                {% elseif is_granted('ROLE_MEDECIN') %}
+                                    <a href="{{ path('ordonnance_new', {'rdvId': rdv.id}) }}" class="btn btn-success btn-sm">Créer</a>
                                 {% else %}
-                                    ❌
+                                    <span class="text-muted small">Aucune</span>
                                 {% endif %}
+                            </td>
 
-                            {% endif %}
-                        </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    {# BOUTON VISIO API #}
+                                    {% if rdv.type == 'Télémédecine' and rdv.lienVisio %}
+                                        <a href="{{ rdv.lienVisio }}" target="_blank" class="btn btn-success btn-sm" title="Rejoindre la visio">
+                                            <i class="fas fa-video"></i>
+                                        </a>
+                                    {% endif %}
 
-                        {# ================= ACTIONS RDV ================= #}
-                        <td>
-                            <a href="{{ path('app_rdv_edit', {'id': rdv.id}) }}"
-                               class="btn btn-warning btn-sm">
-                                Modifier
-                            </a>
-
-                            <form method="post"
-                                  action="{{ path('app_rdv_delete', {'id': rdv.id}) }}"
-                                  style="display:inline;">
-                                <input type="hidden"
-                                       name="_token"
-                                       value="{{ csrf_token('delete' ~ rdv.id) }}">
-                                <button class="btn btn-danger btn-sm"
-                                        onclick="return confirm('Confirmer la suppression ?');">
-                                    Supprimer
-                                </button>
-                            </form>
-                        </td>
-
-                    </tr>
-
-                {% else %}
-                    <tr>
-                        <td colspan="7" class="text-center">
-                            Aucun rendez-vous trouvé.
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-
+                                    <a href="{{ path('app_rdv_edit', {'id': rdv.id}) }}" class="btn btn-outline-warning btn-sm" title="Modifier">✏️</a>
+                                    
+                                    <form method="post" action="{{ path('app_rdv_delete', {'id': rdv.id}) }}" onsubmit="return confirm('Confirmer la suppression ?');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ rdv.id) }}">
+                                        <button class="btn btn-outline-danger btn-sm" title="Supprimer">🗑️</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                Aucun rendez-vous trouvé.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
