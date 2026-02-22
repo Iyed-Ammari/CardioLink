@@ -11,94 +11,28 @@
                     <h3 class="mb-0">📅 Prendre un Rendez-vous</h3>
                 </div>
                 <div class="card-body">
-                    {# Affiche les erreurs globales #}
+                    {# Affiche les erreurs globales (ex: médecin non dispo) #}
                     {% for message in app.flashes('danger') %}
                         <div class="alert alert-danger">
                             {{ message }}
                         </div>
                     {% endfor %}
 
-                    {{ form_start(form) }}
-                       
-                        {# 1. Champ Médecin #}
-                        <div class="mb-3">
-                            <label class="form-label">{{ form.medecin.vars.label }}</label>
-                            {{ form_widget(form.medecin, {'attr': {'class': 'form-select'}}) }}
-                            {% if form.medecin.vars.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.medecin.vars.errors %}
-                                        <span class="text-danger">⚠️ {{ error.message }}</span>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
+                   {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+{{ form_errors(form) }}
 
-                        {# 2. Champ Date et Heure #}
-                        <div class="mb-3">
-                            <label class="form-label">{{ form.dateHeure.vars.label }}</label>
-                            {{ form_widget(form.dateHeure, {'attr': {'class': 'form-control', 'type': 'datetime-local'}}) }}
-                            {% if form.dateHeure.vars.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.dateHeure.vars.errors %}
-                                        <span class="text-danger">⚠️ {{ error.message }}</span>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
+{{ form_row(form.medecin) }}
+{{ form_row(form.dateHeure) }}
+{{ form_row(form.type) }}
+{{ form_row(form.remarques) }}
 
-                        {# 3. Champ Type de Consultation (Radio Buttons) #}
-                        <div class="mb-3">
-                            <label class="form-label">{{ form.type.vars.label }}</label>
-                            <div>
-                                {% for child in form.type %}
-                                    <div class="form-check">
-                                        {{ form_widget(child, {'attr': {'class': 'form-check-input'}}) }}
-                                        <label class="form-check-label" for="{{ child.vars.id }}">
-                                            {% if child.vars.value == 'Présentiel' %}
-                                                🏥 Consultation au cabinet
-                                            {% else %}
-                                                💻 Vidéo Consultation
-                                            {% endif %}
-                                        </label>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                            {% if form.type.vars.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.type.vars.errors %}
-                                        <span class="text-danger">⚠️ {{ error.message }}</span>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        {# 4. Champ Motif / Remarques #}
-                        <div class="mb-3">
-                            <label class="form-label">{{ form.remarques.vars.label }}</label>
-                            {{ form_widget(form.remarques, {'attr': {'class': 'form-control', 'rows': '3', 'placeholder': 'Ex: Douleurs thoraciques depuis 2 jours...'}}) }}
-                            {% if form.remarques.vars.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.remarques.vars.errors %}
-                                        <span class="text-danger">⚠️ {{ error.message }}</span>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        {# Boutons d'action #}
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-success btn-lg" type="submit">
-                                ✅ Confirmer le rendez-vous
-                            </button>
-                            <a href="{{ path('app_rdv_index') }}" class="btn btn-outline-secondary">
-                                Annuler
-                            </a>
-                        </div>
-
-                    {{ form_end(form) }}
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="d-grid gap-2 mt-3">
+    <button class="btn btn-success btn-lg" type="submit">
+        ✅ Confirmer le rendez-vous
+    </button>
+    <a href="{{ path('app_rdv_index') }}" class="btn btn-outline-secondary">Annuler</a>
 </div>
+
+{{ form_end(form) }}
 {% endblock %}
+

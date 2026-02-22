@@ -41,6 +41,19 @@
             {% if app.user %}
               <a href="{{ path('app_home') }}" class="nav-link">Home</a>
               <a href="{{ path('forum_frontoffice') }}" class="nav-link">👥 Community</a>
+              {% if app.user %}
+    {% if is_granted('ROLE_PATIENT') %}
+        <li class="nav-item">
+            <a class="nav-link" href="{{ path('app_rdv_new') }}">➕ Prendre un Rendez-vous</a>
+          
+        </li>
+        <li class="nav-item">
+        {# Ce lien permet au patient de voir sa liste et ses statuts #}
+        <a class="nav-link" href="{{ path('app_rdv_index') }}">📅 Mes Rendez-vous</a>
+    </li>
+        
+    {% endif %}
+{% endif %}
               {% if is_granted('ROLE_PATIENT') %}
                 <a href="{{ path('app_suivi_index') }}" class="nav-link">📊 Mes Suivis</a>
                 <a href="{{ path('app_mon_dossier') }}" class="nav-link">Mon Dossier Médical</a>
@@ -97,5 +110,6 @@
       
       syncIcon()
     </script>
+    
   </body>
 </html>

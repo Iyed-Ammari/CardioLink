@@ -7,7 +7,9 @@
 
 {{ form_start(form) }}
 
+    {# référence en lecture seule #}
     {{ form_row(form.reference) }}
+
     {{ form_row(form.diagnostic) }}
     {{ form_row(form.notes) }}
 
@@ -15,5 +17,5 @@
 
 {{ form_end(form) }}
 
-<a href="{{ path('ordonnance_index') }}" class="btn btn-secondary mt-2">Retour à la liste</a>
+<a href="{{ path('app_rdv_index') }}" class="btn btn-secondary mt-2">Retour à la liste</a>
 {% endblock %}
