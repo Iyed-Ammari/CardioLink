@@ -3,15 +3,18 @@
 namespace App\Controller;
 
 use App\Entity\Conversation;
-use App\Entity\User; // N'oublie pas d'importer User
+use App\Entity\User;
 use App\Repository\ConversationRepository;
 use App\Repository\MessageRepository;
-use App\Repository\UserRepository; // Ajoute ça
-use Doctrine\ORM\EntityManagerInterface; // Ajoute ça
+use App\Repository\UserRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\HttpClient\HttpClientInterface; // <--- N'oublie pas cet import !
 
 #[Route('/messages', name: 'app_')]
 #[IsGranted('ROLE_USER')]
@@ -20,58 +23,47 @@ class ConversationController extends AbstractController
     public function __construct(
         private ConversationRepository $conversationRepository,
         private MessageRepository $messageRepository,
-        private UserRepository $userRepository, // Injection du UserRepository
-        private EntityManagerInterface $entityManager // Injection de l'EntityManager
+        private UserRepository $userRepository,
+        private EntityManagerInterface $entityManager
     ) {}
 
     #[Route('', name: 'conversation_index')]
     public function index(): Response
     {
         $user = $this->getUser();
-        
-        // 1. Récupérer les conversations existantes
         $conversations = $this->conversationRepository->findByUser($user);
 
-        // 2. Récupérer la liste des contacts potentiels (Logique inversée)
         $contacts = [];
         if ($this->isGranted('ROLE_MEDECIN')) {
-            // Si je suis médecin, je veux voir les patients
-            $contacts = $this->userRepository->findPatients();
+            $contacts = $this->userRepository->findPatients(); // Utilise ta méthode repository personnalisée
         } else {
-            // Si je suis patient, je veux voir les médecins
-            $contacts = $this->userRepository->findMedecins();
+            $contacts = $this->userRepository->findMedecins(); // Utilise ta méthode repository personnalisée
         }
 
         return $this->render('conversation/index.html.twig', [
             'conversations' => $conversations,
-            'contacts' => $contacts // On envoie la liste à la vue
+            'contacts' => $contacts
         ]);
     }
 
-    // ✅ NOUVELLE METHODE : Créer ou Rediriger vers une conversation
     #[Route('/start/{id}', name: 'conversation_start')]
     public function start(User $recipient): Response
     {
         $currentUser = $this->getUser();
 
-        // Vérification de sécurité simple
         if ($currentUser === $recipient) {
             $this->addFlash('danger', 'Vous ne pouvez pas parler à vous-même.');
             return $this->redirectToRoute('app_conversation_index');
         }
 
-        // 1. Vérifier si une conversation existe déjà
         $existingConversation = $this->conversationRepository->findByPatientAndMedecin($currentUser, $recipient);
 
         if ($existingConversation) {
-            // Si elle existe, on redirige directement dessus
             return $this->redirectToRoute('app_conversation_show', ['id' => $existingConversation->getId()]);
         }
 
-        // 2. Si elle n'existe pas, on la crée
         $conversation = new Conversation();
-        
-        // On détermine qui est qui en fonction des rôles
+
         if ($this->isGranted('ROLE_MEDECIN')) {
             $conversation->setMedecin($currentUser);
             $conversation->setPatient($recipient);
@@ -89,19 +81,51 @@ class ConversationController extends AbstractController
 
         return $this->redirectToRoute('app_conversation_show', ['id' => $conversation->getId()]);
     }
+    #[Route('/message/{id}/read', name: 'message_read', methods: ['POST'])]
+    public function markAsRead(\App\Entity\Message $message, EntityManagerInterface $entityManager): JsonResponse
+    {
+        // Si le message n'est pas déjà lu, on le marque
+        if (!$message->isRead()) {
+            $message->setIsRead(true);
+            $entityManager->flush();
+        }
+        return $this->json(['status' => 'success']);
+    }
     #[Route('/{id}', name: 'conversation_show', requirements: ['id' => '\d+'])]
-    public function show(Conversation $conversation): Response
+    public function show(Conversation $conversation, EntityManagerInterface $entityManager): Response
     {
         $messages = $this->messageRepository->findByConversation($conversation);
+        $currentUser = $this->getUser();
+
+        // --- 👁️ MISE À JOUR "VU" ---
+        $hasUpdates = false;
+        foreach ($messages as $message) {
+            // Si le message vient de l'autre ET n'est pas encore lu
+            if ($message->getSender() !== $currentUser && !$message->isRead()) {
+                $message->setIsRead(true);
+                $hasUpdates = true;
+            }
+        }
+
+        if ($hasUpdates) {
+            $entityManager->flush();
+        }
+        // ---------------------------
 
         return $this->render('conversation/show.html.twig', [
             'conversation' => $conversation,
             'messages' => $messages,
         ]);
     }
+
+    // ✅ METHODE MODIFIÉE POUR L'IA
     #[Route('/{id}/send', name: 'conversation_send', methods: ['POST'])]
-    public function sendMessage(Conversation $conversation, \Symfony\Component\HttpFoundation\Request $request, \Doctrine\ORM\EntityManagerInterface $entityManager): \Symfony\Component\HttpFoundation\JsonResponse
-    {
+    public function sendMessage(
+        Conversation $conversation,
+        Request $request,
+        EntityManagerInterface $entityManager,
+        HttpClientInterface $client // <--- Injection du client HTTP pour parler à Python
+    ): JsonResponse {
         $data = json_decode($request->getContent(), true);
         $content = $data['content'] ?? null;
 
@@ -116,22 +140,46 @@ class ConversationController extends AbstractController
         $message->setCreatedAt(new \DateTime());
         $message->setIsRead(false);
 
-        // Mise à jour du timestamp de la conversation
+        // --- 🤖 APPEL IA : DÉBUT ---
+        $classification = 'NORMAL'; // Valeur par défaut
+        try {
+            // On appelle ton script Python qui tourne sur le port 5000
+            $response = $client->request('POST', 'http://127.0.0.1:5000/analyze_message', [
+                'json' => ['content' => $content]
+            ]);
+
+            if ($response->getStatusCode() === 200) {
+                $aiResult = $response->toArray();
+                $classification = $aiResult['classification'] ?? 'NORMAL';
+            }
+        } catch (\Exception $e) {
+            // Si l'IA est éteinte ou plante, on ne bloque pas l'envoi du message
+            // On garde la classification 'NORMAL' par défaut
+        }
+
+        // On enregistre le résultat de l'IA en BDD
+        $message->setClassification($classification);
+        // --- 🤖 APPEL IA : FIN ---
+
         $conversation->setUpdatedAt(new \DateTime());
 
         $entityManager->persist($message);
         $entityManager->flush();
+
+        // Récupération du nom pour l'affichage
         $user = $this->getUser();
+        $nomComplet = 'Moi';
         if ($user instanceof \App\Entity\User) {
-            $nom = $user->getNom();
-            $prenom = $user->getPrenom();
+            $nomComplet = $user->getPrenom() . ' ' . $user->getNom();
         }
 
+        // On renvoie la réponse JSON incluant la classification pour le JS
         return $this->json([
-            'status' => 'success', 
+            'status' => 'success',
             'messageId' => $message->getId(),
-            'senderName' => $prenom . ' ' . $nom,
-            'createdAt' => $message->getCreatedAt()->format('H:i')
+            'senderName' => $nomComplet,
+            'createdAt' => $message->getCreatedAt()->format('H:i'),
+            'classification' => $classification // <--- C'est ici que le front récupère l'info !
         ]);
     }
 }
