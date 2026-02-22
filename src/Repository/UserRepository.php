@@ -25,7 +25,7 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
     {
         if (!$user instanceof User) {
-            throw new UnsupportedUserException(sprintf('Instances of "%s" are not supported.', $user::class));
+            throw new UnsupportedUserException(printf('Instances of "%s" are not supported.', $user::class));
         }
 
         $user->setPassword($newHashedPassword);
@@ -71,6 +71,23 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             ->getQuery()
             ->getResult();
     }
+    public function countSignupsByDay(): array
+    {
+      $conn = $this->getEntityManager()->getConnection();
+
+      $sql = "
+        SELECT 
+            DATE(created_at) AS date,
+            COUNT(id) AS total
+        FROM `user`
+        WHERE created_at IS NOT NULL
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+      ";
+
+     return $conn->executeQuery($sql)->fetchAllAssociative();
+    }  
+
 
     /**
      * Récupère tous les utilisateurs avec le rôle ROLE_PATIENT
@@ -85,4 +102,38 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             ->getQuery()
             ->getResult();
     }
+    public function countPatients(): int
+{
+    return $this->createQueryBuilder('u')
+        ->select('COUNT(u.id)')
+        ->where('u.roles LIKE :role')
+        ->setParameter('role', '%ROLE_PATIENT%')
+        ->getQuery()
+        ->getSingleScalarResult();
+}
+
+public function countMedecins(): int
+{
+    return $this->createQueryBuilder('u')
+        ->select('COUNT(u.id)')
+        ->where('u.roles LIKE :role')
+        ->setParameter('role', '%ROLE_MEDECIN%')
+        ->getQuery()
+        ->getSingleScalarResult();
+}
+
+public function countInscriptionsMois(): int
+{
+    $debut = new \DateTime('first day of this month');
+    $fin = new \DateTime('last day of this month');
+
+    return $this->createQueryBuilder('u')
+        ->select('COUNT(u.id)')
+        ->where('u.createdAt BETWEEN :debut AND :fin')
+        ->setParameter('debut', $debut)
+        ->setParameter('fin', $fin)
+        ->getQuery()
+        ->getSingleScalarResult();
+}
+
 }

@@ -1,0 +1,36 @@
+{% extends 'dashboard/base_dashboard.html.twig' %}
+
+{% block body %}
+
+<h2>📋 Dossier de {{ dossier.user.nom }} {{ dossier.user.prenom }}</h2>
+
+<a href="{{ path('admin_dossier_index') }}">← Retour</a>
+
+{% set risque = dossier.risqueCardiaque %}
+<div style="padding:15px; border-radius:12px; margin:20px 0;
+    background: {{ risque == 'CRITIQUE' ? '#fee2e2' : (risque == 'ÉLEVÉ' ? '#ffedd5' : (risque == 'MODÉRÉ' ? '#fef9c3' : '#dcfce7')) }};">
+    <strong>⚕️ Risque Cardiaque :</strong>
+    <span style="font-weight:800; color: {{ risque == 'CRITIQUE' ? 'red' : (risque == 'ÉLEVÉ' ? 'orange' : (risque == 'MODÉRÉ' ? '#ca8a04' : 'green')) }};">
+        {{ risque }}
+    </span>
+    {% if dossier.IMC %}
+        &nbsp;&nbsp;|&nbsp;&nbsp; <strong>IMC :</strong> {{ dossier.IMC }}
+    {% endif %}
+</div>
+
+<table border="1">
+    <tr><th>Groupe Sanguin</th><td>{{ dossier.groupeSanguin }}</td></tr>
+    <tr><th>Antécédents</th><td>{{ dossier.antecedents ?? '-' }}</td></tr>
+    <tr><th>Allergies</th><td>{{ dossier.allergies ?? '-' }}</td></tr>
+    <tr><th>Poids</th><td>{{ dossier.poids ? dossier.poids ~ ' kg' : '-' }}</td></tr>
+    <tr><th>Taille</th><td>{{ dossier.taille ? dossier.taille ~ ' cm' : '-' }}</td></tr>
+    <tr><th>Tension</th><td>{{ dossier.tensionSystolique ? dossier.tensionSystolique ~ '/' ~ dossier.tensionDiastolique ~ ' mmHg' : '-' }}</td></tr>
+    <tr><th>Fréquence Cardiaque</th><td>{{ dossier.frequenceCardiaque ? dossier.frequenceCardiaque ~ ' bpm' : '-' }}</td></tr>
+</table>
+
+<br>
+<a href="{{ path('admin_dossier_edit', {id: dossier.id}) }}" style="background:linear-gradient(90deg,#F82239,#2F60F5); color:#fff; padding:10px 20px; border-radius:12px; text-decoration:none; font-weight:800;">
+    ✏️ Modifier
+</a>
+
+{% endblock %}

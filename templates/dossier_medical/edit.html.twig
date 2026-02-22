@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+
+<h2>✏️ Mon Dossier Médical</h2>
+
+<a href="{{ path('app_mon_dossier') }}">← Retour</a>
+
+<form method="post" style="margin-top:20px; display:flex; flex-direction:column; gap:15px; max-width:500px;">
+    <div>
+        <label>Groupe Sanguin</label>
+        <select name="groupeSanguin" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+            {% for gs in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
+                <option value="{{ gs }}" {{ dossier.groupeSanguin == gs ? 'selected' : '' }}>{{ gs }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label>Antécédents</label>
+        <textarea name="antecedents" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd; height:100px;">{{ dossier.antecedents }}</textarea>
+    </div>
+    <div>
+        <label>Allergies</label>
+        <textarea name="allergies" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd; height:80px;">{{ dossier.allergies }}</textarea>
+    </div>
+    <div>
+        <label>Poids (kg)</label>
+        <input type="number" step="0.1" name="poids" value="{{ dossier.poids }}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+    <div>
+        <label>Taille (cm)</label>
+        <input type="number" name="taille" value="{{ dossier.taille }}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+    <div>
+        <label>Tension Systolique (mmHg)</label>
+        <input type="number" name="tensionSystolique" value="{{ dossier.tensionSystolique }}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+    <div>
+        <label>Tension Diastolique (mmHg)</label>
+        <input type="number" name="tensionDiastolique" value="{{ dossier.tensionDiastolique }}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+    <div>
+        <label>Fréquence Cardiaque (bpm)</label>
+        <input type="number" name="frequenceCardiaque" value="{{ dossier.frequenceCardiaque }}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+    <button type="submit" style="background:linear-gradient(90deg,#F82239,#2F60F5); color:#fff; border:none; padding:12px; border-radius:12px; font-weight:800; cursor:pointer;">
+        Sauvegarder
+    </button>
+</form>
+
+{% endblock %}

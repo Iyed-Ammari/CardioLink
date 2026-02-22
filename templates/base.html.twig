@@ -23,11 +23,8 @@
     {% endblock %}
 
     <script>
-      // Initialize theme immediately to prevent flash of light mode
       ;(function () {
-        // Check storage, default to light if empty
         const savedTheme = localStorage.getItem('theme') || 'light'
-        // Apply it to the document before the body even loads
         document.documentElement.setAttribute('data-theme', savedTheme)
       })()
     </script>
@@ -44,22 +41,36 @@
             {% if app.user %}
               <a href="{{ path('app_home') }}" class="nav-link">Home</a>
               <a href="{{ path('forum_frontoffice') }}" class="nav-link">👥 Community</a>
+              {% if app.user %}
+    {% if is_granted('ROLE_PATIENT') %}
+        <li class="nav-item">
+            <a class="nav-link" href="{{ path('app_rdv_new') }}">➕ Prendre un Rendez-vous</a>
+          
+        </li>
+        <li class="nav-item">
+        {# Ce lien permet au patient de voir sa liste et ses statuts #}
+        <a class="nav-link" href="{{ path('app_rdv_index') }}">📅 Mes Rendez-vous</a>
+    </li>
+        
+    {% endif %}
+{% endif %}
               {% if is_granted('ROLE_PATIENT') %}
                 <a href="{{ path('app_suivi_index') }}" class="nav-link">📊 Mes Suivis</a>
-                {# <a href="{{ path('app_mon_dossier') }}" class="nav-link">Mon Dossier Médical</a> #}
-                <a href="#" class="nav-link">Mon Dossier Médical</a>
+                <a href="{{ path('app_mon_dossier') }}" class="nav-link">Mon Dossier Médical</a>
+                <a href="{{ path('app_mon_profil') }}" class="nav-link">👤 Mon Profil</a>
               {% endif %}
 
               {% if is_granted('ROLE_MEDECIN') %}
                 <a href="{{ path('app_intervention_index') }}" class="nav-link">🏥 Interventions</a>
                 <a href="{{ path('app_intervention_urgent') }}" class="nav-link">🚨 SOS</a>
-                 <a href="{{ path('app_rdv_index') }}" class="nav-link">Gérer RDV</a> 
+                <a href="{{ path('app_rdv_index') }}" class="nav-link">Gérer RDV</a>
+                <a href="{{ path('app_mon_profil') }}" class="nav-link">👤 Mon Profil</a>
               {% endif %}
 
               {% if is_granted('ROLE_ADMIN') %}
-                {# <a href="{{ path('app_admin_dashboard') }}" class="nav-link">Administration</a> #}
                 <a href="#" class="nav-link">Administration</a>
               {% endif %}
+
               <a href="{{ logout_path() }}" class="nav-link">Logout</a>
             {% else %}
               <a href="{{ path('app_register') }}" class="nav-link">Register</a>
@@ -73,7 +84,6 @@
 
     <main class="main-content">
       {% block body %}
-
       {% endblock %}
     </main>
 
@@ -93,14 +103,13 @@
       function toggleTheme() {
         const isLight = document.documentElement.getAttribute('data-theme') === 'light'
         const nextTheme = isLight ? 'dark' : 'light'
-      
         document.documentElement.setAttribute('data-theme', nextTheme)
         localStorage.setItem('theme', nextTheme)
         syncIcon()
       }
       
-      // Sync the icon as soon as the button exists in the DOM
       syncIcon()
     </script>
+    
   </body>
 </html>

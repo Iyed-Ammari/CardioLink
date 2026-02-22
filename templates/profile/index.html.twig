@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+
+<div style="max-width:600px; margin:40px auto;">
+    <h2>👤 Mon Profil</h2>
+
+    {% if app.flashes('success')|length > 0 %}
+        <div style="background:#dcfce7; color:#166534; padding:12px; border-radius:8px; margin-bottom:15px;">
+            ✅ {{ app.flashes('success')|last }}
+        </div>
+    {% endif %}
+
+    <div style="text-align:center; margin-bottom:30px;">
+        {% if user.imageUrl %}
+            <img src="{{ user.imageUrl }}" style="width:120px; height:120px; border-radius:50%; object-fit:cover;">
+            <br><br>
+            <a href="{{ path('app_delete_photo') }}"
+               onclick="return confirm('Supprimer votre photo ?')"
+               style="color:red; font-size:14px;">
+                🗑️ Supprimer la photo
+            </a>
+        {% else %}
+            <div style="width:120px; height:120px; border-radius:50%; background:linear-gradient(135deg,#F82239,#2F60F5); display:flex; align-items:center; justify-content:center; color:#fff; font-size:48px; font-weight:800; margin:0 auto;">
+                {{ user.nom|first }}
+            </div>
+        {% endif %}
+    </div>
+
+    <table border="1" style="width:100%;">
+        <tr><th style="padding:12px; background:#f9fafb;">Nom</th><td style="padding:12px;">{{ user.nom }}</td></tr>
+        <tr><th style="padding:12px; background:#f9fafb;">Prénom</th><td style="padding:12px;">{{ user.prenom }}</td></tr>
+        <tr><th style="padding:12px; background:#f9fafb;">Email</th><td style="padding:12px;">{{ user.email }}</td></tr>
+        <tr><th style="padding:12px; background:#f9fafb;">Téléphone</th><td style="padding:12px;">{{ user.tel }}</td></tr>
+        <tr><th style="padding:12px; background:#f9fafb;">Adresse</th><td style="padding:12px;">{{ user.adresse }}</td></tr>
+    </table>
+
+    <br>
+    <a href="{{ path('app_mon_profil_edit') }}" style="background:linear-gradient(90deg,#F82239,#2F60F5); color:#fff; padding:12px 24px; border-radius:12px; text-decoration:none; font-weight:800;">
+        ✏️ Modifier mon profil
+    </a>
+</div>
+
+{% endblock %}

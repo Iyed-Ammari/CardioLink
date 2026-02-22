@@ -31,6 +31,20 @@ class Message
     #[ORM\Column]
     private ?bool $isRead = null;
 
+    #[ORM\Column(length: 50)]
+    private ?string $classification = 'NORMAL';
+
+    public function getClassification(): ?string
+    {
+        return $this->classification;
+    }
+
+    public function setClassification(string $classification): static
+    {
+        $this->classification = $classification;
+        return $this;
+    }
+
     public function getId(): ?int
     {
         return $this->id;

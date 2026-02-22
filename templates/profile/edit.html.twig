@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+
+<div style="max-width:500px; margin:40px auto;">
+    <h2>✏️ Modifier mon profil</h2>
+
+    <a href="{{ path('app_mon_profil') }}">← Retour</a>
+
+    <form method="post" enctype="multipart/form-data" style="margin-top:20px; display:flex; flex-direction:column; gap:15px;">
+        <div>
+            <label>Nom</label>
+            <input type="text" name="nom" value="{{ user.nom }}" required style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+        </div>
+        <div>
+            <label>Prénom</label>
+            <input type="text" name="prenom" value="{{ user.prenom }}" required style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+        </div>
+        <div>
+            <label>Téléphone</label>
+            <input type="text" name="tel" value="{{ user.tel }}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+        </div>
+        <div>
+            <label>Adresse</label>
+            <input type="text" name="adresse" value="{{ user.adresse }}" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+        </div>
+        <div>
+            <label>Nouveau mot de passe <small>(laisser vide pour ne pas changer)</small></label>
+            <input type="password" name="password" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+        </div>
+        <div>
+            <label>Photo de profil</label>
+            {% if user.imageUrl %}
+                <img src="{{ user.imageUrl }}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; display:block; margin-bottom:10px;">
+            {% else %}
+                <div style="width:60px; height:60px; border-radius:50%; background:linear-gradient(135deg,#F82239,#2F60F5); display:flex; align-items:center; justify-content:center; color:#fff; font-size:24px; font-weight:800; margin-bottom:10px;">
+                    {{ user.nom|first }}
+                </div>
+            {% endif %}
+            <input type="file" name="imageFile" accept="image/*" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+        </div>
+        <button type="submit" style="background:linear-gradient(90deg,#F82239,#2F60F5); color:#fff; border:none; padding:12px; border-radius:12px; font-weight:800; cursor:pointer;">
+            Sauvegarder
+        </button>
+    </form>
+</div>
+
+{% endblock %}
