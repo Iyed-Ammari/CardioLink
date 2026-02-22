@@ -8,7 +8,12 @@
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h3 class="mb-0">📅 Liste des Rendez-vous</h3>
             <div class="d-flex gap-2">
-                
+                {# BOUTON PRÉDICTION POUR LE MÉDECIN #}
+        {% if is_granted('ROLE_MEDECIN') %}
+            <a href="{{ path('app_rdv_prediction') }}" class="btn btn-warning btn-sm">
+                <i class="fas fa-magic"></i> Voir les prévisions IA
+            </a>
+        {% endif %}
 
                 {# Bouton Nouveau RDV pour le Patient #}
                 {% if is_granted('ROLE_PATIENT') %}

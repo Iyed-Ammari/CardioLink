@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Lieu;
 use App\Entity\RendezVous;
+use App\Entity\User;
 use App\Form\RendezVousType;
 use App\Repository\LieuRepository;
 use App\Repository\RendezVousRepository;
@@ -14,6 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Process\Process;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 #[Route('/rdv')]
 class RendezVousController extends AbstractController
@@ -25,35 +27,35 @@ class RendezVousController extends AbstractController
     public function index(Request $request, RendezVousRepository $rendezVousRepository): Response
     {
         $user = $this->getUser();
-        
+
         // Récupération des paramètres de recherche et de tri depuis l'URL
         $search = $request->query->get('search');
         $sort = $request->query->get('sort');   // 'patient', 'medecin' ou 'dateHeure'
         $order = $request->query->get('order'); // 'ASC' ou 'DESC'
-        
-        
-        // Dans RendezVousController.php, modifie l'appel :
-// RendezVousController.php ligne 34
-$role = in_array('ROLE_MEDECIN', $user->getRoles()) ? 'ROLE_MEDECIN' : 'ROLE_PATIENT';
 
-$rdvs = $rendezVousRepository->searchGlobal(
-    $search,
-    $sort,
-    $order,
-    $user,
-    $role 
-);
+
+        // Dans RendezVousController.php, modifie l'appel :
+        // RendezVousController.php ligne 34
+        $role = in_array('ROLE_MEDECIN', $user->getRoles()) ? 'ROLE_MEDECIN' : 'ROLE_PATIENT';
+
+        $rdvs = $rendezVousRepository->searchGlobal(
+            $search,
+            $sort,
+            $order,
+            $user,
+            $role
+        );
 
         return $this->render('rendez_vous/index.html.twig', [
             'rendez_vous' => $rdvs,
         ]);
     }
-    
+
     /**
      * Création d'un nouveau rendez-vous (Réservé aux Patients)
      */
     #[Route('/nouveau', name: 'app_rdv_new', methods: ['GET', 'POST'])]
-    #[IsGranted('ROLE_PATIENT')] 
+    #[IsGranted('ROLE_PATIENT')]
     public function new(Request $request, EntityManagerInterface $entityManager, RendezVousRepository $repo, LieuRepository $lieuRepository): Response
     {
         $rdv = new RendezVous();
@@ -64,7 +66,7 @@ $rdvs = $rendezVousRepository->searchGlobal(
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            
+
             // 1. Vérification anti-collision
             $conflits = $repo->countCrenau($rdv->getDateHeure(), $rdv->getMedecin());
             if ($conflits > 0) {
@@ -125,7 +127,7 @@ $rdvs = $rendezVousRepository->searchGlobal(
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            
+
             // Vérification anti-collision (en excluant le RDV actuel)
             $conflits = $repo->countCrenau($rendezVous->getDateHeure(), $rendezVous->getMedecin(), $rendezVous->getId());
             if ($conflits > 0) {
@@ -135,7 +137,7 @@ $rdvs = $rendezVousRepository->searchGlobal(
 
             // Mise à jour logique visio
             if ($rendezVous->getType() === 'Télémédecine' && empty($rendezVous->getLienVisio())) {
-                $rendezVous->setLienVisio("https://meet.jit.si/".uniqid('cardiolink-'));
+                $rendezVous->setLienVisio("https://meet.jit.si/" . uniqid('cardiolink-'));
                 $rendezVous->setLieu(null);
             } elseif ($rendezVous->getType() === 'Présentiel') {
                 $rendezVous->setLienVisio(null);
@@ -156,13 +158,13 @@ $rdvs = $rendezVousRepository->searchGlobal(
      * Mise à jour rapide du statut par le médecin
      */
     #[Route('/{id}/update-status', name: 'app_rdv_update_status', methods: ['POST'])]
-    public function updateStatus(Request $request, RendezVous $rendezVous, EntityManagerInterface $entityManager): Response 
+    public function updateStatus(Request $request, RendezVous $rendezVous, EntityManagerInterface $entityManager): Response
     {
         if (!$this->isGranted('ROLE_MEDECIN')) {
             throw $this->createAccessDeniedException();
         }
 
-        if ($this->isCsrfTokenValid('update_status'.$rendezVous->getId(), $request->request->get('_token'))) {
+        if ($this->isCsrfTokenValid('update_status' . $rendezVous->getId(), $request->request->get('_token'))) {
             $rendezVous->setStatut($request->request->get('statut'));
             $entityManager->flush();
             $this->addFlash('success', 'Statut mis à jour.');
@@ -177,12 +179,40 @@ $rdvs = $rendezVousRepository->searchGlobal(
     #[Route('/{id}', name: 'app_rdv_delete', methods: ['POST'])]
     public function delete(Request $request, RendezVous $rendezVous, EntityManagerInterface $entityManager): Response
     {
-        if ($this->isCsrfTokenValid('delete'.$rendezVous->getId(), $request->request->get('_token'))) {
+        if ($this->isCsrfTokenValid('delete' . $rendezVous->getId(), $request->request->get('_token'))) {
             $entityManager->remove($rendezVous);
             $entityManager->flush();
             $this->addFlash('success', 'Rendez-vous supprimé.');
         }
 
         return $this->redirectToRoute('app_rdv_index');
+    }
+
+
+    #[Route('/prediction', name: 'app_rdv_prediction', methods: ['GET'])]
+    #[IsGranted('ROLE_MEDECIN')]
+    public function prediction(HttpClientInterface $client): Response
+    {
+        $medecin = $this->getUser();
+        if ($medecin instanceof User){
+            $medecinId = $medecin->getId();
+        } else {
+            $this->addFlash('danger', 'Utilisateur non reconnu.');
+            return $this->redirectToRoute('app_rdv_index');
+        }
+
+        try {
+            // Symfony appelle l'API Flask
+            $response = $client->request('GET', 'http://127.0.0.1:5000/predict/' . $medecinId);
+            $data = $response->toArray();
+        } catch (\Exception $e) {
+            $this->addFlash('danger', 'Le service de prédiction est hors ligne.');
+            return $this->redirectToRoute('app_rdv_index');
+        }
+
+        return $this->render('rendez_vous/prediction.html.twig', [
+            'prediction' => $data['prediction'] ?? 'N/A',
+            'historique' => $data['historique'] ?? []
+        ]);
     }
 }

@@ -1,0 +1,155 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Prévisions - CardioLink{% endblock %}
+
+{% block body %}
+<div class="container py-5">
+    {# En-tête avec ton style dégradé #}
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h1 class="gradient-text fw-bold mb-0">Analyse Prédictive IA</h1>
+            <p class="text-secondary">Anticipez votre charge de travail pour le mois prochain</p>
+        </div>
+        <a href="{{ path('app_rdv_index') }}" class="btn-secondary-custom">
+            <i class="fas fa-arrow-left me-2"></i> Retour aux rendez-vous
+        </a>
+    </div>
+
+    <div class="row g-4">
+        {# Colonne de gauche : Résumé et Table #}
+        <div class="col-lg-4">
+            <div class="card-custom mb-4 text-center p-4">
+                <div class="prediction-icon mb-3">
+                    <span style="font-size: 3rem;">📊</span>
+                </div>
+                <h5 class="text-secondary text-uppercase small fw-bold">Estimation Mois Prochain</h5>
+                <h2 class="display-3 fw-bold my-2" style="color: var(--primary-blue);">
+                    {{ prediction }}
+                </h2>
+                <p class="text-muted">Rendez-vous prévus</p>
+                <hr class="my-4" style="opacity: 0.1;">
+                <div class="status-badge status-confirmé d-inline-block">
+                    Modèle : Régression Linéaire
+                </div>
+            </div>
+
+            <div class="card-custom p-0 overflow-hidden">
+                <div class="p-3 border-bottom bg-light-custom">
+                    <h6 class="mb-0 fw-bold">Historique des données</h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table mb-0 custom-table">
+                        <thead>
+                            <tr>
+                                <th class="ps-4">Mois</th>
+                                <th class="text-end pe-4">Total RDV</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in historique %}
+                                <tr>
+                                    <td class="ps-4 fw-medium">{{ stat.mois }}</td>
+                                    <td class="text-end pe-4">
+                                        <span class="badge rounded-pill bg-primary-light text-primary">
+                                            {{ stat.total }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {# Colonne de droite : Le Graphique #}
+        <div class="col-lg-8">
+            <div class="card-custom p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0">Tendance de l'activité</h5>
+                    <div class="d-flex gap-2">
+                        <span class="d-flex align-items-center small text-muted">
+                            <span class="dot bg-primary me-2"></span> Réel
+                        </span>
+                        <span class="d-flex align-items-center small text-muted">
+                            <span class="dot bg-warning me-2"></span> Prédiction
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="chart-container" style="position: relative; height:400px;">
+                    <canvas id="predictionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Styles spécifiques pour compléter app.css #}
+<style>
+    .bg-primary-light { background-color: rgba(47, 96, 245, 0.1); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .bg-light-custom { background-color: var(--bg-secondary); }
+    
+    /* Adaptation au mode sombre pour le texte du graphique */
+    [data-theme="dark"] .custom-table { color: var(--text-primary); }
+    
+    .card-custom {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.3s ease;
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('predictionChart').getContext('2d');
+        
+        // On récupère les couleurs de ton thème CSS
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const primaryBlue = getComputedStyle(document.documentElement).getPropertyValue('--primary-blue').trim() || '#2F60F5';
+        const textColor = isDark ? '#FFFFFF' : '#666666';
+
+        const labels = [{% for stat in historique %}"{{ stat.mois }}",{% endfor %} "Projection"];
+        const dataValues = [{% for stat in historique %}{{ stat.total }},{% endfor %} {{ prediction }}];
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Volume de rendez-vous',
+                    data: dataValues,
+                    borderColor: primaryBlue,
+                    backgroundColor: 'rgba(47, 96, 245, 0.1)',
+                    borderWidth: 4,
+                    pointBackgroundColor: (context) => context.dataIndex === labels.length - 1 ? '#F82239' : primaryBlue,
+                    pointRadius: (context) => context.dataIndex === labels.length - 1 ? 8 : 5,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { 
+                        ticks: { color: textColor },
+                        grid: { display: false }
+                    },
+                    y: { 
+                        ticks: { color: textColor },
+                        grid: { borderDash: [5, 5], color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
