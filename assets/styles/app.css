@@ -551,6 +551,96 @@ button[type="submit"]:active {
     }
 }
 
+/* ==================== Chat/Messaging Styles ==================== */
+.chat-message {
+    display: flex;
+    margin-bottom: 1rem;
+    animation: slideIn 0.3s ease;
+}
+
+.chat-message.me {
+    justify-content: flex-end;
+}
+
+.chat-message.other {
+    justify-content: flex-start;
+}
+
+.message-bubble {
+    max-width: 70%;
+    word-wrap: break-word;
+    padding: 0.875rem 1.25rem;
+    border-radius: 18px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+}
+
+.message-bubble:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* Messages from current user (blue) */
+.message-bubble.me {
+    background: var(--primary-blue);
+    color: white;
+    border-bottom-right-radius: 6px;
+}
+
+/* Messages from other user (gray) */
+.message-bubble.other {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-bottom-left-radius: 6px;
+}
+
+.message-content {
+    margin-bottom: 0.5rem;
+}
+
+.message-sender {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary-blue);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.message-badge {
+    display: inline-block;
+    margin-bottom: 0.5rem;
+    margin-right: 0.5rem;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    display: block;
+    margin-top: 0.5rem;
+}
+
+.message-bubble.me .message-time {
+    opacity: 0.6;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.message-status {
+    margin-left: 0.5rem;
+    font-weight: bold;
+    display: inline-block;
+}
+
+.message-status.sent::before {
+    content: "✓";
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.message-status.read::before {
+    content: "✓✓";
+    color: #00BCD4;
+}
+
 /* ==================== Responsive Design ==================== */
 @media (max-width: 768px) {
     .navbar-container {

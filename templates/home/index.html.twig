@@ -10,7 +10,11 @@
         
         <div class="hero-buttons">
             {% if app.user %}
-                <a href="#" class="btn btn-primary btn-lg">View Dashboard</a>
+                {% if is_granted('ROLE_ADMIN') %}
+                   <a href="{{ path('admin_dashboard') }}" class="btn btn-primary btn-lg">View Dashboard</a>
+                {% else %}
+                   <a href="#" class="btn btn-primary btn-lg">View Dashboard</a>
+                {% endif %}
                 <a href="{{ path('forum_frontoffice') }}" class="btn btn-secondary btn-lg">Community</a>
             {% else %}
                 <a href="{{ path('app_register') }}" class="btn btn-primary btn-lg">Get Started</a>

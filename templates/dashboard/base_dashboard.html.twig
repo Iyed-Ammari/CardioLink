@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Dashboard{% endblock %} • CardioLink</title>
+
+  <style>
+    :root{
+      --red:#F82239;
+      --blue:#2F60F5;
+      --bg:#F6F7FB;
+      --card:#FFFFFF;
+      --text:#111827;
+      --muted:#6B7280;
+      --border:#E5E7EB;
+      --shadow: 0 10px 25px rgba(16,24,40,.08);
+      --shadow-soft: 0 6px 18px rgba(16,24,40,.06);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;color:var(--text);background:var(--bg);}
+    .admin-shell{display:flex;min-height:100vh;}
+    .sidebar{width:290px;background:#fff;border-right:1px solid rgba(229,231,235,.8);box-shadow:0 10px 30px rgba(16,24,40,.06);display:flex;flex-direction:column;}
+    .brand{padding:22px 18px 14px 18px;display:flex;gap:12px;align-items:center;}
+    .brand-badge{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--red),var(--blue));display:flex;align-items:center;justify-content:center;box-shadow:0 12px 20px rgba(47,96,245,.18);}
+    .brand-badge svg{width:22px;height:22px;fill:#fff}
+    .brand-title{line-height:1.05;}
+    .brand-title .name{font-weight:800;font-size:18px;}
+    .brand-title .sub{font-size:12.5px;color:var(--muted);margin-top:3px;}
+    .nav{padding:14px 12px;display:flex;flex-direction:column;gap:10px;}
+    .nav a{text-decoration:none;color:#111827;display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;border:1px solid transparent;transition:.18s ease;font-weight:600;}
+    .nav a .icon{width:40px;height:40px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:#F3F4F6;transition:.18s ease;}
+    .nav a .icon svg{width:20px;height:20px;stroke:#374151}
+    .nav a:hover{border-color:rgba(47,96,245,.18);box-shadow:var(--shadow-soft);transform:translateY(-1px);}
+    .nav a.active{color:#fff;background:linear-gradient(90deg,var(--red),var(--blue));box-shadow:0 14px 25px rgba(47,96,245,.16);}
+    .nav a.active .icon{background:rgba(255,255,255,.18);}
+    .nav a.active .icon svg{stroke:#fff}
+    .sidebar-footer{margin-top:auto;padding:14px 16px 18px 16px;border-top:1px solid rgba(229,231,235,.8);display:flex;gap:12px;align-items:center;}
+    .avatar{width:44px;height:44px;border-radius:16px;background:linear-gradient(135deg,rgba(248,34,57,.22),rgba(47,96,245,.22));display:flex;align-items:center;justify-content:center;font-weight:800;color:#1F2937;}
+    .who .role{font-size:12px;color:var(--muted)}
+    .who .user{font-weight:800}
+    .main{flex:1;padding:26px;}
+  </style>
+
+  {% block stylesheets %}{{ encore_entry_link_tags('app') }}{% endblock %}
+  {% block javascripts %}{{ importmap('app') }}{% endblock %}
+</head>
+<body>
+  <div class="admin-shell">
+    {% include 'dashboard/_sidebar_dashboard.html.twig' %}
+    <main class="main">
+      {% block body %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

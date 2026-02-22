@@ -17,7 +17,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use SymfonyCasts\Bundle\VerifyEmail\Exception\VerifyEmailExceptionInterface;
-
+use Cloudinary\Cloudinary;
 class RegistrationController extends AbstractController
 {
     public function __construct(private EmailVerifier $emailVerifier) {}
@@ -30,12 +30,31 @@ class RegistrationController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            
             /** @var string $plainPassword */
             $plainPassword = $form->get('plainPassword')->getData();
 
             // encode the plain password
             $user->setPassword($userPasswordHasher->hashPassword($user, $plainPassword));
             $user->setIsVerified(false);  // Mark as unverified initially
+            // ✅ CLOUDINARY ICI
+           $imageFile = $form->get('imageFile')->getData();
+           if ($imageFile) {
+              $cloudinary = new Cloudinary([
+                'cloud' => [
+                  'cloud_name' => $_ENV['CLOUDINARY_CLOUD_NAME'],
+                  'api_key'    => $_ENV['CLOUDINARY_API_KEY'],
+                  'api_secret' => $_ENV['CLOUDINARY_API_SECRET'],
+                ]
+            ]);
+
+           $result = $cloudinary->uploadApi()->upload(
+              $imageFile->getPathname(),
+              ['folder' => 'cardiolink/users']
+            );
+
+          $user->setImageUrl($result['secure_url']);
+          } 
 
             // Create DossierMedical with information from the form
             $dossier = new DossierMedical();

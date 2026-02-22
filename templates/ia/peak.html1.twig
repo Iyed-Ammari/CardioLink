@@ -1,0 +1,38 @@
+<h2>Prédiction des 30 prochains jours</h2>
+
+<h3>🔥 Jours de Pic Prévu</h3>
+
+<ul>
+{% for p in peaks %}
+    <li>
+        📅 {{ p.date }} → {{ p.prediction|round(0) }} sign ups
+    </li>
+{% else %}
+    <li>Aucun pic détecté</li>
+{% endfor %}
+</ul>
+
+<hr>
+
+<canvas id="chart"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const data = {{ results|json_encode|raw }};
+
+const labels = data.map(d => d.date);
+const values = data.map(d => d.prediction);
+
+new Chart(document.getElementById('chart'), {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Prediction Sign Ups',
+            data: values,
+            borderWidth: 2
+        }]
+    }
+});
+</script>

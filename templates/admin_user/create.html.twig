@@ -1,0 +1,103 @@
+{% extends 'dashboard/base_dashboard.html.twig' %}
+
+{% block body %}
+
+<h2>➕ Créer un utilisateur</h2>
+
+<a href="{{ path('admin_user_index') }}">← Retour liste</a>
+
+<form method="post" enctype="multipart/form-data" style="margin-top:20px; display:flex; flex-direction:column; gap:15px; max-width:500px;">
+    <div>
+        <label>Nom</label>
+        <input type="text" name="nom" required style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+    <div>
+        <label>Prénom</label>
+        <input type="text" name="prenom" required style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+    <div>
+        <label>Email</label>
+        <input type="email" name="email" required style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+    <div>
+        <label>Téléphone</label>
+        <input type="text" name="tel" required style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+    <div>
+        <label>Adresse</label>
+        <input type="text" name="adresse" required style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+    <div>
+        <label>Rôle</label>
+        <select name="role" id="roleSelect" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;" onchange="toggleDossier()">
+            <option value="ROLE_PATIENT">Patient</option>
+            <option value="ROLE_MEDECIN">Médecin</option>
+            <option value="ROLE_ADMIN">Admin</option>
+        </select>
+    </div>
+    <div>
+        <label>Mot de passe</label>
+        <input type="password" name="password" required style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+
+    {# Dossier médical - visible uniquement pour ROLE_PATIENT #}
+    <div id="dossierMedical" style="border:2px solid #2F60F5; border-radius:12px; padding:15px; display:block;">
+        <h3 style="color:#2F60F5; margin-top:0;">📋 Dossier Médical</h3>
+
+        <div style="margin-bottom:10px;">
+            <label>Groupe Sanguin</label>
+            <select name="groupeSanguin" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+                {% for gs in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
+                    <option value="{{ gs }}">{{ gs }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="margin-bottom:10px;">
+            <label>Antécédents</label>
+            <textarea name="antecedents" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd; height:80px;"></textarea>
+        </div>
+        <div style="margin-bottom:10px;">
+            <label>Allergies</label>
+            <textarea name="allergies" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd; height:60px;"></textarea>
+        </div>
+        <div style="margin-bottom:10px;">
+            <label>Poids (kg)</label>
+            <input type="number" step="0.1" name="poids" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+        </div>
+        <div style="margin-bottom:10px;">
+            <label>Taille (cm)</label>
+            <input type="number" name="taille" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+        </div>
+        <div style="margin-bottom:10px;">
+            <label>Tension Systolique (mmHg)</label>
+            <input type="number" name="tensionSystolique" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+        </div>
+        <div style="margin-bottom:10px;">
+            <label>Tension Diastolique (mmHg)</label>
+            <input type="number" name="tensionDiastolique" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+        </div>
+        <div>
+            <label>Fréquence Cardiaque (bpm)</label>
+            <input type="number" name="frequenceCardiaque" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+        </div>
+    </div>
+    <div>
+      <label>Photo de profil (optionnel)</label>
+      <input type="file" name="imageFile" accept="image/*" style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+
+    <button type="submit" style="background:linear-gradient(90deg,#F82239,#2F60F5); color:#fff; border:none; padding:12px; border-radius:12px; font-weight:800; cursor:pointer;">
+        Créer
+    </button>
+</form>
+
+<script>
+function toggleDossier() {
+    var role = document.getElementById('roleSelect').value;
+    var dossier = document.getElementById('dossierMedical');
+    dossier.style.display = role === 'ROLE_PATIENT' ? 'block' : 'none';
+}
+toggleDossier();
+</script>
+
+{% endblock %}
