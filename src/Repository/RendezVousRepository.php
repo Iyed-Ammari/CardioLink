@@ -134,4 +134,18 @@ class RendezVousRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+    public function findRdvPourDemain(): array
+    {
+        $demain = new \DateTime('+1 day');
+        $debut = (clone $demain)->setTime(0, 0, 0);
+        $fin = (clone $demain)->setTime(23, 59, 59);
+
+        return $this->createQueryBuilder('r')
+            // Correction ici : date -> dateHeure
+            ->where('r.dateHeure BETWEEN :debut AND :fin')
+            ->setParameter('debut', $debut)
+            ->setParameter('fin', $fin)
+            ->getQuery()
+            ->getResult();
+    }
 }
