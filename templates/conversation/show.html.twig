@@ -17,25 +17,36 @@
     </h1>
 
     {# Zone des messages #}
-    <div class="card" style="height: 500px; overflow-y: auto; background-color: #f8f9fa;" id="chat-box">
-      <div class="card-body" id="messages-list">
+    <div class="card" style="height: 500px; overflow-y: auto; background-color: var(--bg-primary);" id="chat-box">
+      <div class="card-body" id="messages-list" style="padding: 1.5rem;">
         {% for message in messages %}
           {# On vérifie si c'est MOI ou l'AUTRE pour l'alignement #}
         {% set isMe = message.sender == app.user %}
         
-        <div class="mb-3 {{ isMe ? 'text-end' : 'text-start' }}">
-            <div class="{{ isMe ? 'bg-primary text-white' : 'bg-light text-dark border' }} p-3 rounded d-inline-block text-start"
-                 style="max-width: 70%; word-wrap: break-word;">
-                 {% if not isMe %}
-                    <div class="small fw-bold mb-1 text-primary">
-                        {{ message.sender.prenom }}
-                    </div>
+        <div class="chat-message {{ isMe ? 'me' : 'other' }}">
+            <div class="message-bubble {{ isMe ? 'me' : 'other' }}">
+                {% if not isMe %}
+                    <span class="message-sender">{{ message.sender.prenom }}</span>
                 {% endif %}
-                <p class="mb-1">{{ message.content }}</p>
                 
-                <small class="{{ isMe ? 'text-white-50' : 'text-muted' }}">
+                
+                
+                <div class="message-content">{{ message.content }}</div>
+                
+                <div class="message-time">
                     {{ message.createdAt|date('H:i') }}
-                </small>
+                    {% if isMe %}
+                        <span class="message-status {{ message.isRead ? 'read' : 'sent' }}"></span>
+                    {% endif %}
+                    {% if message.classification == 'URGENT' %}
+                    <small class="badge bg-danger message-badge">| ⚠️ URGENT</small>
+                {% elseif message.classification == 'ADMINISTRATIF' %}
+                    <small class="badge bg-info message-badge">| 📄 Admin</small>
+                {% elseif message.classification == 'NORMAL' %}
+                    <small class="badge bg-info message-badge">| 🟢 Normal</small>
+                
+                {% endif %}
+                </div>
             </div>
         </div>
         {% endfor %}
@@ -72,7 +83,7 @@
         if (data.conversationId === conversationId) {
             // Si c'est moi qui l'ai envoyé, on l'a déjà affiché via AJAX, donc on ignore
             if (data.senderId !== currentUserId) {
-                appendMessage(data.content, false, data.senderPrenom || 'Dr.', data.time);
+                appendMessage(data.content, false, data.senderPrenom || 'Dr.', data.time, data.classification);
             }
         }
     };
@@ -114,18 +125,23 @@
         .then(data => {
             if (data.status === 'success') {
                 // B. Affichage pour MOI
-                appendMessage(content, true, 'Moi', data.createdAt);
-                msgInput.value = '';
+                
 
                 // C. Diffusion WebSocket
                 if (socket.readyState === WebSocket.OPEN) {
                     const payload = {
-                        conversationId: conversationId,
-                        content: content,
-                        senderId: currentUserId,
-                        senderPrenom: currentUserPrenom,
-                        time: data.createdAt
-                    };
+                    conversationId: conversationId,
+                    content: content,
+                    senderId: currentUserId,
+                    senderPrenom: currentUserPrenom,
+                    
+                    // 👇 Important pour que l'autre personne voie la couleur
+                    classification: data.classification, 
+                    
+                    time: data.createdAt
+                };
+                appendMessage(content, true, 'Moi', data.createdAt, data.classification);
+                msgInput.value = '';
                     socket.send(JSON.stringify(payload));
                 }
             }
@@ -134,25 +150,29 @@
     }
 
     // Fonction d'affichage HTML
-    // Fonction d'affichage HTML
-    function appendMessage(text, isMe, senderName, time) {
+    // Fonction d'affichage mise à jour avec la classe 'message-status'
+    function appendMessage(text, isMe, senderName, time, classification) {
         const list = document.getElementById('messages-list');
         if (!list) return;
 
-        const alignment = isMe ? 'text-end' : 'text-start';
-        // --- COULEURS JS ---
-        const color = isMe ? 'bg-primary text-white' : 'bg-light text-dark border';
-        const textColor = isMe ? 'text-white-50' : 'text-muted';
-        
-        // Nom en bleu si c'est l'autre
-        const nameDisplay = isMe ? '' : `<div class="small fw-bold mb-1 text-primary">${senderName}</div>`;
+        let badgeHtml = '';
+        if (classification === 'URGENT') {
+            badgeHtml = '<small class="badge bg-danger message-badge">⚠️ URGENT</small>';
+        } else if (classification === 'ADMINISTRATIF') {
+            badgeHtml = '<small class="badge bg-info message-badge">📄 Admin</small>';
+        }else if (classification === 'NORMAL'){
+            badgeHtml = '<small class="badge bg-info message-badge">🟢 Normal</small>';
+        }
+
+        const senderDisplay = isMe ? '' : `<span class="message-sender">${senderName}</span>`;
+        const statusHtml = isMe ? '<span class="message-status sent"></span>' : '';
 
         const html = `
-            <div class="mb-3 ${alignment}">
-                <div class="${color} p-3 rounded d-inline-block text-start" style="max-width: 70%; word-wrap: break-word;">
-                    ${nameDisplay}
-                    <p class="mb-1">${text}</p>
-                    <small class="${textColor} d-block text-end" style="font-size: 0.75rem;">${time}</small>
+            <div class="chat-message ${isMe ? 'me' : 'other'}">
+                <div class="message-bubble ${isMe ? 'me' : 'other'}">
+                    ${senderDisplay}
+                    <div class="message-content">${text}</div>
+                    <div class="message-time">${time}${statusHtml} | ${badgeHtml}</div>
                 </div>
             </div>
         `;
@@ -161,10 +181,10 @@
         const chatBox = document.getElementById('chat-box');
         if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
     }
+    
     // Scroll au chargement
     const chatBox = document.getElementById('chat-box');
     if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
-
 })(); // <--- Fin de l'isolation
 </script>
 {% endblock %}

@@ -18,16 +18,35 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 #[Route('/suivi')]
 class SuiviController extends AbstractController
 {
+    /**
+     * Liste des suivis avec fonctionnalités de tri et de recherche
+     */
     #[Route('', name: 'app_suivi_index', methods: ['GET'])]
     public function index(
+        Request $request,
         SuiviRepository $suiviRepository,
         #[CurrentUser] User $user
     ): Response {
-        $suivis = $suiviRepository->findByPatient($user->getId());
+        // 1. Récupération des paramètres de recherche et de tri depuis l'URL
+        $search = $request->query->get('search');
+        $sort = $request->query->get('sort', 'dateSaisie'); // 'dateSaisie' par défaut
+        $direction = $request->query->get('direction', 'DESC'); // 'DESC' par défaut
+
+        // 2. Appel de la nouvelle méthode filtrée dans le Repository
+        // Note : On passe l'ID de l'utilisateur connecté pour qu'il ne voie que ses données
+        $suivis = $suiviRepository->findByPatientFiltered(
+            $user->getId(),
+            $search,
+            $sort,
+            $direction
+        );
 
         return $this->render('suivi/index.html.twig', [
             'suivis' => $suivis,
             'user' => $user,
+            'current_search' => $search,
+            'current_sort' => $sort,
+            'current_direction' => $direction,
         ]);
     }
 
@@ -35,7 +54,6 @@ class SuiviController extends AbstractController
     public function new(
         Request $request,
         EntityManagerInterface $entityManager,
-        InterventionRepository $interventionRepository,
         #[CurrentUser] User $user
     ): Response {
         $suivi = new Suivi();
@@ -46,22 +64,17 @@ class SuiviController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Remplir automatiquement l'unité selon le type de donnée
             $this->setUnitByTypeDonnee($suivi);
-
-            // Calculer le niveau d'urgence
             $suivi->setNiveauUrgence($this->calculateUrgencyLevel($suivi));
 
             $entityManager->persist($suivi);
             $entityManager->flush();
 
-            // Vérifier si le suivi est critique et créer une intervention si nécessaire
             if ($suivi->isCritical()) {
                 $this->createCriticalIntervention($suivi, $entityManager);
             }
 
             $this->addFlash('success', 'Le suivi a été enregistré avec succès.');
-
             return $this->redirectToRoute('app_suivi_index');
         }
 
@@ -71,11 +84,8 @@ class SuiviController extends AbstractController
     }
 
     #[Route('/{id}/voir', name: 'app_suivi_show', methods: ['GET'])]
-    public function show(
-        Suivi $suivi,
-        #[CurrentUser] User $user
-    ): Response {
-        // Vérifier que l'utilisateur est le propriétaire du suivi
+    public function show(Suivi $suivi, #[CurrentUser] User $user): Response 
+    {
         if ($suivi->getPatient()->getId() !== $user->getId()) {
             throw $this->createAccessDeniedException('Vous n\'avez pas accès à ce suivi.');
         }
@@ -92,7 +102,6 @@ class SuiviController extends AbstractController
         EntityManagerInterface $entityManager,
         #[CurrentUser] User $user
     ): Response {
-        // Vérifier que l'utilisateur est le propriétaire du suivi
         if ($suivi->getPatient()->getId() !== $user->getId()) {
             throw $this->createAccessDeniedException('Vous n\'avez pas accès à ce suivi.');
         }
@@ -101,14 +110,10 @@ class SuiviController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Remplir automatiquement l'unité selon le type de donnée
             $this->setUnitByTypeDonnee($suivi);
-
-            // Recalculer le niveau d'urgence
             $suivi->setNiveauUrgence($this->calculateUrgencyLevel($suivi));
 
             $entityManager->flush();
-
             $this->addFlash('success', 'Le suivi a été modifié avec succès.');
 
             return $this->redirectToRoute('app_suivi_show', ['id' => $suivi->getId()]);
@@ -127,29 +132,26 @@ class SuiviController extends AbstractController
         EntityManagerInterface $entityManager,
         #[CurrentUser] User $user
     ): Response {
-        // Vérifier que l'utilisateur est le propriétaire du suivi
         if ($suivi->getPatient()->getId() !== $user->getId()) {
             throw $this->createAccessDeniedException('Vous n\'avez pas accès à ce suivi.');
         }
 
         if ($this->isCsrfTokenValid('delete' . $suivi->getId(), $request->request->get('_token'))) {
-            // Supprimer l'intervention associée si elle existe
             if ($suivi->getIntervention()) {
                 $entityManager->remove($suivi->getIntervention());
             }
-
             $entityManager->remove($suivi);
             $entityManager->flush();
-
             $this->addFlash('success', 'Le suivi a été supprimé.');
         }
 
         return $this->redirectToRoute('app_suivi_index');
     }
 
-    /**
-     * Définit automatiquement l'unité de mesure selon le type de donnée.
-     */
+    // =========================================================================
+    // MÉTHODES PRIVÉES (LOGIQUE MÉTIER)
+    // =========================================================================
+
     private function setUnitByTypeDonnee(Suivi $suivi): void
     {
         $unites = [
@@ -165,16 +167,12 @@ class SuiviController extends AbstractController
         }
     }
 
-    /**
-     * Calcule le niveau d'urgence basé sur les critères médicaux.
-     */
     private function calculateUrgencyLevel(Suivi $suivi): string
     {
         if ($suivi->isCritical()) {
             return 'Critique';
         }
 
-        // Vérifier les plages "Stable"
         return match ($suivi->getTypeDonnee()) {
             'Fréquence Cardiaque' => $suivi->getValeur() >= 100 && $suivi->getValeur() <= 120 ? 'Stable' : 'Normal',
             'SpO2' => $suivi->getValeur() >= 90 && $suivi->getValeur() < 95 ? 'Stable' : 'Normal',
@@ -184,9 +182,6 @@ class SuiviController extends AbstractController
         };
     }
 
-    /**
-     * Crée automatiquement une intervention si le suivi est critique.
-     */
     private function createCriticalIntervention(Suivi $suivi, EntityManagerInterface $entityManager): void
     {
         $intervention = new Intervention();
@@ -194,10 +189,7 @@ class SuiviController extends AbstractController
         $intervention->setSuiviOrigine($suivi);
         $intervention->setDatePlanifiee(new \DateTimeImmutable());
         $intervention->setStatut('En attente');
-
-        // Générer une description automatique selon le type de donnée
-        $description = $this->generateInterventionDescription($suivi);
-        $intervention->setDescription($description);
+        $intervention->setDescription($this->generateInterventionDescription($suivi));
 
         $entityManager->persist($intervention);
         $entityManager->flush();
@@ -205,23 +197,19 @@ class SuiviController extends AbstractController
         $this->addFlash('danger', 'Alerte critique ! Une intervention d\'urgence (SOS) a été créée automatiquement.');
     }
 
-    /**
-     * Génère automatiquement une description pour l'intervention basée sur le suivi critique.
-     */
     private function generateInterventionDescription(Suivi $suivi): string
     {
         $typeDonnee = $suivi->getTypeDonnee();
         $valeur = $suivi->getFormattedValue();
-        $patient = $suivi->getPatient();
-        $patientName = $patient->getPrenom() . ' ' . $patient->getNom();
+        $patientName = $suivi->getPatient()->getPrenom() . ' ' . $suivi->getPatient()->getNom();
 
         return match ($typeDonnee) {
-            'Fréquence Cardiaque' => "ALERTE URGENTE: La fréquence cardiaque du patient $patientName est critique à $valeur. Intervention d'urgence requise immédiatement.",
-            'SpO2' => "ALERTE URGENTE: Le niveau d'oxygénation du patient $patientName est critique à $valeur. Intervention d'urgence requise immédiatement.",
-            'Température' => "ALERTE URGENTE: La température corporelle du patient $patientName est critique à $valeur. Intervention d'urgence requise immédiatement.",
-            'Glycémie' => "ALERTE URGENTE: Le taux de glucose du patient $patientName est critique à $valeur. Intervention d'urgence requise immédiatement.",
-            'Tension' => "ALERTE URGENTE: La tension artérielle du patient $patientName est critique à $valeur. Intervention d'urgence requise immédiatement.",
-            default => "ALERTE URGENTE: Mesure critique détectée pour le patient $patientName ($valeur). Intervention d'urgence requise immédiatement.",
+            'Fréquence Cardiaque' => "ALERTE URGENTE: La fréquence cardiaque du patient $patientName est critique à $valeur.",
+            'SpO2' => "ALERTE URGENTE: Le niveau d'oxygénation du patient $patientName est critique à $valeur.",
+            'Température' => "ALERTE URGENTE: La température corporelle du patient $patientName est critique à $valeur.",
+            'Glycémie' => "ALERTE URGENTE: Le taux de glucose du patient $patientName est critique à $valeur.",
+            'Tension' => "ALERTE URGENTE: La tension artérielle du patient $patientName est critique à $valeur.",
+            default => "ALERTE URGENTE: Mesure critique détectée pour le patient $patientName ($valeur).",
         };
     }
 }

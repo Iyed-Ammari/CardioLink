@@ -127,3 +127,74 @@
     });
   });
 </script>
+
+<!-- JS pour recherche et tri -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('search-admin');
+    const sortSelect = document.getElementById('sort-admin');
+    const postsContainer = document.getElementById('posts-container-admin');
+
+    // Fonction pour trier et afficher les posts
+    function sortAndDisplayPosts() {
+      const query = searchInput.value.toLowerCase().trim();
+      const sortValue = sortSelect.value;
+      
+      // Récupérer tous les posts en tant qu'array
+      let allPosts = Array.from(postsContainer.querySelectorAll('.post-card'));
+      
+      // Filtrer par recherche
+      let visiblePosts = allPosts.filter(post => {
+        const title = post.querySelector('h3').textContent.toLowerCase();
+        return title.includes(query);
+      });
+
+      // Trier les posts
+      visiblePosts.sort((a, b) => {
+        if (sortValue === 'titre-asc') {
+          const titleA = a.querySelector('h3').textContent.toLowerCase();
+          const titleB = b.querySelector('h3').textContent.toLowerCase();
+          return titleA.localeCompare(titleB);
+        } else if (sortValue === 'titre-desc') {
+          const titleA = a.querySelector('h3').textContent.toLowerCase();
+          const titleB = b.querySelector('h3').textContent.toLowerCase();
+          return titleB.localeCompare(titleA);
+        } else if (sortValue === 'recent') {
+          const dateStrA = a.querySelector('small').textContent;
+          const dateStrB = b.querySelector('small').textContent;
+          const dateA = parseDate(dateStrA);
+          const dateB = parseDate(dateStrB);
+          return dateB - dateA;
+        } else if (sortValue === 'ancien') {
+          const dateStrA = a.querySelector('small').textContent;
+          const dateStrB = b.querySelector('small').textContent;
+          const dateA = parseDate(dateStrA);
+          const dateB = parseDate(dateStrB);
+          return dateA - dateB;
+        }
+      });
+
+      // Réorganiser les posts dans le DOM
+      allPosts.forEach(post => post.style.display = 'none');
+      visiblePosts.forEach(post => {
+        post.style.display = 'block';
+        postsContainer.appendChild(post);
+      });
+    }
+
+    // Fonction pour parser la date au format "d/m/Y H:i"
+    function parseDate(dateStr) {
+      const parts = dateStr.trim().split(' ');      
+      if (parts.length >= 2) {
+        const [day, month, year] = parts[0].split('/');
+        const [hours, minutes] = parts[1].split(':');
+        return new Date(year, month - 1, day, hours, minutes);
+      }
+      return new Date(0);
+    }
+
+    // Événements pour recherche et tri
+    searchInput.addEventListener('input', sortAndDisplayPosts);
+    sortSelect.addEventListener('change', sortAndDisplayPosts);
+  });
+</script>

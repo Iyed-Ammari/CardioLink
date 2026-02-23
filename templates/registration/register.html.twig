@@ -111,6 +111,10 @@
                     </div>
                 {% endif %}
             </div>
+            <div class="form-group">
+               {{ form_label(registrationForm.imageFile, 'Profile Picture (optional)') }}
+               {{ form_widget(registrationForm.imageFile) }}
+            </div>
 
             <div class="checkbox-group">
                 {{ form_widget(registrationForm.agreeTerms) }}

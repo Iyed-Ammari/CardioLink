@@ -14,13 +14,13 @@ class OrdonnanceType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('reference', TextType::class)
-            ->add('diagnostic', TextareaType::class, [
-                'required' => false
+            ->add('reference', TextType::class, [
+                'label' => 'Référence',
+                'disabled' => true, // lecture seule
+                'required' => false,
             ])
-            ->add('notes', TextareaType::class, [
-                'required' => false
-            ]);
+            ->add('diagnostic', TextareaType::class, ['label' => 'Diagnostic'])
+            ->add('notes', TextareaType::class, ['label' => 'Prescription']);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

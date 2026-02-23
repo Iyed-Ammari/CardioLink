@@ -17,7 +17,36 @@ class SuiviRepository extends ServiceEntityRepository
     }
 
     /**
-     * Récupère tous les suivis d'un patient
+     * Récupère les suivis d'un patient avec filtres de recherche et de tri
+     * Utilisé dans SuiviController::index
+     */
+    public function findByPatientFiltered(int $patientId, ?string $search = null, string $sort = 'dateSaisie', string $direction = 'DESC'): array
+    {
+        $qb = $this->createQueryBuilder('s')
+            ->andWhere('s.patient = :patientId')
+            ->setParameter('patientId', $patientId);
+
+        // --- LOGIQUE DE RECHERCHE ---
+        if ($search) {
+            $qb->andWhere('s.typeDonnee LIKE :search OR s.niveauUrgence LIKE :search OR s.valeur LIKE :search')
+               ->setParameter('search', '%' . $search . '%');
+        }
+
+        // --- LOGIQUE DE TRI SÉCURISÉE ---
+        // Liste blanche des colonnes autorisées pour éviter l'injection SQL
+        $allowedSorts = ['id', 'typeDonnee', 'valeur', 'dateSaisie', 'niveauUrgence'];
+        $sort = in_array($sort, $allowedSorts) ? $sort : 'dateSaisie';
+        
+        // Sécurisation de la direction (ASC ou DESC uniquement)
+        $direction = strtoupper($direction) === 'ASC' ? 'ASC' : 'DESC';
+
+        $qb->orderBy('s.' . $sort, $direction);
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Récupère tous les suivis d'un patient (version simple sans filtre)
      */
     public function findByPatient($patientId)
     {

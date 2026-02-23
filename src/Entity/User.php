@@ -61,13 +61,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255, nullable: true)]
     #[Assert\Length(max: 255, maxMessage: "L'adresse du cabinet ne peut pas dépasser 255 caractères.")]
     private ?string $cabinet = null;
+   
+   #[ORM\Column(type: 'datetime')]
+   private ?\DateTimeInterface $createdAt = null;
+
 
     #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
     private ?DossierMedical $dossierMedical = null;
 
     #[ORM\Column]
     private bool $isVerified = false;
+    #[ORM\Column]
+    private bool $isActive = true;
 
+
+    
     // --- RELATIONS MASTER ---
 
     #[ORM\OneToMany(mappedBy: 'patient', targetEntity: Suivi::class, cascade: ['persist', 'remove'])]
@@ -107,6 +115,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     #[ORM\OneToMany(targetEntity: Conversation::class, mappedBy: 'medecin')]
     private Collection $conversationsAsMedecin;
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $imageUrl = null;
 
     /**
      * @var Collection<int, Message>
@@ -121,7 +131,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: Comment::class, orphanRemoval: true)]
     private Collection $comments;
-
+    
     public function __construct()
     {
         // Initialisations existantes (Master + Commun)
@@ -137,9 +147,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         // Initialisations Forum (Ajout)
         $this->posts = new ArrayCollection();
         $this->comments = new ArrayCollection();
+        $this->createdAt = new \DateTime();
     }
 
     // --- GETTERS & SETTERS STANDARDS ---
+     public function getCreatedAt(): ?\DateTimeInterface
+    {
+        return $this->createdAt;
+    }
+    public function getImageUrl(): ?string { return $this->imageUrl; }
+    public function setImageUrl(?string $imageUrl): static { $this->imageUrl = $imageUrl; return $this; }
+    public function setCreatedAt(\DateTimeInterface $createdAt): static
+    {
+        $this->createdAt = $createdAt;
+        return $this;
+    }
 
     public function getId(): ?int { return $this->id; }
 
@@ -154,6 +176,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $roles[] = 'ROLE_USER';
         return array_unique($roles);
     }
+    public function isActive(): bool { return $this->isActive; }
+    public function setIsActive(bool $isActive): static { $this->isActive = $isActive; return $this; }
 
     public function setRoles(array $roles): static { $this->roles = $roles; return $this; }
 
