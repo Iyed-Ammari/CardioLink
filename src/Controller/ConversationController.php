@@ -3,8 +3,10 @@
 namespace App\Controller;
 
 use App\Entity\Conversation;
+use App\Entity\Intervention;
 use App\Entity\User;
 use App\Repository\ConversationRepository;
+use App\Repository\InterventionRepository;
 use App\Repository\MessageRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -24,14 +26,35 @@ class ConversationController extends AbstractController
         private ConversationRepository $conversationRepository,
         private MessageRepository $messageRepository,
         private UserRepository $userRepository,
+        private InterventionRepository $interventionRepository,
         private EntityManagerInterface $entityManager
     ) {}
 
     #[Route('', name: 'conversation_index')]
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $user = $this->getUser();
-        $conversations = $this->conversationRepository->findByUser($user);
+        
+        // Récupérer les paramètres de recherche et tri depuis la requête
+        $search = $request->query->get('search', '');
+        $sortBy = $request->query->get('sortBy', 'updated');
+        $order = $request->query->get('order', 'DESC');
+        
+        // Valider les paramètres de tri
+        if (!in_array($sortBy, ['updated', 'created', 'contact', 'status'])) {
+            $sortBy = 'updated';
+        }
+        if (!in_array($order, ['ASC', 'DESC'])) {
+            $order = 'DESC';
+        }
+        
+        // Récupérer les conversations filtrées et triées
+        $conversations = $this->conversationRepository->findByUserWithSearchAndSort(
+            $user,
+            $search ?: null,
+            $sortBy,
+            $order
+        );
 
         $contacts = [];
         if ($this->isGranted('ROLE_MEDECIN')) {
@@ -42,7 +65,10 @@ class ConversationController extends AbstractController
 
         return $this->render('conversation/index.html.twig', [
             'conversations' => $conversations,
-            'contacts' => $contacts
+            'contacts' => $contacts,
+            'search' => $search,
+            'sortBy' => $sortBy,
+            'order' => $order
         ]);
     }
 
@@ -161,6 +187,19 @@ class ConversationController extends AbstractController
         $message->setClassification($classification);
         // --- 🤖 APPEL IA : FIN ---
 
+        // --- 🚨 CRÉATION AUTOMATIQUE D'INTERVENTION SI URGENT ---
+        if ($classification === 'URGENT') {
+            $intervention = new Intervention();
+            $intervention->setType('Alerte SOS');
+            $intervention->setDescription('Alerte SOS générée automatiquement: ' . $content);
+            $intervention->setStatut('En attente');
+            $intervention->setDatePlanifiee(new \DateTimeImmutable());
+            $intervention->setMedecin($conversation->getMedecin());
+            
+            $entityManager->persist($intervention);
+        }
+        // --- 🚨 FIN CRÉATION INTERVENTION ---
+
         $conversation->setUpdatedAt(new \DateTime());
 
         $entityManager->persist($message);
@@ -181,5 +220,70 @@ class ConversationController extends AbstractController
             'createdAt' => $message->getCreatedAt()->format('H:i'),
             'classification' => $classification // <--- C'est ici que le front récupère l'info !
         ]);
+    }
+
+    // ✨ AUTOCOMPLÉTION DES MESSAGES
+    #[Route('/{id}/suggestions', name: 'conversation_suggestions', methods: ['POST'])]
+    public function getSuggestions(Conversation $conversation, Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        $input = strtolower(trim($data['input'] ?? ''));
+
+        if (strlen($input) < 2) {
+            return $this->json(['suggestions' => []]);
+        }
+
+        // Suggestions médicales courantes (contexte CardioLink)
+        $medicalTerms = [
+            'Bonjour Dr',
+            'Bonjour patient',
+            'Comment allez-vous',
+            'Je vais bien',
+            'Rendez-vous demain',
+            'Prendre un rendez-vous',
+            'Urgent - assistance',
+            'Tension artérielle',
+            'Fréquence cardiaque',
+            'Douleur thoracique',
+            'Essoufflement',
+            'Palpitations',
+            'Merci beaucoup',
+            'Au revoir',
+            'À bientôt',
+            'D\'accord',
+            'Je comprends',
+            'Pouvez-vous',
+            'Quelle heure',
+            'Quel jour',
+        ];
+
+        // Récupérer les derniers messages de la conversation
+        $messages = $this->messageRepository->findByConversation($conversation);
+        
+        $recentPhrases = [];
+        foreach (array_slice($messages, -10) as $message) {
+            // Extraire les phrases du message
+            $content = $message->getContent();
+            $sentences = preg_split('/[.!?]+/', $content, -1, PREG_SPLIT_NO_EMPTY);
+            foreach ($sentences as $sentence) {
+                $phrase = trim($sentence);
+                if (strlen($phrase) > 3) {
+                    $recentPhrases[] = $phrase;
+                }
+            }
+        }
+
+        // Combiner les deux sources
+        $allSuggestions = array_merge($medicalTerms, $recentPhrases);
+        
+        // Filtrer et limiter à 8 suggestions
+        $suggestions = [];
+        foreach (array_unique($allSuggestions) as $suggestion) {
+            if (stripos($suggestion, $input) === 0 && count($suggestions) < 8) {
+                $suggestions[] = $suggestion;
+            }
+        }
+
+        return $this->json(['suggestions' => $suggestions]);
     }
 }

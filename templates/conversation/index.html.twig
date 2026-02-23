@@ -4,16 +4,56 @@
 
 {% block body %}
 <div class="container mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Messagerie</h1>
+    <div class="mb-4">
+        <h1 class="mb-4">Messagerie</h1>
         
+        {# Formulaire de recherche et tri #}
+        <form method="GET" class="row g-3 mb-4" id="searchForm">
+            <div class="col-md-6">
+                <input 
+                    type="text" 
+                    class="form-control" 
+                    id="search" 
+                    name="search" 
+                    placeholder="🔍 Chercher par nom, email..." 
+                    value="{{ search }}"
+                />
+            </div>
+            
+            <div class="col-md-3">
+                <select class="form-select" name="sortBy" id="sortBy">
+                    <option value="updated" {% if sortBy == 'updated' %}selected{% endif %}>Dernière mise à jour</option>
+                    <option value="created" {% if sortBy == 'created' %}selected{% endif %}>Date de création</option>
+                    <option value="contact" {% if sortBy == 'contact' %}selected{% endif %}>Nom du contact</option>
+                    <option value="status" {% if sortBy == 'status' %}selected{% endif %}>Statut</option>
+                </select>
+            </div>
+            
+            <div class="col-md-3 d-flex gap-2">
+                <select class="form-select" name="order" id="order" style="flex: 0 0 auto; width: auto;">
+                    <option value="DESC" {% if order == 'DESC' %}selected{% endif %}>Décroissant</option>
+                    <option value="ASC" {% if order == 'ASC' %}selected{% endif %}>Croissant</option>
+                </select>
+                <button type="submit" class="btn btn-primary">
+                    🔎 Chercher
+                </button>
+                <a href="{{ path('app_conversation_index') }}" class="btn btn-secondary">
+                    ↺ Réinitialiser
+                </a>
+            </div>
+        </form>
     </div>
 
     {% if conversations is empty %}
         <div class="alert alert-info">
-            Aucune conversation. 
+            {% if search %}
+                Aucune conversation trouvée pour "{{ search }}".
+            {% else %}
+                Aucune conversation.
+            {% endif %}
         </div>
     {% else %}
+        <p class="text-muted">📬 {{ conversations|length }} conversation(s) trouvée(s)</p>
         <div class="list-group">
             {% for conversation in conversations %}
                 <a href="{{ path('app_conversation_show', {'id': conversation.id}) }}" class="list-group-item list-group-item-action">
@@ -64,4 +104,15 @@
     </div>
   </div>
 </div>
+
+<script>
+    // Soumettre le formulaire automatiquement quand on change le tri ou l'ordre
+    document.getElementById('sortBy').addEventListener('change', function() {
+        document.getElementById('searchForm').submit();
+    });
+    
+    document.getElementById('order').addEventListener('change', function() {
+        document.getElementById('searchForm').submit();
+    });
+</script>
 {% endblock %}
