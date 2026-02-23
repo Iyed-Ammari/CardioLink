@@ -54,24 +54,186 @@
         </div>
     {% else %}
         <p class="text-muted">📬 {{ conversations|length }} conversation(s) trouvée(s)</p>
-        <div class="list-group">
+        <div class="conversation-list">
             {% for conversation in conversations %}
-                <a href="{{ path('app_conversation_show', {'id': conversation.id}) }}" class="list-group-item list-group-item-action">
-                    <div class="d-flex w-100 justify-content-between">
-                        <h5 class="mb-1">
-                            {% if app.user == conversation.patient %}
-                                🩺 Dr. {{ conversation.medecin.prenom }} {{ conversation.medecin.nom }}
-                            {% else %}
-                                👤 {{ conversation.patient.prenom }} {{ conversation.patient.nom }}
+                {% set otherUser = app.user == conversation.patient ? conversation.medecin : conversation.patient %}
+                {% set lastMessage = conversation.messages|last %}
+                {% set unreadCount = conversation.messages|filter(msg => not msg.isRead and msg.sender != app.user)|length %}
+                
+                <a href="{{ path('app_conversation_show', {'id': conversation.id}) }}" class="conversation-card">
+                    <div class="conversation-header">
+                        <div class="conversation-title">
+                            <h5 class="mb-0">
+                                {% if app.user == conversation.patient %}
+                                    🩺 Dr. {{ otherUser.prenom }} {{ otherUser.nom }}
+                                {% else %}
+                                    👤 {{ otherUser.prenom }} {{ otherUser.nom }}
+                                {% endif %}
+                            </h5>
+                        </div>
+                        <div class="conversation-meta">
+                            <small class="text-muted">{{ conversation.updatedAt|date('d/m/Y H:i') }}</small>
+                            {% if unreadCount > 0 %}
+                                <span class="badge bg-primary rounded-pill">{{ unreadCount }}</span>
                             {% endif %}
-                        </h5>
-                        <small class="text-muted">{{ conversation.updatedAt|date('d/m/Y H:i') }}</small>
+                            {% if conversation.isActive %}
+                                <span class="status-indicator active" title="Actif"></span>
+                            {% else %}
+                                <span class="status-indicator inactive" title="Inactif"></span>
+                            {% endif %}
+                        </div>
                     </div>
-                    <p class="mb-1 text-muted">Cliquez pour voir les messages...</p>
+                    
+                    <div class="conversation-body">
+                        {% if lastMessage %}
+                            <div class="last-message">
+                                <small class="message-sender">
+                                    {{ lastMessage.sender.prenom }}:
+                                </small>
+                                <small class="message-preview">
+                                    {% if lastMessage.classification == 'URGENT' %}
+                                        ⚠️ 
+                                    {% elseif lastMessage.classification == 'URGENT' %}
+                                        📄 
+                                    {% endif %}
+                                    {{ lastMessage.content|slice(0, 60)|raw }}{% if lastMessage.content|length > 60 %}...{% endif %}
+                                </small>
+                            </div>
+                        {% else %}
+                            <small class="text-muted italic">Aucun message</small>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="conversation-footer">
+                        <small class="text-muted d-flex gap-2 align-items-center">
+                            💬 {{ conversation.messages|length }} message(s)
+                            {% if conversation.isActive %}
+                                <span class="badge bg-success">Actif</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Archivé</span>
+                            {% endif %}
+                        </small>
+                    </div>
                 </a>
             {% endfor %}
         </div>
     {% endif %}
+
+<style>
+    .conversation-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 16px;
+        margin-top: 20px;
+    }
+
+    .conversation-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 16px;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .conversation-card:hover {
+        border-color: #0d6efd;
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .conversation-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        border-bottom: 1px solid #f0f0f0;
+        padding-bottom: 10px;
+    }
+
+    .conversation-title h5 {
+        font-weight: 600;
+        font-size: 16px;
+        margin: 0;
+    }
+
+    .conversation-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .status-indicator.active {
+        background: #28a745;
+        box-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
+    }
+
+    .status-indicator.inactive {
+        background: #6c757d;
+    }
+
+    .conversation-body {
+        flex: 1;
+        margin-bottom: 12px;
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+    }
+
+    .last-message {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        width: 100%;
+    }
+
+    .message-sender {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .message-preview {
+        color: #666;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .conversation-footer {
+        border-top: 1px solid #f0f0f0;
+        padding-top: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .italic {
+        font-style: italic;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .conversation-list {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 </div>
 
 <div class="modal fade" id="newChatModal" tabindex="-1" aria-labelledby="newChatModalLabel" aria-hidden="true">

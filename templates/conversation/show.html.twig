@@ -16,6 +16,29 @@
       {% endif %}
     </h1>
 
+    {# Barre de recherche dans les messages #}
+    <div class="message-search-bar mb-3">
+      <div class="input-group">
+        <input 
+          type="text" 
+          class="form-control" 
+          id="messageSearch" 
+          placeholder="🔍 Chercher dans les messages..." 
+          autocomplete="off"
+        />
+        <button class="btn btn-outline-secondary" type="button" id="searchUpBtn" title="Message précédent">
+          ↑
+        </button>
+        <button class="btn btn-outline-secondary" type="button" id="searchDownBtn" title="Message suivant">
+          ↓
+        </button>
+        <span class="input-group-text" id="searchResultCount">0 résultat</span>
+        <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn">
+          ↺ Effacer
+        </button>
+      </div>
+    </div>
+
     {# Zone des messages #}
     <div class="card" style="height: 500px; overflow-y: auto; background-color: var(--bg-primary);" id="chat-box">
       <div class="card-body" id="messages-list" style="padding: 1.5rem;">
@@ -126,6 +149,67 @@
     .suggestion-highlight {
       font-weight: 600;
       color: #0d6efd;
+    }
+
+    /* === BARRE DE RECHERCHE === */
+    .message-search-bar {
+      background: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    #messageSearch {
+      border-right: none;
+    }
+
+    #searchResultCount {
+      background: white;
+      border-left: none;
+      border-right: none;
+      font-weight: 500;
+      font-size: 13px;
+      color: #666;
+    }
+
+    #clearSearchBtn {
+      border-left: none;
+    }
+
+    #searchUpBtn,
+    #searchDownBtn {
+      border-right: none;
+      border-left: none;
+    }
+
+    #searchUpBtn:disabled,
+    #searchDownBtn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .message-not-found {
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .message-found {
+      background: #fffacd !important;
+      border-left: 3px solid #ffc107;
+      box-shadow: 0 0 8px rgba(255, 193, 7, 0.3);
+    }
+
+    .message-current-search {
+      background: #fff59d !important;
+      border-left: 4px solid #ff9800 !important;
+      box-shadow: 0 0 12px rgba(255, 152, 0, 0.5);
+    }
+
+    .message-highlight {
+      background: #ffeb3b;
+      padding: 2px 4px;
+      border-radius: 2px;
+      font-weight: 600;
     }
 
     /* === STYLES RÉACTIONS === */
@@ -258,6 +342,132 @@
     const sendBtn = document.getElementById('sendBtn');
     const msgInput = document.getElementById('messageContent');
     const suggestionsList = document.getElementById('suggestions-list');
+    const messageSearch = document.getElementById('messageSearch');
+    const searchResultCount = document.getElementById('searchResultCount');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+    // === RECHERCHE DE MESSAGES ===
+    let currentSearchTerm = '';
+    let foundMessages = [];
+    let currentSearchIndex = -1;
+
+    if (messageSearch) {
+        messageSearch.addEventListener('input', debounce(function() {
+            currentSearchTerm = messageSearch.value.trim().toLowerCase();
+            currentSearchIndex = -1;
+            filterMessages(currentSearchTerm);
+            updateSearchNavigation();
+        }, 300));
+
+        clearSearchBtn.addEventListener('click', function() {
+            messageSearch.value = '';
+            currentSearchTerm = '';
+            currentSearchIndex = -1;
+            foundMessages = [];
+            filterMessages('');
+            updateSearchNavigation();
+            messageSearch.focus();
+        });
+    }
+
+    const searchUpBtn = document.getElementById('searchUpBtn');
+    const searchDownBtn = document.getElementById('searchDownBtn');
+
+    if (searchUpBtn && searchDownBtn) {
+        searchUpBtn.addEventListener('click', function() {
+            if (foundMessages.length === 0) return;
+            currentSearchIndex = (currentSearchIndex - 1 + foundMessages.length) % foundMessages.length;
+            highlightCurrentSearchResult();
+        });
+
+        searchDownBtn.addEventListener('click', function() {
+            if (foundMessages.length === 0) return;
+            currentSearchIndex = (currentSearchIndex + 1) % foundMessages.length;
+            highlightCurrentSearchResult();
+        });
+    }
+
+    function filterMessages(searchTerm) {
+        const messageElements = document.querySelectorAll('.message-container');
+        foundMessages = [];
+        let matchCount = 0;
+
+        messageElements.forEach(messageElement => {
+            const messageContent = messageElement.querySelector('.message-content');
+            const messageText = messageContent ? messageContent.textContent.toLowerCase() : '';
+            
+            if (searchTerm === '') {
+                // Réinitialiser : afficher tous les messages
+                messageElement.classList.remove('message-not-found', 'message-found', 'message-current-search');
+                messageContent.innerHTML = messageContent.textContent; // Supprimer les highlights
+            } else if (messageText.includes(searchTerm)) {
+                // Message trouvé
+                messageElement.classList.remove('message-not-found');
+                messageElement.classList.add('message-found');
+                
+                // Ajouter les highlights
+                const originalText = messageContent.textContent;
+                const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                const highlightedText = originalText.replace(regex, '<span class="message-highlight">$1</span>');
+                messageContent.innerHTML = highlightedText;
+                
+                foundMessages.push(messageElement);
+                matchCount++;
+            } else {
+                // Message non trouvé
+                messageElement.classList.remove('message-found');
+                messageElement.classList.add('message-not-found');
+                messageContent.innerHTML = messageContent.textContent; // Supprimer les highlights
+            }
+        });
+
+        // Mise à jour du compteur
+        if (searchTerm === '') {
+            searchResultCount.textContent = '0 résultat';
+        } else {
+            searchResultCount.textContent = matchCount + ' résultat' + (matchCount > 1 ? 's' : '');
+        }
+    }
+
+    function highlightCurrentSearchResult() {
+        // Retirer la classe du message précédent
+        foundMessages.forEach(msg => {
+            msg.classList.remove('message-current-search');
+        });
+
+        // Ajouter la classe au message actuel
+        if (currentSearchIndex >= 0 && currentSearchIndex < foundMessages.length) {
+            const currentMsg = foundMessages[currentSearchIndex];
+            currentMsg.classList.add('message-current-search');
+
+            // Scroller vers le message
+            const chatBox = document.getElementById('chat-box');
+            if (chatBox) {
+                chatBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                currentMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            // Mettre à jour le compteur pour afficher X/Y
+            updateSearchResultsDisplay();
+        }
+    }
+
+    function updateSearchNavigation() {
+        // Activer/désactiver les boutons selon le nombre de résultats
+        if (searchUpBtn && searchDownBtn) {
+            const hasResults = foundMessages.length > 0;
+            searchUpBtn.disabled = !hasResults;
+            searchDownBtn.disabled = !hasResults;
+        }
+    }
+
+    function updateSearchResultsDisplay() {
+        if (foundMessages.length === 0) return;
+        const position = currentSearchIndex + 1;
+        searchResultCount.textContent = `${position}/${foundMessages.length}`;
+    }
+
+    // === FIN RECHERCHE DE MESSAGES ===
 
     // === AUTOCOMPLÉTION ===
     let selectedSuggestionIndex = -1;
