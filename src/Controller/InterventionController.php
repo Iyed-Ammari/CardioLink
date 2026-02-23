@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Controller;
-
+use App\Service\PredictionService;
 use App\Entity\Intervention;
 use App\Entity\User;
 use App\Form\InterventionFormType;
@@ -114,5 +114,16 @@ class InterventionController extends AbstractController
             $this->addFlash('success', 'L\'intervention a été supprimée.');
         }
         return $this->redirectToRoute('app_intervention_index');
+    }
+
+    #[Route('/statistiques/predictions', name: 'app_intervention_predictions')]
+    public function predictions(PredictionService $predictionService): Response
+    {
+        // On utilise -> car $predictionService est une instance injectée
+        $predictions = $predictionService->getFutureInterventions(); 
+
+        return $this->render('intervention/predictions.html.twig', [
+            'predictions' => $predictions,
+        ]);
     }
 }
