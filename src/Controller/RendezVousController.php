@@ -2,9 +2,11 @@
 
 namespace App\Controller;
 
+use App\Entity\Lieu;
 use App\Entity\RendezVous;
+use App\Entity\User;
 use App\Form\RendezVousType;
-use App\Form\RendezVousStatusType;
+use App\Repository\LieuRepository;
 use App\Repository\RendezVousRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -12,123 +14,88 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use App\Entity\Lieu;
-use App\Repository\LieuRepository;
+use Symfony\Component\Process\Process;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 #[Route('/rdv')]
 class RendezVousController extends AbstractController
 {
+    /**
+     * Liste des rendez-vous avec recherche et tri réel
+     */
     #[Route('/', name: 'app_rdv_index', methods: ['GET'])]
-    public function index(RendezVousRepository $rendezVousRepository, EntityManagerInterface $entityManager): Response
+    public function index(Request $request, RendezVousRepository $rendezVousRepository): Response
     {
-        // Logique intelligente : Affiche les RDV selon le rôle
         $user = $this->getUser();
 
-        if ($this->isGranted('ROLE_MEDECIN')) {
-            $rdvs = $rendezVousRepository->findBy(['medecin' => $user], ['dateHeure' => 'DESC']);
-        } else {
-            $rdvs = $rendezVousRepository->findBy(['patient' => $user], ['dateHeure' => 'ASC']);
-        }
+        // Récupération des paramètres de recherche et de tri depuis l'URL
+        $search = $request->query->get('search');
+        $sort = $request->query->get('sort');   // 'patient', 'medecin' ou 'dateHeure'
+        $order = $request->query->get('order'); // 'ASC' ou 'DESC'
 
-        // Mettre à jour automatiquement les statuts si la consultation est passée
-        foreach ($rdvs as $rdv) {
-            $rdv->updateStatusIfPassed();
-        }
-        $entityManager->flush();
+
+        // Dans RendezVousController.php, modifie l'appel :
+        // RendezVousController.php ligne 34
+        $role = in_array('ROLE_MEDECIN', $user->getRoles()) ? 'ROLE_MEDECIN' : 'ROLE_PATIENT';
+
+        $rdvs = $rendezVousRepository->searchGlobal(
+            $search,
+            $sort,
+            $order,
+            $user,
+            $role
+        );
 
         return $this->render('rendez_vous/index.html.twig', [
             'rendez_vous' => $rdvs,
         ]);
     }
 
+    /**
+     * Création d'un nouveau rendez-vous (Réservé aux Patients)
+     */
     #[Route('/nouveau', name: 'app_rdv_new', methods: ['GET', 'POST'])]
-    #[IsGranted('ROLE_PATIENT')] // Seul un patient peut demander un RDV
+    #[IsGranted('ROLE_PATIENT')]
     public function new(Request $request, EntityManagerInterface $entityManager, RendezVousRepository $repo, LieuRepository $lieuRepository): Response
     {
         $rdv = new RendezVous();
-
-        // 1. On lie automatiquement le RDV au patient connecté
         $rdv->setPatient($this->getUser());
-        $rdv->setStatut('En attente'); // Statut par défaut
+        $rdv->setStatut('En attente');
 
         $form = $this->createForm(RendezVousType::class, $rdv);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
 
-            // --- VALIDATION SERVEUR ---
-            // Vérifier que toutes les données obligatoires sont présentes
-            if (empty($rdv->getMedecin())) {
-                $this->addFlash('danger', 'Veuillez sélectionner un médecin.');
+            // 1. Vérification anti-collision
+            $conflits = $repo->countCrenau($rdv->getDateHeure(), $rdv->getMedecin());
+            if ($conflits > 0) {
+                $this->addFlash('danger', 'Le médecin n\'est pas disponible à ce créneau.');
                 return $this->render('rendez_vous/new.html.twig', [
-                    'rendez_vous' => $rdv,
                     'form' => $form,
+                    'rendez_vous' => $rdv
                 ]);
             }
 
-            if (empty($rdv->getDateHeure())) {
-                $this->addFlash('danger', 'Veuillez sélectionner une date et une heure.');
-                return $this->render('rendez_vous/new.html.twig', [
-                    'rendez_vous' => $rdv,
-                    'form' => $form,
-                ]);
-            }
-
-            if (empty($rdv->getType())) {
-                $this->addFlash('danger', 'Veuillez sélectionner un type de consultation.');
-                return $this->render('rendez_vous/new.html.twig', [
-                    'rendez_vous' => $rdv,
-                    'form' => $form,
-                ]);
-            }
-
-            // Vérifier que le médecin a le rôle ROLE_MEDECIN
-            $medecin = $rdv->getMedecin();
-            if (!in_array('ROLE_MEDECIN', $medecin->getRoles())) {
-                $this->addFlash('danger', 'Le praticien sélectionné n\'est pas un médecin.');
-                return $this->render('rendez_vous/new.html.twig', [
-                    'rendez_vous' => $rdv,
-                    'form' => $form,
-                ]);
-            }
-
-            // Vérifier que la date est dans le futur
-            $now = new \DateTime();
-            if ($rdv->getDateHeure() <= $now) {
-                $this->addFlash('danger', 'Veuillez sélectionner une date et une heure dans le futur.');
-                return $this->render('rendez_vous/new.html.twig', [
-                    'rendez_vous' => $rdv,
-                    'form' => $form,
-                ]);
-            }
-
-            // --- LOGIQUE TÉLÉMÉDECINE ---
+            // 2. Gestion du Type (Visio vs Présentiel)
             if ($rdv->getType() === 'Télémédecine') {
-                // On génère un lien Jitsi unique
                 $uniqueId = uniqid('cardiolink-');
-                // Paramètres Jitsi pour permettre aux participants de rejoindre sans modérateur
-                $jitsiUrl = "https://meet.jit.si/$uniqueId#config.disableModeratorIndicator=true&config.openBridgeChannel=true&userInfo.displayName=CardioLink";
-                $rdv->setLienVisio($jitsiUrl);
-
-                // En visio, le lieu physique n'est pas important (on peut le mettre à null ou laisser tel quel)
+                $rdv->setLienVisio("https://meet.jit.si/$uniqueId");
                 $rdv->setLieu(null);
             } else {
-                // Pour le présentiel, on assigne automatiquement le lieu selon le cabinet du médecin
+                // Assignation auto du lieu selon le cabinet du médecin
                 $medecin = $rdv->getMedecin();
                 if ($medecin && $medecin->getCabinet()) {
-                    // On cherche si un Lieu existe pour ce cabinet
                     $lieu = $lieuRepository->findOneBy(['nom' => $medecin->getCabinet()]);
-
                     if (!$lieu) {
-                        // Si aucun Lieu n'existe, on en crée un
                         $lieu = new Lieu();
                         $lieu->setNom($medecin->getCabinet());
-                        $lieu->setAdresse($medecin->getAdresse());
-                        $lieu->setVille('');
+                        $lieu->setAdresse($medecin->getCabinet());
+                        $lieu->setVille($medecin->getAdresse() ?? 'Non renseignée');
+                        $lieu->setContact($medecin->getTel());
                         $lieu->setEstVirtuel(false);
                         $entityManager->persist($lieu);
                     }
-
                     $rdv->setLieu($lieu);
                 }
             }
@@ -136,63 +103,24 @@ class RendezVousController extends AbstractController
             $entityManager->persist($rdv);
             $entityManager->flush();
 
-            $this->addFlash('success', 'Votre demande de rendez-vous a été envoyée avec succès !');
-
+            $this->addFlash('success', 'Demande de rendez-vous envoyée !');
             return $this->redirectToRoute('app_rdv_index');
         }
 
         return $this->render('rendez_vous/new.html.twig', [
-            'rendez_vous' => $rdv,
             'form' => $form,
+            'rendez_vous' => $rdv
         ]);
     }
 
-    // Tu pourras ajouter ici la méthode pour supprimer/annuler un RDV
-    #[Route('/{id}', name: 'app_rdv_delete', methods: ['POST'])]
-    public function delete(Request $request, RendezVous $rendezVous, EntityManagerInterface $entityManager): Response
-    {
-        // Sécurité : On vérifie que l'utilisateur est bien le patient ou le médecin du RDV
-        if ($rendezVous->getPatient() !== $this->getUser() && $rendezVous->getMedecin() !== $this->getUser()) {
-            throw $this->createAccessDeniedException('Vous ne pouvez pas supprimer ce rendez-vous.');
-        }
-
-        // Vérifier les permissions selon le rôle
-        $isPatient = $rendezVous->getPatient() === $this->getUser();
-        $isDoctor = $rendezVous->getMedecin() === $this->getUser();
-
-        // Le patient ne peut pas supprimer si le RDV est finalisé ou passé
-        if ($isPatient && !$rendezVous->canPatientDelete()) {
-            $this->addFlash('danger', 'Vous ne pouvez pas supprimer ce rendez-vous. Il est finalisé ou passé.');
-            return $this->redirectToRoute('app_rdv_index', [], Response::HTTP_SEE_OTHER);
-        }
-
-        // Le médecin ne peut pas supprimer si le RDV est passé
-        if ($isDoctor && !$rendezVous->canDoctorDelete()) {
-            $this->addFlash('danger', 'Vous ne pouvez pas supprimer ce rendez-vous. La consultation est passée.');
-            return $this->redirectToRoute('app_rdv_index', [], Response::HTTP_SEE_OTHER);
-        }
-
-        // On vérifie le token de sécurité pour éviter les attaques CSRF
-        if ($this->isCsrfTokenValid('delete' . $rendezVous->getId(), $request->request->get('_token'))) {
-            $entityManager->remove($rendezVous);
-            $entityManager->flush();
-            $this->addFlash('success', 'Le rendez-vous a été supprimé avec succès.');
-        }
-
-        return $this->redirectToRoute('app_rdv_index', [], Response::HTTP_SEE_OTHER);
-    }
+    /**
+     * Modification d'un rendez-vous
+     */
     #[Route('/{id}/edit', name: 'app_rdv_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, RendezVous $rendezVous, EntityManagerInterface $entityManager, LieuRepository $lieuRepository): Response
+    public function edit(Request $request, RendezVous $rendezVous, EntityManagerInterface $entityManager, RendezVousRepository $repo): Response
     {
-        // Sécurité : Seul le patient peut éditer un RDV
-        if ($rendezVous->getPatient() !== $this->getUser()) {
-            throw $this->createAccessDeniedException('Seul le patient peut modifier ce rendez-vous.');
-        }
-
-        // Vérifier les permissions de modification
-        if (!$rendezVous->canPatientEdit()) {
-            $this->addFlash('danger', 'Vous ne pouvez pas modifier ce rendez-vous. Il est finalisé ou passé.');
-            return $this->redirectToRoute('app_rdv_index', [], Response::HTTP_SEE_OTHER);
+        if ($rendezVous->getPatient() !== $this->getUser() && $rendezVous->getMedecin() !== $this->getUser()) {
+            throw $this->createAccessDeniedException('Accès refusé.');
         }
 
         $form = $this->createForm(RendezVousType::class, $rendezVous);
@@ -200,185 +128,91 @@ class RendezVousController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
 
-            // --- VALIDATION SERVEUR ---
-            // Vérifier que toutes les données obligatoires sont présentes
-            if (empty($rendezVous->getMedecin())) {
-                $this->addFlash('danger', 'Veuillez sélectionner un médecin.');
-                return $this->render('rendez_vous/edit.html.twig', [
-                    'rendez_vous' => $rendezVous,
-                    'form' => $form,
-                ]);
+            // Vérification anti-collision (en excluant le RDV actuel)
+            $conflits = $repo->countCrenau($rendezVous->getDateHeure(), $rendezVous->getMedecin(), $rendezVous->getId());
+            if ($conflits > 0) {
+                $this->addFlash('danger', 'Créneau indisponible.');
+                return $this->render('rendez_vous/edit.html.twig', ['form' => $form, 'rendez_vous' => $rendezVous]);
             }
 
-            if (empty($rendezVous->getDateHeure())) {
-                $this->addFlash('danger', 'Veuillez sélectionner une date et une heure.');
-                return $this->render('rendez_vous/edit.html.twig', [
-                    'rendez_vous' => $rendezVous,
-                    'form' => $form,
-                ]);
-            }
-
-            if (empty($rendezVous->getType())) {
-                $this->addFlash('danger', 'Veuillez sélectionner un type de consultation.');
-                return $this->render('rendez_vous/edit.html.twig', [
-                    'rendez_vous' => $rendezVous,
-                    'form' => $form,
-                ]);
-            }
-
-            // Vérifier que le médecin a le rôle ROLE_MEDECIN
-            $medecin = $rendezVous->getMedecin();
-            if (!in_array('ROLE_MEDECIN', $medecin->getRoles())) {
-                $this->addFlash('danger', 'Le praticien sélectionné n\'est pas un médecin.');
-                return $this->render('rendez_vous/edit.html.twig', [
-                    'rendez_vous' => $rendezVous,
-                    'form' => $form,
-                ]);
-            }
-
-            // Vérifier que la date est dans le futur
-            $now = new \DateTime();
-            if ($rendezVous->getDateHeure() <= $now) {
-                $this->addFlash('danger', 'Veuillez sélectionner une date et une heure dans le futur.');
-                return $this->render('rendez_vous/edit.html.twig', [
-                    'rendez_vous' => $rendezVous,
-                    'form' => $form,
-                ]);
-            }
-
-            // LOGIQUE INTELLIGENTE :
-            // Si on passe en Télémédecine et qu'il n'y a pas de lien, on en crée un.
+            // Mise à jour logique visio
             if ($rendezVous->getType() === 'Télémédecine' && empty($rendezVous->getLienVisio())) {
-                $uniqueId = uniqid('cardiolink-');
-                // Paramètres Jitsi pour permettre aux participants de rejoindre sans modérateur
-                $jitsiUrl = "https://meet.jit.si/$uniqueId#config.disableModeratorIndicator=true&config.openBridgeChannel=true&userInfo.displayName=CardioLink";
-                $rendezVous->setLienVisio($jitsiUrl);
-                $rendezVous->setLieu(null); // On nettoie le lieu
-            }
-
-            // Si on repasse en Présentiel, on assigne le lieu selon le cabinet du médecin
-            if ($rendezVous->getType() === 'Présentiel') {
+                $rendezVous->setLienVisio("https://meet.jit.si/" . uniqid('cardiolink-'));
+                $rendezVous->setLieu(null);
+            } elseif ($rendezVous->getType() === 'Présentiel') {
                 $rendezVous->setLienVisio(null);
-
-                $medecin = $rendezVous->getMedecin();
-                if ($medecin && $medecin->getCabinet()) {
-                    // On cherche si un Lieu existe pour ce cabinet
-                    $lieu = $lieuRepository->findOneBy(['nom' => $medecin->getCabinet()]);
-
-                    if (!$lieu) {
-                        // Si aucun Lieu n'existe, on en crée un
-                        $lieu = new Lieu();
-                        $lieu->setNom($medecin->getCabinet());
-                        $lieu->setAdresse($medecin->getAdresse());
-                        $lieu->setVille('');
-                        $lieu->setEstVirtuel(false);
-                        $entityManager->persist($lieu);
-                    }
-
-                    $rendezVous->setLieu($lieu);
-                }
             }
 
             $entityManager->flush();
-
-            $this->addFlash('success', 'Le rendez-vous a été modifié avec succès.');
-
-            return $this->redirectToRoute('app_rdv_index', [], Response::HTTP_SEE_OTHER);
+            $this->addFlash('success', 'Rendez-vous modifié.');
+            return $this->redirectToRoute('app_rdv_index');
         }
 
         return $this->render('rendez_vous/edit.html.twig', [
-            'rendez_vous' => $rendezVous,
             'form' => $form,
+            'rendez_vous' => $rendezVous
         ]);
     }
 
-    #[Route('/{id}/status', name: 'app_rdv_update_status', methods: ['POST'])]
-    #[IsGranted('ROLE_MEDECIN')]
+    /**
+     * Mise à jour rapide du statut par le médecin
+     */
+    #[Route('/{id}/update-status', name: 'app_rdv_update_status', methods: ['POST'])]
     public function updateStatus(Request $request, RendezVous $rendezVous, EntityManagerInterface $entityManager): Response
     {
-        // Sécurité : Vérifier que c'est le médecin du RDV
-        if ($rendezVous->getMedecin() !== $this->getUser()) {
-            throw $this->createAccessDeniedException('Vous ne pouvez pas modifier ce rendez-vous.');
+        if (!$this->isGranted('ROLE_MEDECIN')) {
+            throw $this->createAccessDeniedException();
         }
 
-        // Vérifier que la consultation n'est pas passée
-        if ($rendezVous->isPassedConsultation()) {
-            $this->addFlash('danger', 'Vous ne pouvez pas modifier le statut d\'une consultation passée.');
-            return $this->redirectToRoute('app_rdv_index', [], Response::HTTP_SEE_OTHER);
+        if ($this->isCsrfTokenValid('update_status' . $rendezVous->getId(), $request->request->get('_token'))) {
+            $rendezVous->setStatut($request->request->get('statut'));
+            $entityManager->flush();
+            $this->addFlash('success', 'Statut mis à jour.');
         }
 
-        // Get the new status from the request
-        $newStatus = $request->request->get('status');
-
-        // Validate the status
-        $validStatuses = ['En attente', 'Accepté', 'Refusé', 'Complété'];
-        if (!in_array($newStatus, $validStatuses)) {
-            $this->addFlash('danger', 'Statut invalide.');
-            return $this->redirectToRoute('app_rdv_index', [], Response::HTTP_SEE_OTHER);
-        }
-
-        // Verify CSRF token
-        if (!$this->isCsrfTokenValid('status' . $rendezVous->getId(), $request->request->get('_token'))) {
-            $this->addFlash('danger', 'Token CSRF invalide.');
-            return $this->redirectToRoute('app_rdv_index', [], Response::HTTP_SEE_OTHER);
-        }
-
-        // Update the status
-        $rendezVous->setStatut($newStatus);
-        $entityManager->flush();
-
-        $this->addFlash('success', 'Le statut du rendez-vous a été mis à jour avec succès.');
-        return $this->redirectToRoute('app_rdv_index', [], Response::HTTP_SEE_OTHER);
+        return $this->redirectToRoute('app_rdv_index');
     }
 
-    #[Route('/{id}/join-visio', name: 'app_rdv_join_visio', methods: ['GET'])]
-    #[IsGranted('ROLE_USER')]
-    public function joinVisio(RendezVous $rendezVous,): Response
+    /**
+     * Suppression d'un rendez-vous
+     */
+    #[Route('/{id}', name: 'app_rdv_delete', methods: ['POST'])]
+    public function delete(Request $request, RendezVous $rendezVous, EntityManagerInterface $entityManager): Response
     {
-        // Vérifier que c'est le patient ou le médecin du RDV
-        $user = $this->getUser();
-        if ($user instanceof \App\Entity\User) {
-            $nom = $user->getNom();
-            $prenom = $user->getPrenom();
-        }
-        if ($rendezVous->getPatient() !== $user && $rendezVous->getMedecin() !== $user) {
-            throw $this->createAccessDeniedException('Vous n\'avez pas accès à cette consultation.');
+        if ($this->isCsrfTokenValid('delete' . $rendezVous->getId(), $request->request->get('_token'))) {
+            $entityManager->remove($rendezVous);
+            $entityManager->flush();
+            $this->addFlash('success', 'Rendez-vous supprimé.');
         }
 
-        // Vérifier que c'est une télémédecine
-        if ($rendezVous->getType() !== 'Télémédecine') {
-            $this->addFlash('danger', 'Ce rendez-vous n\'est pas en télémédecine.');
-            return $this->redirectToRoute('app_rdv_index', [], Response::HTTP_SEE_OTHER);
-        }
+        return $this->redirectToRoute('app_rdv_index');
+    }
 
-        // Vérifier qu'il n'a pas passé longtemps après la consultation
-        $now = new \DateTime();
-        $consultationEndTime = (clone $rendezVous->getDateHeure())->add(new \DateInterval('PT2H'));
-        if ($now > $consultationEndTime) {
-            $this->addFlash('danger', 'Cette consultation est terminée.');
-            return $this->redirectToRoute('app_rdv_index', [], Response::HTTP_SEE_OTHER);
-        }
 
-        // Get the Jitsi link
-        $jitsiLink = $rendezVous->getLienVisio();
-        if (!$jitsiLink) {
-            $this->addFlash('danger', 'Le lien de la visioconférence n\'est pas disponible.');
-            return $this->redirectToRoute('app_rdv_index', [], Response::HTTP_SEE_OTHER);
-        }
-
-        // Si c'est un médecin, ajouter le paramètre modérateur
-        $isMedecin = $this->isGranted('ROLE_MEDECIN') && $rendezVous->getMedecin() === $user;
-        if ($isMedecin) {
-            // Ajouter des paramètres modérateur pour le médecin
-            $separator = strpos($jitsiLink, '#') ? '&' : '#';
-            $jitsiLink .= $separator . 'userInfo.displayName=' . urlencode($nom . ' ' . $prenom);
+    #[Route('/prediction', name: 'app_rdv_prediction', methods: ['GET'])]
+    #[IsGranted('ROLE_MEDECIN')]
+    public function prediction(HttpClientInterface $client): Response
+    {
+        $medecin = $this->getUser();
+        if ($medecin instanceof User){
+            $medecinId = $medecin->getId();
         } else {
-            // Pour le patient, ajouter son nom aussi
-            $separator = strpos($jitsiLink, '#') ? '&' : '#';
-            $jitsiLink .= $separator . 'userInfo.displayName=' . urlencode($nom . ' ' . $prenom);
+            $this->addFlash('danger', 'Utilisateur non reconnu.');
+            return $this->redirectToRoute('app_rdv_index');
         }
 
-        // Rediriger vers Jitsi
-        return $this->redirect($jitsiLink);
+        try {
+            // Symfony appelle l'API Flask
+            $response = $client->request('GET', 'http://127.0.0.1:5000/predict/' . $medecinId);
+            $data = $response->toArray();
+        } catch (\Exception $e) {
+            $this->addFlash('danger', 'Le service de prédiction est hors ligne.');
+            return $this->redirectToRoute('app_rdv_index');
+        }
+
+        return $this->render('rendez_vous/prediction.html.twig', [
+            'prediction' => $data['prediction'] ?? 'N/A',
+            'historique' => $data['historique'] ?? []
+        ]);
     }
 }
