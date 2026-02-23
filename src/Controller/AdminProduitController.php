@@ -13,36 +13,37 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
 #[Route('/admin/produits')]
+#[IsGranted('ROLE_ADMIN')] // ✅ CORRECTION : protection manquante ajoutée
 final class AdminProduitController extends AbstractController
 {
-#[Route('', name: 'admin_produit_index')]
-public function index(Request $request, ProduitRepository $repo): Response
-{
+    #[Route('', name: 'admin_produit_index')]
+    public function index(Request $request, ProduitRepository $repo): Response
+    {
+        $q         = trim((string) $request->query->get('q', ''));
+        $categorie = trim((string) $request->query->get('categorie', ''));
 
-    $q = trim((string) $request->query->get('q', ''));
-    $categorie = trim((string) $request->query->get('categorie', ''));
+        $categories = $repo->findExistingCategories();
 
-    $categories = $repo->findExistingCategories();
+        if ($categorie !== '' && !in_array($categorie, $categories, true)) {
+            $categorie = '';
+        }
 
-    if ($categorie !== '' && !in_array($categorie, $categories, true)) {
-        $categorie = '';
+        $produits = $repo->search(
+            $q !== '' ? $q : null,
+            $categorie !== '' ? $categorie : null
+        );
+
+        return $this->render('admin/produit/index.html.twig', [
+            'produits'   => $produits,
+            'q'          => $q,
+            'categorie'  => $categorie,
+            'categories' => $categories,
+        ]);
     }
-
-    $produits = $repo->search(
-        $q !== '' ? $q : null,
-        $categorie !== '' ? $categorie : null
-    );
-
-    return $this->render('admin/produit/index.html.twig', [
-        'produits' => $produits,
-        'q' => $q,
-        'categorie' => $categorie,
-        'categories' => $categories,
-    ]);
-}
 
     #[Route('/new', name: 'admin_produit_new', methods: ['GET', 'POST'])]
     public function new(Request $request, EntityManagerInterface $em, SluggerInterface $slugger): Response
@@ -61,8 +62,8 @@ public function index(Request $request, ProduitRepository $repo): Response
         }
 
         return $this->render('admin/produit/form.html.twig', [
-            'form' => $form->createView(),
-            'mode' => 'create',
+            'form'    => $form->createView(),
+            'mode'    => 'create',
             'produit' => $produit,
         ]);
     }
@@ -83,8 +84,8 @@ public function index(Request $request, ProduitRepository $repo): Response
         }
 
         return $this->render('admin/produit/form.html.twig', [
-            'form' => $form->createView(),
-            'mode' => 'edit',
+            'form'    => $form->createView(),
+            'mode'    => 'edit',
             'produit' => $produit,
         ]);
     }
@@ -102,7 +103,7 @@ public function index(Request $request, ProduitRepository $repo): Response
             $em->flush();
             $this->addFlash('success', 'Produit supprimé.');
         } catch (ForeignKeyConstraintViolationException) {
-            $this->addFlash('danger', 'Suppression impossible : produit déjà utilisé (commande).');
+            $this->addFlash('danger', 'Suppression impossible : produit déjà utilisé dans une commande.');
         }
 
         return $this->redirectToRoute('admin_produit_index');
@@ -128,10 +129,9 @@ public function index(Request $request, ProduitRepository $repo): Response
     private function storeProductImage(UploadedFile $file, SluggerInterface $slugger): string
     {
         $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $safeName = $slugger->slug($originalName)->lower();
-        $ext = $file->guessExtension() ?: 'jpg';
-
-        $newFilename = $safeName.'-'.bin2hex(random_bytes(6)).'.'.$ext;
+        $safeName     = $slugger->slug($originalName)->lower();
+        $ext          = $file->guessExtension() ?: 'jpg';
+        $newFilename  = $safeName.'-'.bin2hex(random_bytes(6)).'.'.$ext;
 
         $targetDir = $this->getParameter('kernel.project_dir').'/public/uploads/produits';
         if (!is_dir($targetDir)) {

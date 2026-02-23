@@ -1,0 +1,516 @@
+{# templates/admin/ml/prediction.html.twig #}
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Prédiction IA — CardioLink{% endblock %}
+
+{% block body %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --red:    #F82239;
+    --blue:   #2F60F5;
+    --grad:   linear-gradient(135deg, #F82239 0%, #2F60F5 100%);
+    --dark:   #0D0F14;
+    --border: rgba(15,23,42,.07);
+    --muted:  #94A3B8;
+    --text:   #0F172A;
+    --font:   'Plus Jakarta Sans', sans-serif;
+  }
+
+  .pred * { font-family: var(--font); box-sizing: border-box; }
+
+  /* ── HERO ──────────────────────────────────────── */
+  .pred-hero {
+    background: var(--dark); border-radius: 22px;
+    padding: 32px 36px; margin-bottom: 20px;
+    position: relative; overflow: hidden;
+  }
+  .pred-hero::before {
+    content: ''; position: absolute; top: -90px; right: -60px;
+    width: 320px; height: 320px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(248,34,57,.22) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .pred-hero::after {
+    content: ''; position: absolute; bottom: -70px; left: 28%;
+    width: 280px; height: 280px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(47,96,245,.18) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .hero-inner {
+    position: relative; z-index: 1;
+    display: flex; align-items: flex-start;
+    justify-content: space-between; gap: 24px; flex-wrap: wrap;
+  }
+  .hero-left { flex: 1; min-width: 220px; }
+
+  .hero-eyebrow {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: rgba(255,255,255,.3); margin-bottom: 8px;
+  }
+  .hero-title {
+    font-size: 26px; font-weight: 600; color: #fff;
+    letter-spacing: -.3px; margin-bottom: 4px; line-height: 1.2;
+  }
+  .hero-title strong {
+    font-weight: 800;
+    background: var(--grad);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-sub {
+    font-size: 12px; color: rgba(255,255,255,.35); font-weight: 500; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .model-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 6px; padding: 2px 9px; font-size: 10.5px; font-weight: 600;
+    color: rgba(255,255,255,.5);
+  }
+
+  /* Onglets années — FUTUR */
+  .year-nav { display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; }
+  .year-btn {
+    padding: 5px 14px; border-radius: 9px; font-size: 11.5px; font-weight: 700;
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.05); color: rgba(255,255,255,.45);
+    cursor: pointer; text-decoration: none; transition: all .15s;
+    position: relative;
+  }
+  .year-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
+  .year-btn.active {
+    background: rgba(255,255,255,.14); color: #fff;
+    border-color: rgba(255,255,255,.22); font-weight: 800;
+  }
+  .year-btn.future::after {
+    content: '🔮';
+    position: absolute; top: -8px; right: -6px;
+    font-size: 10px;
+  }
+
+  /* Chips mois */
+  .month-nav { display: flex; gap: 5px; flex-wrap: wrap; }
+  .month-btn {
+    padding: 5px 10px; border-radius: 7px; font-size: 11px; font-weight: 600;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+    color: rgba(255,255,255,.4); cursor: pointer; text-decoration: none;
+    transition: all .15s;
+  }
+  .month-btn:hover { background: rgba(255,255,255,.1); color: rgba(255,255,255,.8); }
+  .month-btn.active {
+    background: var(--grad); border-color: transparent;
+    color: #fff; font-weight: 700;
+    box-shadow: 0 4px 14px rgba(47,96,245,.4);
+  }
+
+  /* Hero right */
+  .hero-right { text-align: right; flex-shrink: 0; }
+  .hero-kpi-label {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 1.4px;
+    text-transform: uppercase; color: rgba(255,255,255,.28); margin-bottom: 8px;
+  }
+  .hero-kpi-value {
+    font-size: 44px; font-weight: 700; color: #fff;
+    letter-spacing: -2px; line-height: 1;
+    font-family: 'DM Mono', monospace;
+  }
+  .hero-kpi-unit {
+    font-size: 14px; font-weight: 400;
+    color: rgba(255,255,255,.32); margin-left: 4px;
+  }
+  .hero-period {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 999px; padding: 5px 14px;
+    font-size: 11px; font-weight: 600; color: rgba(255,255,255,.5); margin-top: 10px;
+  }
+  .future-tag {
+    background: rgba(47,96,245,.3); color: #93C5FD;
+    border-radius: 5px; padding: 1px 7px; font-size: 9.5px; font-weight: 800;
+    letter-spacing: .5px; text-transform: uppercase;
+  }
+
+  /* ── SÉLECTEUR LIBRE ──────────────────────────── */
+  .selector-bar {
+    background: #fff; border: 1.5px solid var(--border);
+    border-radius: 14px; padding: 12px 18px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .selector-label { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+  .month-input {
+    height: 36px; border-radius: 9px; border: 1.5px solid var(--border);
+    background: #F8FAFC; padding: 0 12px; font-size: 13px; font-weight: 600;
+    color: var(--text); outline: none; font-family: 'DM Mono', monospace;
+    transition: .15s; min-width: 160px; cursor: pointer;
+  }
+  .month-input:focus { border-color: rgba(47,96,245,.4); background: #fff; box-shadow: 0 0 0 3px rgba(47,96,245,.08); }
+  .btn-predict {
+    height: 36px; padding: 0 22px; border-radius: 9px; border: none;
+    background: var(--grad); color: #fff; font-size: 12.5px; font-weight: 700;
+    cursor: pointer; font-family: var(--font);
+    box-shadow: 0 4px 16px rgba(47,96,245,.3);
+    transition: .15s; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-predict:hover { opacity: .9; transform: translateY(-1px); }
+  .info-pill {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(47,96,245,.06); border: 1px solid rgba(47,96,245,.12);
+    border-radius: 8px; padding: 5px 12px;
+    font-size: 11px; font-weight: 600; color: #2F60F5;
+  }
+
+  /* ── KPI CARDS ────────────────────────────────── */
+  .kpi-row {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 14px; margin-bottom: 20px;
+  }
+  @media(max-width:800px){ .kpi-row{ grid-template-columns:1fr 1fr; } }
+
+  .kpi-card {
+    background: #fff; border: 1.5px solid var(--border);
+    border-radius: 18px; padding: 22px;
+    position: relative; overflow: hidden;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(15,23,42,.08); }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 3px; border-radius: 18px 18px 0 0;
+  }
+  .kc-blue::before   { background: var(--grad); }
+  .kc-green::before  { background: linear-gradient(90deg,#10B981,#34D399); }
+  .kc-purple::before { background: linear-gradient(90deg,#8B5CF6,#A78BFA); }
+
+  .kpi-icon {
+    width: 40px; height: 40px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; margin-bottom: 14px;
+  }
+  .kc-blue   .kpi-icon { background: rgba(47,96,245,.08); }
+  .kc-green  .kpi-icon { background: rgba(16,185,129,.08); }
+  .kc-purple .kpi-icon { background: rgba(139,92,246,.08); }
+
+  .kpi-num {
+    font-size: 30px; font-weight: 700; color: var(--text);
+    letter-spacing: -1px; line-height: 1; margin-bottom: 5px;
+    font-family: 'DM Mono', monospace;
+  }
+  .kpi-lbl { font-size: 11.5px; font-weight: 500; color: var(--muted); }
+
+  /* ── TABLEAU TOP JOURS ────────────────────────── */
+  .pic-card {
+    background: #fff; border: 1.5px solid var(--border);
+    border-radius: 18px; overflow: hidden;
+    box-shadow: 0 2px 16px rgba(15,23,42,.04); margin-bottom: 20px;
+  }
+  .pic-head {
+    padding: 15px 22px; border-bottom: 1.5px solid var(--border);
+    background: #FAFBFC; display: flex; align-items: center; justify-content: space-between;
+  }
+  .pic-head-left { display: flex; align-items: center; gap: 10px; }
+  .pic-head-title { font-size: 13.5px; font-weight: 700; color: var(--text); }
+  .pic-head-badge {
+    background: var(--dark); color: #fff; border-radius: 999px;
+    padding: 3px 12px; font-size: 11px; font-weight: 600; font-family: 'DM Mono', monospace;
+  }
+  .future-pill {
+    background: rgba(47,96,245,.08); color: var(--blue);
+    border: 1px solid rgba(47,96,245,.15); border-radius: 6px;
+    padding: 2px 9px; font-size: 10.5px; font-weight: 700;
+  }
+
+  .pic-table { width: 100%; border-collapse: collapse; }
+  .pic-table thead tr { background: #F8FAFC; border-bottom: 1px solid var(--border); }
+  .pic-table thead th {
+    padding: 10px 20px; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px; color: var(--muted); text-align: left;
+  }
+  .pic-table thead th.r { text-align: right; }
+  .pic-table tbody tr { border-bottom: 1px solid rgba(15,23,42,.04); transition: background .12s; }
+  .pic-table tbody tr:last-child { border-bottom: none; }
+  .pic-table tbody tr:hover { background: #FAFBFD; }
+  .pic-table tbody td { padding: 14px 20px; font-size: 13px; color: var(--text); vertical-align: middle; }
+  .pic-table tbody td.r { text-align: right; }
+
+  .rank {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 9px;
+    font-size: 11px; font-weight: 800;
+  }
+  .r1 { background: rgba(251,191,36,.18); color: #92400E; }
+  .r2 { background: rgba(203,213,225,.25); color: #475569; }
+  .r3 { background: rgba(180,119,75,.15);  color: #7C3E12; }
+  .rn { background: rgba(47,96,245,.08);   color: #1D4ED8; }
+
+  .date-cell { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 600; }
+
+  .day-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 6px; font-size: 10.5px; font-weight: 700;
+  }
+  .day-we { background: rgba(248,34,57,.07);  color: #991B1B; }
+  .day-wk { background: rgba(47,96,245,.07);  color: #1D4ED8; }
+
+  .pred-val { font-size: 14px; font-weight: 700; color: var(--text); font-family: 'DM Mono', monospace; }
+
+  .bar-wrap { display: flex; align-items: center; gap: 10px; }
+  .bar-track { flex: 1; height: 8px; background: #F1F5F9; border-radius: 999px; overflow: hidden; min-width: 80px; }
+  .bar-fill  { height: 100%; border-radius: 999px; background: var(--grad); }
+  .bar-pct   { font-size: 10.5px; font-weight: 700; color: var(--muted); min-width: 36px; text-align: right; }
+
+  /* ── JSON ─────────────────────────────────────── */
+  .json-card {
+    background: var(--dark); border-radius: 18px;
+    padding: 20px 24px; position: relative; overflow: hidden;
+  }
+  .json-card::before {
+    content: ''; position: absolute; top: -50px; right: -50px;
+    width: 200px; height: 200px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(47,96,245,.15) 0%, transparent 65%);
+  }
+  .json-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px; position: relative; z-index: 1;
+  }
+  .json-title { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.32); letter-spacing: 1.2px; text-transform: uppercase; }
+  .json-copy {
+    height: 30px; padding: 0 12px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.07);
+    color: rgba(255,255,255,.55); font-size: 11px; font-weight: 600;
+    cursor: pointer; font-family: var(--font); transition: .15s;
+  }
+  .json-copy:hover { background: rgba(255,255,255,.12); color: #fff; }
+  pre.json-pre {
+    margin: 0; font-family: 'DM Mono', monospace; font-size: 12.5px; line-height: 1.8;
+    color: rgba(255,255,255,.75); white-space: pre-wrap; word-break: break-all;
+    position: relative; z-index: 1; max-height: 300px; overflow-y: auto;
+  }
+
+  /* ── OFFLINE ──────────────────────────────────── */
+  .offline-card {
+    background: rgba(248,34,57,.04); border: 1.5px solid rgba(248,34,57,.18);
+    border-radius: 18px; padding: 28px;
+    display: flex; gap: 18px; align-items: flex-start;
+  }
+  .offline-icon { font-size: 32px; flex-shrink: 0; }
+  .offline-title { font-size: 15px; font-weight: 700; color: #991B1B; margin-bottom: 6px; }
+  .offline-msg   { font-size: 12.5px; color: #B91C1C; font-weight: 500; line-height: 1.7; }
+  .offline-cmd {
+    background: rgba(248,34,57,.08); border: 1px dashed rgba(248,34,57,.25);
+    border-radius: 8px; padding: 8px 14px; margin-top: 10px;
+    font-family: 'DM Mono', monospace; font-size: 12px; color: #991B1B;
+  }
+</style>
+
+<div class="pred">
+
+  {# ── Données Flask ── #}
+  {% set mois     = result.mois ?? month %}
+  {% set topJours = result.top_jours_pic ?? [] %}
+
+  {# Extraire année et mois du param #}
+  {% set curYear  = mois|slice(0,4) %}
+  {% set curMonth = mois|slice(5,2) %}
+
+  {# Max pour barres #}
+  {% set maxVal = 0 %}
+  {% for j in topJours %}
+    {% if j.prediction > maxVal %}{% set maxVal = j.prediction %}{% endif %}
+  {% endfor %}
+
+  {# ── HERO ── #}
+  <div class="pred-hero">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="hero-title">Prédiction <strong>future des ventes</strong></div>
+        <div class="hero-sub">
+          <span>Modèle entraîné sur 2023–2025 · Prédit n'importe quel mois futur</span>
+          <span class="model-badge">🌲 RandomForest · 400 arbres</span>
+        </div>
+
+        {# ─ Années : passé + futur ─ #}
+        {% set years = [
+          {y: '2025', label: '2025', past: true},
+          {y: '2026', label: '2026', past: false},
+          {y: '2027', label: '2027', past: false},
+          {y: '2028', label: '2028', past: false},
+        ] %}
+        <div class="year-nav">
+          {% for yr in years %}
+            <a href="{{ path('prediction', {month: yr.y ~ '-' ~ curMonth}) }}"
+               class="year-btn {{ not yr.past ? 'future' : '' }} {{ curYear == yr.y ? 'active' : '' }}">
+              {{ yr.label }}
+            </a>
+          {% endfor %}
+        </div>
+
+        {# ─ Mois ─ #}
+        {% set monthLabels = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'] %}
+        <div class="month-nav">
+          {% for i in 1..12 %}
+            {% set mm   = i < 10 ? '0' ~ i : '' ~ i %}
+            {% set code = curYear ~ '-' ~ mm %}
+            <a href="{{ path('prediction', {month: code}) }}"
+               class="month-btn {{ curMonth == mm ? 'active' : '' }}">
+              {{ monthLabels[i - 1] }}
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="hero-right">
+       
+        <div class="hero-period">
+          📅 {{ mois }}
+          {% if curYear > '2025' %}
+            <span class="future-tag">FUTUR</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── SÉLECTEUR LIBRE ── #}
+  <div class="selector-bar">
+    <span class="selector-label">🔮 Prédire un mois :</span>
+    <input type="month" class="month-input" id="monthPicker"
+           value="{{ mois }}" min="2025-01" max="2030-12">
+    <button class="btn-predict" onclick="goPredict()">
+      📊 Lancer la prédiction
+    </button>
+    <div class="info-pill">
+      🤖 FastAPI · port 8001 · RandomForest n=400
+    </div>
+  </div>
+
+  {% if result is not empty and topJours|length > 0 %}
+
+    {# ── KPI ── #}
+    <div class="kpi-row">
+      <div class="kpi-card kc-blue">
+        <div class="kpi-icon">📈</div>
+        <div class="kpi-num">{{ topJours[0].prediction|number_format(2, '.', ' ') }}</div>
+        <div class="kpi-lbl">Pic max prévu (commandes/jour)</div>
+      </div>
+
+      <div class="kpi-card kc-green">
+        <div class="kpi-icon">📌</div>
+        <div class="kpi-num">{{ topJours|length }}</div>
+        <div class="kpi-lbl">Jours de pic identifiés</div>
+      </div>
+
+      <div class="kpi-card kc-purple">
+        <div class="kpi-icon">🔮</div>
+        <div class="kpi-num" style="font-size:18px;font-family:var(--font);">{{ mois }}</div>
+        <div class="kpi-lbl">
+          Période prédite
+          {% if curYear > '2025' %}<span class="future-pill">Futur</span>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# ── TABLEAU TOP JOURS ── #}
+    <div class="pic-card">
+      <div class="pic-head">
+        <div class="pic-head-left">
+          <span class="pic-head-title">🏆 Top {{ topJours|length }} jours de pic — {{ mois }}</span>
+          {% if curYear > '2025' %}
+            <span class="future-pill">🔮 Prédiction future</span>
+          {% endif %}
+        </div>
+        <span class="pic-head-badge">{{ topJours|length }} jours · triés par demande ↓</span>
+      </div>
+      <table class="pic-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Date</th>
+            <th>Jour</th>
+            <th class="r">Commandes prédites</th>
+            <th>Intensité</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set days_fr = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'] %}
+          {% for i, jour in topJours %}
+            {% set pred    = jour.prediction %}
+            {% set pct     = maxVal > 0 ? ((pred / maxVal) * 100)|round(0) : 0 %}
+            {% set dowIdx  = jour.date|date('N') - 1 %}
+            {% set dayName = days_fr[dowIdx] %}
+            {% set isWE    = dowIdx >= 5 %}
+            <tr>
+              <td>
+                <span class="rank {{ i == 0 ? 'r1' : (i == 1 ? 'r2' : (i == 2 ? 'r3' : 'rn')) }}">
+                  {{ i + 1 }}
+                </span>
+              </td>
+              <td><span class="date-cell">{{ jour.date }}</span></td>
+              <td>
+                <span class="day-badge {{ isWE ? 'day-we' : 'day-wk' }}">
+                  {{ isWE ? '🏖' : '💼' }} {{ dayName }}
+                </span>
+              </td>
+              <td class="r">
+                <span class="pred-val">{{ pred|number_format(4, '.', ' ') }}</span>
+              </td>
+              <td>
+                <div class="bar-wrap">
+                  <div class="bar-track">
+                    <div class="bar-fill" style="width:{{ pct }}%;"></div>
+                  </div>
+                  <span class="bar-pct">{{ pct }}%</span>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  {% elseif result is not empty and topJours|length == 0 %}
+
+    <div class="offline-card">
+      <div class="offline-icon">📭</div>
+      <div>
+        <div class="offline-title">Aucun pic pour {{ mois }}</div>
+        <div class="offline-msg">
+          L'API a répondu mais <code>top_jours_pic</code> est vide.<br>
+          Vérifiez que la table <strong>commande</strong> contient des entrées <strong>PAYEE</strong>.
+        </div>
+      </div>
+    </div>
+
+  {% else %}
+
+    <div class="offline-card">
+      <div class="offline-icon">⚠️</div>
+      <div>
+        <div class="offline-title">Service FastAPI indisponible</div>
+        <div class="offline-msg">
+          Impossible de contacter
+          <code style="background:rgba(248,34,57,.1);padding:1px 7px;border-radius:4px;font-family:'DM Mono',monospace;">
+            http://127.0.0.1:8001/predict
+          </code><br>
+          Lancez le serveur avec :
+        </div>
+        <div class="offline-cmd">uvicorn main:app --port 8001 --reload</div>
+      </div>
+    </div>
+
+  {% endif %}
+
+</div>
+
+<script>
+function goPredict() {
+  const val = document.getElementById('monthPicker').value;
+  if (val) window.location.href = '/admin/ml/prediction/' + val;
+}
+
+document.getElementById('monthPicker')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter') goPredict();
+});
+</script>
+{% endblock %}
