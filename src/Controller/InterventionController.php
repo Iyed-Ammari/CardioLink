@@ -14,15 +14,22 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 #[Route('/intervention')]
+#[IsGranted('ROLE_MEDECIN')]
 class InterventionController extends AbstractController
 {
     #[Route('', name: 'app_intervention_index', methods: ['GET'])]
-    public function index(InterventionRepository $interventionRepository): Response
+    public function index(Request $request, InterventionRepository $interventionRepository): Response
     {
-        $interventions = $interventionRepository->findPending();
+        // Récupération des paramètres de recherche et de tri
+        $searchTerm = $request->query->get('search');
+        $direction = $request->query->get('direction', 'ASC');
+
+        $interventions = $interventionRepository->findBySearch($searchTerm, $direction);
 
         return $this->render('intervention/index.html.twig', [
             'interventions' => $interventions,
+            'current_search' => $searchTerm,
+            'current_direction' => $direction,
         ]);
     }
 
@@ -54,12 +61,9 @@ class InterventionController extends AbstractController
         if ($this->isCsrfTokenValid('accept' . $intervention->getId(), $request->request->get('_token'))) {
             $intervention->setStatut('Acceptée');
             $intervention->setMedecin($medecin);
-
             $entityManager->flush();
-
             $this->addFlash('success', 'L\'intervention a été acceptée.');
         }
-
         return $this->redirectToRoute('app_intervention_show', ['id' => $intervention->getId()]);
     }
 
@@ -71,12 +75,9 @@ class InterventionController extends AbstractController
     ): Response {
         if ($this->isCsrfTokenValid('complete' . $intervention->getId(), $request->request->get('_token'))) {
             $intervention->markAsCompleted();
-
             $entityManager->flush();
-
             $this->addFlash('success', 'L\'intervention a été marquée comme effectuée.');
         }
-
         return $this->redirectToRoute('app_intervention_show', ['id' => $intervention->getId()]);
     }
 
@@ -91,9 +92,7 @@ class InterventionController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->flush();
-
             $this->addFlash('success', 'L\'intervention a été modifiée avec succès.');
-
             return $this->redirectToRoute('app_intervention_show', ['id' => $intervention->getId()]);
         }
 
@@ -112,10 +111,8 @@ class InterventionController extends AbstractController
         if ($this->isCsrfTokenValid('delete' . $intervention->getId(), $request->request->get('_token'))) {
             $entityManager->remove($intervention);
             $entityManager->flush();
-
             $this->addFlash('success', 'L\'intervention a été supprimée.');
         }
-
         return $this->redirectToRoute('app_intervention_index');
     }
 }
