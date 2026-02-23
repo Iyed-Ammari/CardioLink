@@ -68,6 +68,7 @@
                             {% endif %}
 
                             <th>Type</th>
+                            <th>Lien Visio</th>
                             <th>Statut</th>
                             <th>Ordonnance</th>
                             <th>Actions RDV</th>
@@ -91,6 +92,18 @@
                                 <span class="badge {{ rdv.type == 'Télémédecine' ? 'bg-info text-dark' : 'bg-secondary' }}">
                                     <i class="fas {{ rdv.type == 'Télémédecine' ? 'fa-video' : 'fa-hospital' }}"></i> {{ rdv.type }}
                                 </span>
+                            </td>
+
+                            <td>
+                                {% if rdv.type == 'Télémédecine' and rdv.lienVisio %}
+                                    <a href="{{ rdv.lienVisio }}" target="_blank" class="btn btn-success btn-sm" title="Rejoindre la visio">
+                                        <i class="fas fa-video"></i> Rejoindre
+                                    </a>
+                                {% elseif rdv.type == 'Télémédecine' %}
+                                    <span class="text-muted small">Lien non disponible</span>
+                                {% else %}
+                                    <span class="text-muted small">—</span>
+                                {% endif %}
                             </td>
 
                             <td>
@@ -131,13 +144,6 @@
 
                             <td>
                                 <div class="d-flex gap-1">
-                                    {# BOUTON VISIO API #}
-                                    {% if rdv.type == 'Télémédecine' and rdv.lienVisio %}
-                                        <a href="{{ rdv.lienVisio }}" target="_blank" class="btn btn-success btn-sm" title="Rejoindre la visio">
-                                            <i class="fas fa-video"></i>
-                                        </a>
-                                    {% endif %}
-
                                     <a href="{{ path('app_rdv_edit', {'id': rdv.id}) }}" class="btn btn-outline-warning btn-sm" title="Modifier">✏️</a>
                                     
                                     <form method="post" action="{{ path('app_rdv_delete', {'id': rdv.id}) }}" onsubmit="return confirm('Confirmer la suppression ?');">
@@ -149,7 +155,7 @@
                         </tr>
                     {% else %}
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">
+                            <td colspan="7" class="text-center py-4 text-muted">
                                 Aucun rendez-vous trouvé.
                             </td>
                         </tr>
