@@ -23,13 +23,11 @@
           {# On vérifie si c'est MOI ou l'AUTRE pour l'alignement #}
         {% set isMe = message.sender == app.user %}
         
-        <div class="chat-message {{ isMe ? 'me' : 'other' }}">
+        <div class="chat-message {{ isMe ? 'me' : 'other' }} message-container" data-message-id="{{ message.id }}">
             <div class="message-bubble {{ isMe ? 'me' : 'other' }}">
                 {% if not isMe %}
                     <span class="message-sender">{{ message.sender.prenom }}</span>
                 {% endif %}
-                
-                
                 
                 <div class="message-content">{{ message.content }}</div>
                 
@@ -44,8 +42,38 @@
                     <small class="badge bg-info message-badge">| 📄 Admin</small>
                 {% elseif message.classification == 'NORMAL' %}
                     <small class="badge bg-info message-badge">| 🟢 Normal</small>
-                
                 {% endif %}
+                </div>
+            </div>
+
+            {# Affichage des réactions #}
+            <div class="message-reactions" data-message-id="{{ message.id }}">
+                {% for emoji, reactions in message.reactions|group_by('emoji') %}
+                    {% set count = reactions|length %}
+                    <button class="reaction-btn" data-emoji="{{ emoji }}">
+                        {{ emoji }} <span class="reaction-count">{{ count }}</span>
+                    </button>
+                {% endfor %}
+                
+                {# Bouton + pour ajouter une réaction #}
+                <button class="add-reaction-btn" title="Ajouter une réaction">
+                    ➕
+                </button>
+            </div>
+
+            {# Sélecteur d'emoji #}
+            <div class="emoji-picker" style="display: none;">
+                <div class="emoji-grid">
+                    <span class="emoji" data-emoji="👍">👍</span>
+                    <span class="emoji" data-emoji="❤️">❤️</span>
+                    <span class="emoji" data-emoji="😂">😂</span>
+                    <span class="emoji" data-emoji="😮">😮</span>
+                    <span class="emoji" data-emoji="😢">😢</span>
+                    <span class="emoji" data-emoji="🔥">🔥</span>
+                    <span class="emoji" data-emoji="👏">👏</span>
+                    <span class="emoji" data-emoji="✨">✨</span>
+                    <span class="emoji" data-emoji="💯">💯</span>
+                    <span class="emoji" data-emoji="🎉">🎉</span>
                 </div>
             </div>
         </div>
@@ -98,6 +126,97 @@
     .suggestion-highlight {
       font-weight: 600;
       color: #0d6efd;
+    }
+
+    /* === STYLES RÉACTIONS === */
+    .message-reactions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+      align-items: center;
+    }
+
+    .reaction-btn {
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 16px;
+      padding: 4px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .reaction-btn:hover {
+      background: #e0e0e0;
+      border-color: #999;
+    }
+
+    .reaction-btn.active {
+      background: #d4edff;
+      border-color: #0d6efd;
+    }
+
+    .reaction-count {
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .add-reaction-btn {
+      background: transparent;
+      border: 1px dashed #ccc;
+      border-radius: 16px;
+      padding: 4px 10px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .add-reaction-btn:hover {
+      border-color: #0d6efd;
+      background: #f0f8ff;
+    }
+
+    .emoji-picker {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-top: 8px;
+      z-index: 1000;
+      max-width: 250px;
+    }
+
+    .emoji-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    .emoji {
+      font-size: 24px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      user-select: none;
+      border-radius: 4px;
+      padding: 4px;
+    }
+
+    .emoji:hover {
+      transform: scale(1.2);
+      background: #f0f0f0;
+    }
+
+    .message-container:hover .add-reaction-btn {
+      opacity: 1;
+    }
+
+    .message-container:not(:hover) .add-reaction-btn {
+      opacity: 0.5;
     }
   </style>     
 
@@ -348,11 +467,28 @@
         const statusHtml = isMe ? '<span class="message-status sent"></span>' : '';
 
         const html = `
-            <div class="chat-message ${isMe ? 'me' : 'other'}">
+            <div class="chat-message ${isMe ? 'me' : 'other'} message-container" data-message-id="">
                 <div class="message-bubble ${isMe ? 'me' : 'other'}">
                     ${senderDisplay}
                     <div class="message-content">${text}</div>
                     <div class="message-time">${time}${statusHtml} | ${badgeHtml}</div>
+                </div>
+                <div class="message-reactions" data-message-id="">
+                    <button class="add-reaction-btn" title="Ajouter une réaction">➕</button>
+                    <div class="emoji-picker" style="display: none;">
+                        <div class="emoji-grid">
+                            <span class="emoji" data-emoji="👍">👍</span>
+                            <span class="emoji" data-emoji="❤️">❤️</span>
+                            <span class="emoji" data-emoji="😂">😂</span>
+                            <span class="emoji" data-emoji="😮">😮</span>
+                            <span class="emoji" data-emoji="😢">😢</span>
+                            <span class="emoji" data-emoji="🔥">🔥</span>
+                            <span class="emoji" data-emoji="👏">👏</span>
+                            <span class="emoji" data-emoji="✨">✨</span>
+                            <span class="emoji" data-emoji="💯">💯</span>
+                            <span class="emoji" data-emoji="🎉">🎉</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
@@ -360,7 +496,96 @@
         list.insertAdjacentHTML('beforeend', html);
         const chatBox = document.getElementById('chat-box');
         if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+        
+        // Attacher les événements aux réactions du nouveau message
+        attachReactionEvents(list.lastElementChild);
     }
+
+    // === GESTION DES RÉACTIONS ===
+    function attachReactionEvents(messageElement) {
+        const addBtn = messageElement.querySelector('.add-reaction-btn');
+        const emojiPicker = messageElement.querySelector('.emoji-picker');
+        const emojis = messageElement.querySelectorAll('.emoji');
+        const messageContainer = messageElement;
+
+        if (addBtn) {
+            addBtn.addEventListener('click', function() {
+                emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
+            });
+        }
+
+        emojis.forEach(emoji => {
+            emoji.addEventListener('click', function() {
+                const selectedEmoji = this.getAttribute('data-emoji');
+                addReaction(messageContainer, selectedEmoji);
+                emojiPicker.style.display = 'none';
+            });
+        });
+    }
+
+    function addReaction(messageElement, emoji) {
+        const messageId = messageElement.getAttribute('data-message-id');
+        
+        if (!messageId) {
+            console.warn('❌ Message ID non trouvé');
+            return;
+        }
+
+        fetch("{{ path('app_message_react', {id: 'DUMMY'}) }}".replace('DUMMY', messageId), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ emoji: emoji })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('😊 Réaction:', data);
+            
+            if (data.status === 'added' || data.status === 'removed') {
+                updateReactionsDisplay(messageElement, data.reactions);
+            }
+        })
+        .catch(error => console.error('❌ Erreur réaction:', error));
+    }
+
+    function updateReactionsDisplay(messageElement, reactions) {
+        const reactionsContainer = messageElement.querySelector('.message-reactions');
+        
+        // Récréer l'affichage des réactions
+        let reactionsHtml = '';
+        reactions.forEach(reaction => {
+            const isActive = reaction.hasReacted ? ' active' : '';
+            reactionsHtml += `<button class="reaction-btn${isActive}" data-emoji="${reaction.emoji}">
+                ${reaction.emoji} <span class="reaction-count">${reaction.count}</span>
+            </button>`;
+        });
+
+        // Ajouter le bouton +
+        reactionsHtml += `<button class="add-reaction-btn" title="Ajouter une réaction">➕</button>
+            <div class="emoji-picker" style="display: none;">
+                <div class="emoji-grid">
+                    <span class="emoji" data-emoji="👍">👍</span>
+                    <span class="emoji" data-emoji="❤️">❤️</span>
+                    <span class="emoji" data-emoji="😂">😂</span>
+                    <span class="emoji" data-emoji="😮">😮</span>
+                    <span class="emoji" data-emoji="😢">😢</span>
+                    <span class="emoji" data-emoji="🔥">🔥</span>
+                    <span class="emoji" data-emoji="👏">👏</span>
+                    <span class="emoji" data-emoji="✨">✨</span>
+                    <span class="emoji" data-emoji="💯">💯</span>
+                    <span class="emoji" data-emoji="🎉">🎉</span>
+                </div>
+            </div>`;
+
+        reactionsContainer.innerHTML = reactionsHtml;
+        
+        // Réattacher les événements
+        attachReactionEvents(messageElement);
+    }
+
+    // Attacher les événements à tous les messages au chargement
+    document.querySelectorAll('.message-container').forEach(messageElement => {
+        attachReactionEvents(messageElement);
+    });
     
     // Scroll au chargement
     const chatBox = document.getElementById('chat-box');

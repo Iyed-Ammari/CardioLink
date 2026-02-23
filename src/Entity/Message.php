@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\MessageRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -33,6 +35,17 @@ class Message
 
     #[ORM\Column(length: 50)]
     private ?string $classification = 'NORMAL';
+
+    /**
+     * @var Collection<int, MessageReaction>
+     */
+    #[ORM\OneToMany(targetEntity: MessageReaction::class, mappedBy: 'message', cascade: ['remove'])]
+    private Collection $reactions;
+
+    public function __construct()
+    {
+        $this->reactions = new ArrayCollection();
+    }
 
     public function getClassification(): ?string
     {
@@ -106,6 +119,35 @@ class Message
     public function setIsRead(bool $isRead): static
     {
         $this->isRead = $isRead;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, MessageReaction>
+     */
+    public function getReactions(): Collection
+    {
+        return $this->reactions;
+    }
+
+    public function addReaction(MessageReaction $reaction): static
+    {
+        if (!$this->reactions->contains($reaction)) {
+            $this->reactions->add($reaction);
+            $reaction->setMessage($this);
+        }
+
+        return $this;
+    }
+
+    public function removeReaction(MessageReaction $reaction): static
+    {
+        if ($this->reactions->removeElement($reaction)) {
+            if ($reaction->getMessage() === $this) {
+                $reaction->setMessage(null);
+            }
+        }
 
         return $this;
     }

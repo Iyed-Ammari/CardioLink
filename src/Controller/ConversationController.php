@@ -4,9 +4,12 @@ namespace App\Controller;
 
 use App\Entity\Conversation;
 use App\Entity\Intervention;
+use App\Entity\Message;
+use App\Entity\MessageReaction;
 use App\Entity\User;
 use App\Repository\ConversationRepository;
 use App\Repository\InterventionRepository;
+use App\Repository\MessageReactionRepository;
 use App\Repository\MessageRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -25,6 +28,7 @@ class ConversationController extends AbstractController
     public function __construct(
         private ConversationRepository $conversationRepository,
         private MessageRepository $messageRepository,
+        private MessageReactionRepository $reactionRepository,
         private UserRepository $userRepository,
         private InterventionRepository $interventionRepository,
         private EntityManagerInterface $entityManager
@@ -285,5 +289,75 @@ class ConversationController extends AbstractController
         }
 
         return $this->json(['suggestions' => $suggestions]);
+    }
+
+    // 😊 GESTION DES RÉACTIONS EMOJI
+    #[Route('/message/{id}/react', name: 'message_react', methods: ['POST'])]
+    public function addReaction(Message $message, Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        $emoji = $data['emoji'] ?? null;
+
+        if (!$emoji) {
+            return $this->json(['error' => 'Emoji manquant'], 400);
+        }
+
+        $user = $this->getUser();
+
+        // Chercher si la réaction existe déjà
+        $existingReaction = $this->reactionRepository->findReaction($message, $user, $emoji);
+
+        if ($existingReaction) {
+            // Si elle existe, on la supprime (toggle)
+            $this->entityManager->remove($existingReaction);
+            $this->entityManager->flush();
+            
+            return $this->json([
+                'status' => 'removed',
+                'emoji' => $emoji,
+                'reactions' => $this->getMessageReactions($message)
+            ]);
+        } else {
+            // Sinon on l'ajoute
+            $reaction = new MessageReaction();
+            $reaction->setMessage($message);
+            $reaction->setUser($user);
+            $reaction->setEmoji($emoji);
+
+            $this->entityManager->persist($reaction);
+            $this->entityManager->flush();
+
+            return $this->json([
+                'status' => 'added',
+                'emoji' => $emoji,
+                'reactions' => $this->getMessageReactions($message)
+            ]);
+        }
+    }
+
+    /**
+     * Retourne un résumé des réactions d'un message avec info utilisateur
+     */
+    private function getMessageReactions(Message $message): array
+    {
+        $summary = $this->reactionRepository->findReactionsSummary($message);
+        $currentUser = $this->getUser();
+        
+        $formattedReactions = [];
+        foreach ($summary as $item) {
+            $emoji = $item['emoji'];
+            $count = $item['count'];
+            
+            // Vérifier si l'utilisateur courant a réagi avec cet emoji
+            $hasReacted = $currentUser ? (bool) $this->reactionRepository->findReaction($message, $currentUser, $emoji) : false;
+            
+            $formattedReactions[] = [
+                'emoji' => $emoji,
+                'count' => $count,
+                'hasReacted' => $hasReacted
+            ];
+        }
+        
+        return $formattedReactions;
     }
 }
