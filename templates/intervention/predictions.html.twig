@@ -1,0 +1,146 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Prévisions de charge | CardioLink{% endblock %}
+
+{% block body %}
+{% set labels = [] %}
+{% set data = [] %}
+{% for p in predictions %}
+    {% set labels = labels|merge([p.date|date('d/m')]) %}
+    {% set data = data|merge([p.nb_interventions]) %}
+{% endfor %}
+<div class="container mt-5">
+    {# En-tête avec dégradé CardioLink #}
+    <div class="prediction-header mb-5 p-4 rounded-4 shadow-sm text-white" style="background: var(--gradient-main);">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-5 fw-bold mb-2">Analyse Prédictive</h1>
+                <p class="lead mb-0 opacity-75">Intelligence Artificielle au service de votre organisation quotidienne.</p>
+            </div>
+            <div class="col-md-4 text-md-end d-none d-md-block">
+                <span style="font-size: 3rem;">📊</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        {# Colonne de gauche : Les Cartes de prédiction #}
+        <div class="col-lg-8">
+            <h3 class="mb-4 fw-semibold text-secondary">Planning estimé (7 prochains jours)</h3>
+            
+            <div class="prediction-list">
+                {% for p in predictions %}
+                    <div class="card mb-3 border-0 shadow-sm hover-lift">
+                        <div class="card-body d-flex align-items-center p-4">
+                            <div class="date-badge me-4 text-center p-2 rounded-3 bg-light" style="min-width: 80px;">
+                                <span class="d-block fw-bold text-primary">{{ p.date | date('d') }}</span>
+                                <span class="text-uppercase small opacity-75">{{ p.date | date('M') }}</span>
+                            </div>
+                            
+                            <div class="flex-grow-1">
+                                <h5 class="mb-1 fw-bold">Prestation attendue</h5>
+                                <p class="mb-0 text-muted">Estimation basée sur l'historique des urgences</p>
+                            </div>
+
+                            <div class="text-end">
+                                <div class="h3 mb-0 fw-bold">{{ p.nb_interventions }}</div>
+                                <span class="small text-muted text-uppercase">Interventions</span>
+                            </div>
+
+                            <div class="ms-4">
+                                {% if p.nb_interventions > 5 %}
+                                    <span class="status-indicator bg-danger" title="Charge élevée"></span>
+                                {% elseif p.nb_interventions > 2 %}
+                                    <span class="status-indicator bg-warning" title="Charge modérée"></span>
+                                {% else %}
+                                    <span class="status-indicator bg-success" title="Charge faible"></span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info border-0 shadow-sm p-4 rounded-4">
+                        <h4 class="alert-heading">Aucune donnée disponible</h4>
+                        <p class="mb-0">Le service de prédiction Flask ne semble pas répondre ou les données sont insuffisantes pour établir une tendance.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {# Colonne de droite : Légende et Conseils #}
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 sticky-top" style="top: 100px;">
+                <div class="card-body p-4">
+        <h5 class="fw-bold mb-4"><i class="bi bi-graph-up-arrow me-2"></i>Courbe de tendance</h5>
+        <div style="height: 300px;">
+            <canvas id="predictionChart"></canvas>
+        </div>
+    </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hover-lift {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .hover-lift:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-md) !important;
+    }
+    .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+    .date-badge .text-primary {
+        font-size: 1.5rem;
+        color: var(--primary-red) !important;
+    }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('predictionChart').getContext('2d');
+    
+    // Récupération des données depuis Twig
+    const labels = {{ labels|json_encode|raw }};
+    const dataValues = {{ data|json_encode|raw }};
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Interventions prévues',
+                data: dataValues,
+                borderColor: '#F82239', // Rouge CardioLink
+                backgroundColor: 'rgba(248, 34, 57, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4, // Rend la ligne courbe
+                pointBackgroundColor: '#2F60F5', // Bleu CardioLink
+                pointRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
