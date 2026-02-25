@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\Commande;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
 class CommandeRepository extends ServiceEntityRepository
@@ -38,14 +39,36 @@ class CommandeRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /** @return Commande[] */
-    public function findAllNonPanier(): array
+    /**
+     * Pagination des commandes (hors PANIER)
+     * @return array{items:Paginator,total:int,pages:int,page:int,limit:int}
+     */
+    public function paginateNonPanier(int $page = 1, int $limit = 50): array
     {
-        return $this->createQueryBuilder('c')
+        $page  = max(1, $page);
+        $limit = max(1, min(100, $limit)); // sécurité
+
+        // Important: on join user pour éviter N+1 sur email
+        // On ne join pas lignes/produits ici (sinon pagination devient lourde),
+        // tes détails restent OK sur une page de 50.
+        $qb = $this->createQueryBuilder('c')
+            ->leftJoin('c.user', 'u')->addSelect('u')
             ->andWhere('c.statut != :s')
             ->setParameter('s', Commande::STATUT_PANIER)
             ->orderBy('c.id', 'DESC')
-            ->getQuery()
-            ->getResult();
+            ->setFirstResult(($page - 1) * $limit)
+            ->setMaxResults($limit);
+
+        $paginator = new Paginator($qb->getQuery(), true);
+        $total = count($paginator);
+        $pages = (int) ceil($total / $limit);
+
+        return [
+            'items' => $paginator,
+            'total' => $total,
+            'pages' => max(1, $pages),
+            'page'  => $page,
+            'limit' => $limit,
+        ];
     }
 }

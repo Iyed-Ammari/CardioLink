@@ -8,11 +8,13 @@
     </div>
     <div class="brand-title">
       <div class="name">CardioLink</div>
-      <div class="sub">Admin • Marketplace</div>
+      <div class="sub">Admin · Marketplace</div>
     </div>
   </div>
 
   <nav class="nav">
+
+    {# Produits #}
     <a href="{{ path('admin_produit_index') }}"
        class="{{ app.request.attributes.get('_route') starts with 'admin_produit_' ? 'active' : '' }}">
       <span class="icon" aria-hidden="true">
@@ -25,8 +27,9 @@
       <span class="label">Produits</span>
     </a>
 
+    {# Commandes #}
     <a href="{{ path('admin_commandes_index') }}"
-       class="{{ app.request.attributes.get('_route') starts with 'admin_commande' or app.request.attributes.get('_route') starts with 'admin_commandes' ? 'active' : '' }}">
+       class="{{ (app.request.attributes.get('_route') starts with 'admin_commande') or (app.request.attributes.get('_route') starts with 'admin_commandes') ? 'active' : '' }}">
       <span class="icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
           <path d="M6 2h12v20l-2-1-2 1-2-1-2 1-2-1-2 1z"/>
@@ -37,6 +40,19 @@
       </span>
       <span class="label">Commandes</span>
     </a>
+
+    {# ✅ ML / Prédiction #}
+    <a href="{{ path('prediction', {month: 'january'}) }}"
+       class="{{ app.request.attributes.get('_route') == 'prediction' ? 'active' : '' }}">
+      <span class="icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+          <path d="M3 3v18h18"/>
+          <path d="M7 16l4-4 4 4 4-6"/>
+        </svg>
+      </span>
+      <span class="label">Prédiction IA</span>
+    </a>
+
   </nav>
 
   <div class="sidebar-footer">

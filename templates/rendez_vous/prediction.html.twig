@@ -24,7 +24,7 @@
                 </div>
                 <h5 class="text-secondary text-uppercase small fw-bold">Estimation Mois Prochain</h5>
                 <h2 class="display-3 fw-bold my-2" style="color: var(--primary-blue);">
-                    {{ prediction }}
+                    {{ prediction|round(0, 'floor') }}
                 </h2>
                 <p class="text-muted">Rendez-vous prévus</p>
                 <hr class="my-4" style="opacity: 0.1;">

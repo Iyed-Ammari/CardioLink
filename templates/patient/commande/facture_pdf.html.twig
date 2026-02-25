@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: DejaVu Sans, Arial, sans-serif;
+      font-size: 13px;
+      color: #1F2937;
+      background: #fff;
+      padding: 0;
+    }
+
+    /* ── Bande top dégradée ── */
+    .header-band {
+      height: 8px;
+      background: linear-gradient(90deg, #F82239, #2F60F5);
+    }
+
+    /* ── En-tête ── */
+    .header {
+      padding: 32px 40px 24px;
+      display: table;
+      width: 100%;
+    }
+    .header-left  { display: table-cell; vertical-align: top; width: 55%; }
+    .header-right { display: table-cell; vertical-align: top; text-align: right; }
+
+    .logo-block { margin-bottom: 6px; }
+    .logo-name {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: #111827;
+    }
+    .logo-name span { color: #F82239; }
+    .logo-tagline {
+      font-size: 11px;
+      color: #9CA3AF;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .facture-label {
+      font-size: 32px;
+      font-weight: 900;
+      color: #111827;
+      letter-spacing: -1px;
+      margin-bottom: 4px;
+    }
+    .facture-num {
+      font-size: 13px;
+      color: #6B7280;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .status-payee  { background: #D1FAE5; color: #065F46; border: 1px solid #6EE7B7; }
+    .status-livree { background: #DBEAFE; color: #1E40AF; border: 1px solid #93C5FD; }
+
+    /* ── Séparateur ── */
+    .divider {
+      height: 1px;
+      background: #F3F4F6;
+      margin: 0 40px;
+    }
+
+    /* ── Section infos (2 colonnes) ── */
+    .info-section {
+      padding: 24px 40px;
+      display: table;
+      width: 100%;
+    }
+    .info-col { display: table-cell; vertical-align: top; width: 33%; padding-right: 20px; }
+    .info-title {
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #9CA3AF;
+      margin-bottom: 8px;
+    }
+    .info-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: #111827;
+      line-height: 1.6;
+    }
+    .info-value small {
+      font-size: 11px;
+      color: #6B7280;
+      font-weight: 600;
+    }
+
+    /* ── Tableau lignes ── */
+    .table-section { padding: 0 40px 24px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead tr {
+      background: #F9FAFB;
+      border-top: 1px solid #E5E7EB;
+      border-bottom: 1px solid #E5E7EB;
+    }
+    thead th {
+      padding: 11px 14px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: #6B7280;
+      text-align: left;
+    }
+    thead th.right { text-align: right; }
+
+    tbody tr {
+      border-bottom: 1px solid #F3F4F6;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td {
+      padding: 13px 14px;
+      font-size: 13px;
+      color: #374151;
+    }
+    tbody td.right { text-align: right; font-weight: 700; }
+    tbody td.produit-name {
+      font-weight: 700;
+      color: #111827;
+    }
+    tbody td.produit-cat {
+      font-size: 11px;
+      color: #9CA3AF;
+      font-weight: 600;
+    }
+
+    /* ── Total ── */
+    .total-section {
+      padding: 0 40px 24px;
+      display: table;
+      width: 100%;
+    }
+    .total-spacer { display: table-cell; width: 55%; }
+    .total-block {
+      display: table-cell;
+      width: 45%;
+    }
+    .total-row {
+      display: table;
+      width: 100%;
+      padding: 8px 0;
+      border-bottom: 1px solid #F3F4F6;
+    }
+    .total-row-final {
+      background: #111827;
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: table;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .tr-label { display: table-cell; font-size: 12px; color: #6B7280; font-weight: 600; }
+    .tr-value { display: table-cell; text-align: right; font-size: 13px; font-weight: 800; color: #374151; }
+    .tr-label-final { display: table-cell; font-size: 13px; color: #fff; font-weight: 700; }
+    .tr-value-final { display: table-cell; text-align: right; font-size: 20px; font-weight: 900; color: #fff; }
+
+    /* ── Mention paiement ── */
+    .paid-stamp {
+      text-align: center;
+      padding: 0 40px 28px;
+    }
+    .paid-inner {
+      display: inline-block;
+      border: 3px solid #10B981;
+      border-radius: 12px;
+      padding: 10px 28px;
+      color: #10B981;
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      transform: rotate(-2deg);
+    }
+
+    /* ── Footer ── */
+    .footer-band {
+      height: 6px;
+      background: linear-gradient(90deg, #2F60F5, #F82239);
+      margin-top: 16px;
+    }
+    .footer-text {
+      padding: 14px 40px;
+      font-size: 10px;
+      color: #9CA3AF;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.7;
+    }
+    .footer-text strong { color: #374151; }
+
+    /* ── Bloc date ── */
+    .date-block {
+      background: #F9FAFB;
+      border-radius: 10px;
+      padding: 8px 14px;
+      display: inline-block;
+    }
+    .date-label { font-size: 9px; color: #9CA3AF; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; }
+    .date-value { font-size: 13px; font-weight: 800; color: #111827; margin-top: 1px; }
+
+    /* ── Watermark diagonal (optionnel) ── */
+    .page-wrapper {
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- Bande top -->
+  <div class="header-band"></div>
+
+  <!-- En-tête -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-block">
+        <div class="logo-name">Cardio<span>Link</span></div>
+        <div class="logo-tagline">Marketplace Médical</div>
+      </div>
+      <div style="margin-top: 14px;">
+        <div style="font-size:11px; color:#9CA3AF; font-weight:600; margin-bottom:3px;">ÉMETTEUR</div>
+        <div style="font-size:12px; font-weight:700; color:#374151; line-height:1.7;">
+          CardioLink Tunisia<br>
+          <span style="color:#9CA3AF; font-weight:600;">Tunis, Tunisie</span><br>
+          <span style="color:#9CA3AF; font-weight:600;">contact@cardiolink.tn</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="facture-label">FACTURE</div>
+      <div class="facture-num">N° {{ numeroFacture }}</div>
+      <div class="date-block" style="margin-bottom: 10px;">
+        <div class="date-label">Date d'émission</div>
+        <div class="date-value">{{ dateGeneration|date('d/m/Y') }}</div>
+      </div>
+      <br>
+      <span class="status-badge {{ commande.statut == 'LIVREE' ? 'status-livree' : 'status-payee' }}">
+        {% if commande.statut == 'LIVREE' %}📦 Livrée{% else %}✓ Payée{% endif %}
+      </span>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Infos commande + client -->
+  <div class="info-section">
+    <div class="info-col">
+      <div class="info-title">Facturé à</div>
+      <div class="info-value">
+        {{ user.email }}<br>
+        <small>Patient CardioLink</small>
+      </div>
+    </div>
+    <div class="info-col">
+      <div class="info-title">Commande</div>
+      <div class="info-value">
+        #{{ commande.id }}<br>
+        <small>{{ commande.dateCommande ? commande.dateCommande|date('d/m/Y à H:i') : '—' }}</small>
+      </div>
+    </div>
+    <div class="info-col">
+      <div class="info-title">Référence paiement</div>
+      <div class="info-value">
+        PAY-{{ commande.id|format_number({'rounding_mode': 'floor'}) }}-CL<br>
+        <small>Paiement carte bancaire</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Tableau des produits -->
+  <div class="table-section" style="padding-top: 20px;">
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 45%;">Désignation</th>
+          <th style="width: 15%;">Catégorie</th>
+          <th class="right" style="width: 15%;">Prix unit.</th>
+          <th class="right" style="width: 10%;">Qté</th>
+          <th class="right" style="width: 15%;">Total HT</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in commande.lignes %}
+          <tr>
+            <td class="produit-name">{{ l.produit.nom }}</td>
+            <td>
+              {% if l.produit.categorie %}
+                <span style="background:#F3F4F6; color:#6B7280; padding:2px 8px; border-radius:6px; font-size:10px; font-weight:700;">
+                  {{ l.produit.categorie }}
+                </span>
+              {% else %}
+                <span style="color:#D1D5DB;">—</span>
+              {% endif %}
+            </td>
+            <td class="right">{{ l.prixUnitaire }} TND</td>
+            <td class="right">{{ l.quantite }}</td>
+            <td class="right" style="color:#111827;">{{ l.totalLigne }} TND</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Total -->
+  <div class="total-section">
+    <div class="total-spacer"></div>
+    <div class="total-block">
+      <div class="total-row">
+        <span class="tr-label">Sous-total</span>
+        <span class="tr-value">{{ commande.montantTotal }} TND</span>
+      </div>
+      <div class="total-row">
+        <span class="tr-label">TVA (0%)</span>
+        <span class="tr-value">0.00 TND</span>
+      </div>
+      <div class="total-row">
+        <span class="tr-label">Livraison</span>
+        <span class="tr-value">Gratuite</span>
+      </div>
+      <div class="total-row-final">
+        <span class="tr-label-final">TOTAL À PAYER</span>
+        <span class="tr-value-final">{{ commande.montantTotal }} TND</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cachet PAYÉE -->
+  <div class="paid-stamp">
+    <div class="paid-inner">✓ Paiement reçu</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Footer -->
+  <div class="footer-text">
+    <strong>CardioLink Tunisia</strong> • Marketplace Médical • Tunis, Tunisie<br>
+    Cette facture est générée automatiquement et fait foi de paiement.<br>
+    Pour toute question : <strong>contact@cardiolink.tn</strong>
+  </div>
+  <div class="footer-band"></div>
+
+</div>
+</body>
+</html>

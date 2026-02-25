@@ -16,6 +16,29 @@
       {% endif %}
     </h1>
 
+    {# Barre de recherche dans les messages #}
+    <div class="message-search-bar mb-3">
+      <div class="input-group">
+        <input 
+          type="text" 
+          class="form-control" 
+          id="messageSearch" 
+          placeholder="🔍 Chercher dans les messages..." 
+          autocomplete="off"
+        />
+        <button class="btn btn-outline-secondary" type="button" id="searchUpBtn" title="Message précédent">
+          ↑
+        </button>
+        <button class="btn btn-outline-secondary" type="button" id="searchDownBtn" title="Message suivant">
+          ↓
+        </button>
+        <span class="input-group-text" id="searchResultCount">0 résultat</span>
+        <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn">
+          ↺ Effacer
+        </button>
+      </div>
+    </div>
+
     {# Zone des messages #}
     <div class="card" style="height: 500px; overflow-y: auto; background-color: var(--bg-primary);" id="chat-box">
       <div class="card-body" id="messages-list" style="padding: 1.5rem;">
@@ -23,13 +46,11 @@
           {# On vérifie si c'est MOI ou l'AUTRE pour l'alignement #}
         {% set isMe = message.sender == app.user %}
         
-        <div class="chat-message {{ isMe ? 'me' : 'other' }}">
+        <div class="chat-message {{ isMe ? 'me' : 'other' }} message-container" data-message-id="{{ message.id }}">
             <div class="message-bubble {{ isMe ? 'me' : 'other' }}">
                 {% if not isMe %}
                     <span class="message-sender">{{ message.sender.prenom }}</span>
                 {% endif %}
-                
-                
                 
                 <div class="message-content">{{ message.content }}</div>
                 
@@ -44,8 +65,38 @@
                     <small class="badge bg-info message-badge">| 📄 Admin</small>
                 {% elseif message.classification == 'NORMAL' %}
                     <small class="badge bg-info message-badge">| 🟢 Normal</small>
-                
                 {% endif %}
+                </div>
+            </div>
+
+            {# Affichage des réactions #}
+            <div class="message-reactions" data-message-id="{{ message.id }}">
+                {% for emoji, reactions in message.reactions|group_by('emoji') %}
+                    {% set count = reactions|length %}
+                    <button class="reaction-btn" data-emoji="{{ emoji }}">
+                        {{ emoji }} <span class="reaction-count">{{ count }}</span>
+                    </button>
+                {% endfor %}
+                
+                {# Bouton + pour ajouter une réaction #}
+                <button class="add-reaction-btn" title="Ajouter une réaction">
+                    ➕
+                </button>
+            </div>
+
+            {# Sélecteur d'emoji #}
+            <div class="emoji-picker" style="display: none;">
+                <div class="emoji-grid">
+                    <span class="emoji" data-emoji="👍">👍</span>
+                    <span class="emoji" data-emoji="❤️">❤️</span>
+                    <span class="emoji" data-emoji="😂">😂</span>
+                    <span class="emoji" data-emoji="😮">😮</span>
+                    <span class="emoji" data-emoji="😢">😢</span>
+                    <span class="emoji" data-emoji="🔥">🔥</span>
+                    <span class="emoji" data-emoji="👏">👏</span>
+                    <span class="emoji" data-emoji="✨">✨</span>
+                    <span class="emoji" data-emoji="💯">💯</span>
+                    <span class="emoji" data-emoji="🎉">🎉</span>
                 </div>
             </div>
         </div>
@@ -54,13 +105,204 @@
     </div>
 
     {# Zone de saisie #}
-    <div class="mt-3">
-      <div class="input-group">
+    <div class="mt-3" style="position: relative; z-index: 100;">
+      <div class="input-group position-relative">
         <textarea class="form-control" placeholder="Votre message..." rows="2" id="messageContent"></textarea>
         <button class="btn btn-primary" id="sendBtn">Envoyer ➤</button>
       </div>
+      {# Liste des suggestions d'autocomplétion #}
+      <div id="suggestions-list" class="suggestion-dropdown" style="display: none; position: absolute; bottom: 100%; left: 0; right: 0; width: 100%; max-width: 100%;"></div>
     </div>
-  </div>     
+  </div>
+
+  <style>
+    .suggestion-dropdown {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1050 !important;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.15);
+      margin-top: -2px;
+    }
+
+    .suggestion-item {
+      padding: 12px 15px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+      transition: background-color 0.15s ease;
+      font-size: 14px;
+    }
+
+    .suggestion-item:last-child {
+      border-bottom: none;
+    }
+
+    .suggestion-item:hover,
+    .suggestion-item.active {
+      background-color: #f0f8ff;
+      border-left: 3px solid #0d6efd;
+      padding-left: 12px;
+    }
+
+    .suggestion-highlight {
+      font-weight: 600;
+      color: #0d6efd;
+    }
+
+    /* === BARRE DE RECHERCHE === */
+    .message-search-bar {
+      background: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    #messageSearch {
+      border-right: none;
+    }
+
+    #searchResultCount {
+      background: white;
+      border-left: none;
+      border-right: none;
+      font-weight: 500;
+      font-size: 13px;
+      color: #666;
+    }
+
+    #clearSearchBtn {
+      border-left: none;
+    }
+
+    #searchUpBtn,
+    #searchDownBtn {
+      border-right: none;
+      border-left: none;
+    }
+
+    #searchUpBtn:disabled,
+    #searchDownBtn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .message-not-found {
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .message-found {
+      background: #fffacd !important;
+      border-left: 3px solid #ffc107;
+      box-shadow: 0 0 8px rgba(255, 193, 7, 0.3);
+    }
+
+    .message-current-search {
+      background: #fff59d !important;
+      border-left: 4px solid #ff9800 !important;
+      box-shadow: 0 0 12px rgba(255, 152, 0, 0.5);
+    }
+
+    .message-highlight {
+      background: #ffeb3b;
+      padding: 2px 4px;
+      border-radius: 2px;
+      font-weight: 600;
+    }
+
+    /* === STYLES RÉACTIONS === */
+    .message-reactions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+      align-items: center;
+    }
+
+    .reaction-btn {
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 16px;
+      padding: 4px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .reaction-btn:hover {
+      background: #e0e0e0;
+      border-color: #999;
+    }
+
+    .reaction-btn.active {
+      background: #d4edff;
+      border-color: #0d6efd;
+    }
+
+    .reaction-count {
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .add-reaction-btn {
+      background: transparent;
+      border: 1px dashed #ccc;
+      border-radius: 16px;
+      padding: 4px 10px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .add-reaction-btn:hover {
+      border-color: #0d6efd;
+      background: #f0f8ff;
+    }
+
+    .emoji-picker {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-top: 8px;
+      z-index: 1000;
+      max-width: 250px;
+    }
+
+    .emoji-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    .emoji {
+      font-size: 24px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      user-select: none;
+      border-radius: 4px;
+      padding: 4px;
+    }
+
+    .emoji:hover {
+      transform: scale(1.2);
+      background: #f0f0f0;
+    }
+
+    .message-container:hover .add-reaction-btn {
+      opacity: 1;
+    }
+
+    .message-container:not(:hover) .add-reaction-btn {
+      opacity: 0.5;
+    }
+  </style>     
 
   {# --- SCRIPT WEBSOCKET & AJAX --- #}
 <script>
@@ -99,6 +341,272 @@
     // 4. Envoi du message
     const sendBtn = document.getElementById('sendBtn');
     const msgInput = document.getElementById('messageContent');
+    const suggestionsList = document.getElementById('suggestions-list');
+    const messageSearch = document.getElementById('messageSearch');
+    const searchResultCount = document.getElementById('searchResultCount');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+    // === RECHERCHE DE MESSAGES ===
+    let currentSearchTerm = '';
+    let foundMessages = [];
+    let currentSearchIndex = -1;
+
+    if (messageSearch) {
+        messageSearch.addEventListener('input', debounce(function() {
+            currentSearchTerm = messageSearch.value.trim().toLowerCase();
+            currentSearchIndex = -1;
+            filterMessages(currentSearchTerm);
+            updateSearchNavigation();
+        }, 300));
+
+        clearSearchBtn.addEventListener('click', function() {
+            messageSearch.value = '';
+            currentSearchTerm = '';
+            currentSearchIndex = -1;
+            foundMessages = [];
+            filterMessages('');
+            updateSearchNavigation();
+            messageSearch.focus();
+        });
+    }
+
+    const searchUpBtn = document.getElementById('searchUpBtn');
+    const searchDownBtn = document.getElementById('searchDownBtn');
+
+    if (searchUpBtn && searchDownBtn) {
+        searchUpBtn.addEventListener('click', function() {
+            if (foundMessages.length === 0) return;
+            currentSearchIndex = (currentSearchIndex - 1 + foundMessages.length) % foundMessages.length;
+            highlightCurrentSearchResult();
+        });
+
+        searchDownBtn.addEventListener('click', function() {
+            if (foundMessages.length === 0) return;
+            currentSearchIndex = (currentSearchIndex + 1) % foundMessages.length;
+            highlightCurrentSearchResult();
+        });
+    }
+
+    function filterMessages(searchTerm) {
+        const messageElements = document.querySelectorAll('.message-container');
+        foundMessages = [];
+        let matchCount = 0;
+
+        messageElements.forEach(messageElement => {
+            const messageContent = messageElement.querySelector('.message-content');
+            const messageText = messageContent ? messageContent.textContent.toLowerCase() : '';
+            
+            if (searchTerm === '') {
+                // Réinitialiser : afficher tous les messages
+                messageElement.classList.remove('message-not-found', 'message-found', 'message-current-search');
+                messageContent.innerHTML = messageContent.textContent; // Supprimer les highlights
+            } else if (messageText.includes(searchTerm)) {
+                // Message trouvé
+                messageElement.classList.remove('message-not-found');
+                messageElement.classList.add('message-found');
+                
+                // Ajouter les highlights
+                const originalText = messageContent.textContent;
+                const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                const highlightedText = originalText.replace(regex, '<span class="message-highlight">$1</span>');
+                messageContent.innerHTML = highlightedText;
+                
+                foundMessages.push(messageElement);
+                matchCount++;
+            } else {
+                // Message non trouvé
+                messageElement.classList.remove('message-found');
+                messageElement.classList.add('message-not-found');
+                messageContent.innerHTML = messageContent.textContent; // Supprimer les highlights
+            }
+        });
+
+        // Mise à jour du compteur
+        if (searchTerm === '') {
+            searchResultCount.textContent = '0 résultat';
+        } else {
+            searchResultCount.textContent = matchCount + ' résultat' + (matchCount > 1 ? 's' : '');
+        }
+    }
+
+    function highlightCurrentSearchResult() {
+        // Retirer la classe du message précédent
+        foundMessages.forEach(msg => {
+            msg.classList.remove('message-current-search');
+        });
+
+        // Ajouter la classe au message actuel
+        if (currentSearchIndex >= 0 && currentSearchIndex < foundMessages.length) {
+            const currentMsg = foundMessages[currentSearchIndex];
+            currentMsg.classList.add('message-current-search');
+
+            // Scroller vers le message
+            const chatBox = document.getElementById('chat-box');
+            if (chatBox) {
+                chatBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                currentMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            // Mettre à jour le compteur pour afficher X/Y
+            updateSearchResultsDisplay();
+        }
+    }
+
+    function updateSearchNavigation() {
+        // Activer/désactiver les boutons selon le nombre de résultats
+        if (searchUpBtn && searchDownBtn) {
+            const hasResults = foundMessages.length > 0;
+            searchUpBtn.disabled = !hasResults;
+            searchDownBtn.disabled = !hasResults;
+        }
+    }
+
+    function updateSearchResultsDisplay() {
+        if (foundMessages.length === 0) return;
+        const position = currentSearchIndex + 1;
+        searchResultCount.textContent = `${position}/${foundMessages.length}`;
+    }
+
+    // === FIN RECHERCHE DE MESSAGES ===
+
+    // === AUTOCOMPLÉTION ===
+    let selectedSuggestionIndex = -1;
+    let currentSuggestions = [];
+
+    if (msgInput) {
+        // Récupérer les suggestions
+        msgInput.addEventListener('input', debounce(async function() {
+            const input = msgInput.value.trim();
+            
+            console.log('🔍 Input:', input, 'Length:', input.length);
+            
+            if (input.length < 2) {
+                suggestionsList.style.display = 'none';
+                console.log('❌ Input trop court');
+                return;
+            }
+
+            try {
+                const url = "{{ path('app_conversation_suggestions', {id: conversation.id}) }}";
+                console.log('📡 Fetch URL:', url);
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ input: input })
+                });
+
+                console.log('✅ Response status:', response.status);
+                
+                const data = await response.json();
+                console.log('📦 Response data:', data);
+                
+                currentSuggestions = data.suggestions || [];
+                selectedSuggestionIndex = -1;
+
+                console.log('💡 Suggestions reçues:', currentSuggestions.length, currentSuggestions);
+
+                if (currentSuggestions.length > 0) {
+                    displaySuggestions(input);
+                } else {
+                    suggestionsList.style.display = 'none';
+                    console.log('⚠️ Aucune suggestion trouvée');
+                }
+            } catch (error) {
+                console.error('❌ Erreur autocomplétion:', error);
+            }
+        }, 300));
+
+        // Navigation au clavier
+        msgInput.addEventListener('keydown', function(e) {
+            if (suggestionsList.style.display === 'none') return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, currentSuggestions.length - 1);
+                updateSuggestionSelection();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, -1);
+                updateSuggestionSelection();
+            } else if (e.key === 'Enter' && selectedSuggestionIndex !== -1) {
+                e.preventDefault();
+                selectSuggestion(currentSuggestions[selectedSuggestionIndex]);
+            } else if (e.key === 'Escape') {
+                suggestionsList.style.display = 'none';
+            }
+        });
+    }
+
+    function displaySuggestions(input) {
+        suggestionsList.innerHTML = '';
+        currentSuggestions.forEach((suggestion, index) => {
+            const item = document.createElement('div');
+            item.className = 'suggestion-item';
+            
+            // Surligner la partie qui correspond à l'input
+            const inputLower = input.toLowerCase();
+            const suggestionLower = suggestion.toLowerCase();
+            const matchIndex = suggestionLower.indexOf(inputLower);
+            
+            let highlightedText = suggestion;
+            if (matchIndex !== -1) {
+                const before = suggestion.substring(0, matchIndex);
+                const match = suggestion.substring(matchIndex, matchIndex + input.length);
+                const after = suggestion.substring(matchIndex + input.length);
+                highlightedText = `${before}<span class="suggestion-highlight">${match}</span>${after}`;
+            }
+            
+            item.innerHTML = highlightedText;
+            item.addEventListener('click', () => selectSuggestion(suggestion));
+            item.addEventListener('mouseenter', () => {
+                selectedSuggestionIndex = index;
+                updateSuggestionSelection();
+            });
+            
+            suggestionsList.appendChild(item);
+        });
+        suggestionsList.style.display = 'block';
+    }
+
+    function updateSuggestionSelection() {
+        const items = suggestionsList.querySelectorAll('.suggestion-item');
+        items.forEach((item, index) => {
+            item.classList.toggle('active', index === selectedSuggestionIndex);
+        });
+    }
+
+    function selectSuggestion(suggestion) {
+        msgInput.value = suggestion + ' ';
+        suggestionsList.style.display = 'none';
+        msgInput.focus();
+        msgInput.setSelectionRange(msgInput.value.length, msgInput.value.length);
+        selectedSuggestionIndex = -1;
+    }
+
+    // Fonction debounce pour limiter les appels API
+    function debounce(func, delay) {
+        let timeoutId;
+        return function(...args) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func(...args), delay);
+        };
+    }
+
+    // Fermer les suggestions quand on clique ailleurs
+    document.addEventListener('click', function(e) {
+        if (msgInput && suggestionsList) {
+            const isClickInTextarea = msgInput.contains(e.target);
+            const isClickInSuggestions = suggestionsList.contains(e.target);
+            
+            if (!isClickInTextarea && !isClickInSuggestions) {
+                console.log('🔚 Fermeture des suggestions');
+                suggestionsList.style.display = 'none';
+            }
+        }
+    });
+
+    // === FIN AUTOCOMPLÉTION ===
 
     if (sendBtn && msgInput) {
         sendBtn.addEventListener('click', sendMessage);
@@ -142,6 +650,7 @@
                 };
                 appendMessage(content, true, 'Moi', data.createdAt, data.classification);
                 msgInput.value = '';
+                suggestionsList.style.display = 'none';
                     socket.send(JSON.stringify(payload));
                 }
             }
@@ -168,11 +677,28 @@
         const statusHtml = isMe ? '<span class="message-status sent"></span>' : '';
 
         const html = `
-            <div class="chat-message ${isMe ? 'me' : 'other'}">
+            <div class="chat-message ${isMe ? 'me' : 'other'} message-container" data-message-id="">
                 <div class="message-bubble ${isMe ? 'me' : 'other'}">
                     ${senderDisplay}
                     <div class="message-content">${text}</div>
                     <div class="message-time">${time}${statusHtml} | ${badgeHtml}</div>
+                </div>
+                <div class="message-reactions" data-message-id="">
+                    <button class="add-reaction-btn" title="Ajouter une réaction">➕</button>
+                    <div class="emoji-picker" style="display: none;">
+                        <div class="emoji-grid">
+                            <span class="emoji" data-emoji="👍">👍</span>
+                            <span class="emoji" data-emoji="❤️">❤️</span>
+                            <span class="emoji" data-emoji="😂">😂</span>
+                            <span class="emoji" data-emoji="😮">😮</span>
+                            <span class="emoji" data-emoji="😢">😢</span>
+                            <span class="emoji" data-emoji="🔥">🔥</span>
+                            <span class="emoji" data-emoji="👏">👏</span>
+                            <span class="emoji" data-emoji="✨">✨</span>
+                            <span class="emoji" data-emoji="💯">💯</span>
+                            <span class="emoji" data-emoji="🎉">🎉</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
@@ -180,7 +706,96 @@
         list.insertAdjacentHTML('beforeend', html);
         const chatBox = document.getElementById('chat-box');
         if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+        
+        // Attacher les événements aux réactions du nouveau message
+        attachReactionEvents(list.lastElementChild);
     }
+
+    // === GESTION DES RÉACTIONS ===
+    function attachReactionEvents(messageElement) {
+        const addBtn = messageElement.querySelector('.add-reaction-btn');
+        const emojiPicker = messageElement.querySelector('.emoji-picker');
+        const emojis = messageElement.querySelectorAll('.emoji');
+        const messageContainer = messageElement;
+
+        if (addBtn) {
+            addBtn.addEventListener('click', function() {
+                emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
+            });
+        }
+
+        emojis.forEach(emoji => {
+            emoji.addEventListener('click', function() {
+                const selectedEmoji = this.getAttribute('data-emoji');
+                addReaction(messageContainer, selectedEmoji);
+                emojiPicker.style.display = 'none';
+            });
+        });
+    }
+
+    function addReaction(messageElement, emoji) {
+        const messageId = messageElement.getAttribute('data-message-id');
+        
+        if (!messageId) {
+            console.warn('❌ Message ID non trouvé');
+            return;
+        }
+
+        fetch("{{ path('app_message_react', {id: 'DUMMY'}) }}".replace('DUMMY', messageId), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ emoji: emoji })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('😊 Réaction:', data);
+            
+            if (data.status === 'added' || data.status === 'removed') {
+                updateReactionsDisplay(messageElement, data.reactions);
+            }
+        })
+        .catch(error => console.error('❌ Erreur réaction:', error));
+    }
+
+    function updateReactionsDisplay(messageElement, reactions) {
+        const reactionsContainer = messageElement.querySelector('.message-reactions');
+        
+        // Récréer l'affichage des réactions
+        let reactionsHtml = '';
+        reactions.forEach(reaction => {
+            const isActive = reaction.hasReacted ? ' active' : '';
+            reactionsHtml += `<button class="reaction-btn${isActive}" data-emoji="${reaction.emoji}">
+                ${reaction.emoji} <span class="reaction-count">${reaction.count}</span>
+            </button>`;
+        });
+
+        // Ajouter le bouton +
+        reactionsHtml += `<button class="add-reaction-btn" title="Ajouter une réaction">➕</button>
+            <div class="emoji-picker" style="display: none;">
+                <div class="emoji-grid">
+                    <span class="emoji" data-emoji="👍">👍</span>
+                    <span class="emoji" data-emoji="❤️">❤️</span>
+                    <span class="emoji" data-emoji="😂">😂</span>
+                    <span class="emoji" data-emoji="😮">😮</span>
+                    <span class="emoji" data-emoji="😢">😢</span>
+                    <span class="emoji" data-emoji="🔥">🔥</span>
+                    <span class="emoji" data-emoji="👏">👏</span>
+                    <span class="emoji" data-emoji="✨">✨</span>
+                    <span class="emoji" data-emoji="💯">💯</span>
+                    <span class="emoji" data-emoji="🎉">🎉</span>
+                </div>
+            </div>`;
+
+        reactionsContainer.innerHTML = reactionsHtml;
+        
+        // Réattacher les événements
+        attachReactionEvents(messageElement);
+    }
+
+    // Attacher les événements à tous les messages au chargement
+    document.querySelectorAll('.message-container').forEach(messageElement => {
+        attachReactionEvents(messageElement);
+    });
     
     // Scroll au chargement
     const chatBox = document.getElementById('chat-box');

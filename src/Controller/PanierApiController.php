@@ -97,7 +97,6 @@ final class PanierApiController extends AbstractController
             return $this->json(['error' => 'Panier non modifiable'], 409);
         }
 
-        // ✅ contrôle stock (nouvelle quantité totale)
         foreach ($panier->getLignes() as $ligne) {
             if ($ligne->getProduit()->getId() === $produit->getId()) {
                 $newQty = $ligne->getQuantite() + $quantite;
@@ -112,7 +111,7 @@ final class PanierApiController extends AbstractController
                 }
 
                 $ligne->setQuantite($newQty);
-                $panier->recalculateTotal(); // ✅ total garanti
+                $panier->recalculateTotal();
                 $em->flush();
 
                 return $this->json(['message' => 'Quantité mise à jour', 'panier' => $this->commandeToArray($panier)]);
@@ -132,10 +131,10 @@ final class PanierApiController extends AbstractController
         $ligne = new LigneCommande();
         $ligne->setProduit($produit);
         $ligne->setQuantite($quantite);
-        $ligne->setPrixUnitaire($produit->getPrix()); // gel prix
+        $ligne->setPrixUnitaire($produit->getPrix());
 
         $panier->addLigne($ligne);
-        $panier->recalculateTotal(); // ✅ total garanti
+        $panier->recalculateTotal();
 
         $em->persist($ligne);
         $em->flush();
@@ -169,7 +168,6 @@ final class PanierApiController extends AbstractController
         $quantite = (int)($data['quantite'] ?? 0);
         if ($quantite < 1) return $this->json(['error' => 'quantite doit être >= 1'], 422);
 
-        // ✅ contrôle stock sur la nouvelle quantité
         $produit = $ligne->getProduit();
         if (($produit->getStock() ?? 0) < $quantite) {
             return $this->json([
@@ -182,7 +180,7 @@ final class PanierApiController extends AbstractController
         }
 
         $ligne->setQuantite($quantite);
-        $commande->recalculateTotal(); // ✅ total garanti
+        $commande->recalculateTotal();
         $em->flush();
 
         return $this->json(['message' => 'Ligne mise à jour', 'panier' => $this->commandeToArray($commande)]);
@@ -210,7 +208,7 @@ final class PanierApiController extends AbstractController
         }
 
         $commande->removeLigne($ligne);
-        $commande->recalculateTotal(); // ✅ total garanti
+        $commande->recalculateTotal();
 
         $em->remove($ligne);
         $em->flush();
@@ -218,7 +216,7 @@ final class PanierApiController extends AbstractController
         return $this->json(['message' => 'Ligne supprimée', 'panier' => $this->commandeToArray($commande)]);
     }
 
-   #[Route('/checkout', name: 'api_panier_checkout', methods: ['POST'])]
+    #[Route('/checkout', name: 'api_panier_checkout', methods: ['POST'])]
 public function checkout(CommandeRepository $commandeRepo, EntityManagerInterface $em): JsonResponse
 {
     if ($resp = $this->getUserOr401()) return $resp;
@@ -231,48 +229,27 @@ public function checkout(CommandeRepository $commandeRepo, EntityManagerInterfac
     if (!$panier->canEditPanier()) return $this->json(['error' => 'Panier non modifiable'], 409);
     if ($panier->getLignes()->count() === 0) return $this->json(['error' => 'Panier vide'], 409);
 
-    $conn = $em->getConnection();
-    $conn->beginTransaction();
+    foreach ($panier->getLignes() as $l) {
+        $p = $l->getProduit();
+        if (($p->getStock() ?? 0) < $l->getQuantite()) {
+            return $this->json([
+                'error' => 'Stock insuffisant',
+                'produit' => $p->getNom()
+            ], 409);
+        }
+    }
 
     try {
-        foreach ($panier->getLignes() as $l) {
-            $em->lock($l->getProduit(), LockMode::PESSIMISTIC_WRITE);
-        }
-
-        foreach ($panier->getLignes() as $l) {
-            $p = $l->getProduit();
-            if (($p->getStock() ?? 0) < $l->getQuantite()) {
-                $conn->rollBack();
-                return $this->json([
-                    'error' => 'Stock insuffisant',
-                    'produit' => $p->getNom()
-                ], 409);
-            }
-        }
-
-        foreach ($panier->getLignes() as $l) {
-            $p = $l->getProduit();
-            $p->setStock(($p->getStock() ?? 0) - $l->getQuantite());
-        }
-
         $panier->recalculateTotal();
-        $panier->validerCommande();
-
+        $panier->validerCommande(); 
         $em->flush();
-        $conn->commit();
 
         return $this->json([
             'message' => 'Commande validée (EN_ATTENTE_PAIEMENT)',
             'commande' => $this->commandeToArray($panier)
         ]);
     } catch (\Throwable $e) {
-        if ($conn->isTransactionActive()) {
-            $conn->rollBack();
-        }
-        return $this->json([
-            'error' => 'Checkout échoué',
-            'details' => $e->getMessage()
-        ], 500);
+        return $this->json(['error' => 'Checkout échoué', 'details' => $e->getMessage()], 500);
     }
 }
 }

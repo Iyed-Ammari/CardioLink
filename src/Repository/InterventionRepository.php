@@ -17,8 +17,24 @@ class InterventionRepository extends ServiceEntityRepository
     }
 
     /**
-     * Récupère toutes les interventions en attente
+     * Recherche et tri des interventions en attente
      */
+    public function findBySearch(?string $term, string $direction = 'ASC')
+    {
+        $qb = $this->createQueryBuilder('i')
+            ->andWhere('i.statut = :statut')
+            ->setParameter('statut', 'En attente');
+
+        if ($term) {
+            $qb->andWhere('i.type LIKE :term OR i.description LIKE :term')
+               ->setParameter('term', '%' . $term . '%');
+        }
+
+        $qb->orderBy('i.datePlanifiee', $direction);
+
+        return $qb->getQuery()->getResult();
+    }
+
     public function findPending()
     {
         return $this->createQueryBuilder('i')
@@ -29,9 +45,6 @@ class InterventionRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère toutes les alertes SOS urgentes
-     */
     public function findUrgentSOS()
     {
         return $this->createQueryBuilder('i')
@@ -44,9 +57,6 @@ class InterventionRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère les interventions d'un médecin
-     */
     public function findByMedecin($medecinId)
     {
         return $this->createQueryBuilder('i')
@@ -57,9 +67,6 @@ class InterventionRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Récupère l'intervention associée à un suivi
-     */
     public function findBySuiviOrigine($suiviId)
     {
         return $this->createQueryBuilder('i')
