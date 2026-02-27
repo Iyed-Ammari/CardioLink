@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
@@ -24,8 +25,42 @@ class DossierMedicalController extends AbstractController
         $dossier = $em->getRepository(DossierMedical::class)->findOneBy(['user' => $user]);
 
         return $this->render('dossier_medical/mon_dossier.html.twig', [
-            'dossier' => $dossier
+            'dossier' => $dossier,
         ]);
+    }
+
+    #[Route('/api/hospitals', name: 'api_hospitals', methods: ['GET'])]
+    public function nearbyHospitals(Request $request, HttpClientInterface $client): JsonResponse
+    {
+        $lat = $request->query->get('lat', '36.8065');
+        $lng = $request->query->get('lng', '10.1815');
+
+        try {
+            $response = $client->request('GET', 'https://serpapi.com/search', [
+                'query' => [
+                    'engine'  => 'google_maps',
+                    'q'       => 'hôpital clinique',
+                    'll'      => "@{$lat},{$lng},14z",
+                    'type'    => 'search',
+                    'api_key' => $_ENV['SERPAPI_KEY'],
+                ]
+            ]);
+
+            $data = $response->toArray();
+
+            $hospitals = array_map(fn($place) => [
+                'name'    => $place['title'] ?? 'Inconnu',
+                'address' => $place['address'] ?? '',
+                'lat'     => $place['gps_coordinates']['latitude'] ?? null,
+                'lng'     => $place['gps_coordinates']['longitude'] ?? null,
+                'rating'  => $place['rating'] ?? null,
+            ], array_slice($data['local_results'] ?? [], 0, 8));
+
+            return new JsonResponse($hospitals);
+
+        } catch (\Exception $e) {
+            return new JsonResponse([], 200);
+        }
     }
 
     #[Route('/mon-dossier/edit', name: 'app_mon_dossier_edit')]
@@ -130,7 +165,7 @@ class DossierMedicalController extends AbstractController
         $dossiers = $qb->getQuery()->getResult();
 
         return $this->render('dossier_medical/admin_index.html.twig', [
-            'dossiers' => $dossiers,
+            'dossiers'      => $dossiers,
             'groupeSanguin' => $groupeSanguin
         ]);
     }
@@ -180,6 +215,48 @@ class DossierMedicalController extends AbstractController
         return $this->redirectToRoute('admin_dossier_index');
     }
 
+    // ========== EVOLUTION ==========
+
+    #[Route('/admin/dossiers/{id}/evolution', name: 'admin_dossier_evolution')]
+    public function evolution(DossierMedical $dossier): Response
+    {
+        $prediction = null;
+        $error = null;
+
+        try {
+            $data = json_encode([
+                'imc'                => $dossier->getIMC(),
+                'tensionSystolique'  => $dossier->getTensionSystolique(),
+                'tensionDiastolique' => $dossier->getTensionDiastolique(),
+                'frequenceCardiaque' => $dossier->getFrequenceCardiaque(),
+            ]);
+
+            $ch = curl_init('http://127.0.0.1:5000/predict_evolution');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($response && $httpCode === 200) {
+                $prediction = json_decode($response, true);
+            } else {
+                $error = "Service de prédiction indisponible.";
+            }
+        } catch (\Exception $e) {
+            $error = "Service de prédiction indisponible.";
+        }
+
+        return $this->render('dossier_medical/evolution.html.twig', [
+            'dossier'    => $dossier,
+            'prediction' => $prediction,
+            'error'      => $error
+        ]);
+    }
+
     // ========== API ==========
 
     #[Route('/api/dossiers', name: 'api_dossier_list', methods: ['GET'])]
@@ -190,10 +267,10 @@ class DossierMedicalController extends AbstractController
 
         foreach ($dossiers as $d) {
             $data[] = [
-                'id' => $d->getId(),
-                'patient' => $d->getUser()->getNom().' '.$d->getUser()->getPrenom(),
-                'groupeSanguin' => $d->getGroupeSanguin(),
-                'imc' => $d->getIMC(),
+                'id'              => $d->getId(),
+                'patient'         => $d->getUser()->getNom().' '.$d->getUser()->getPrenom(),
+                'groupeSanguin'   => $d->getGroupeSanguin(),
+                'imc'             => $d->getIMC(),
                 'risqueCardiaque' => $d->getRisqueCardiaque(),
             ];
         }
@@ -205,18 +282,18 @@ class DossierMedicalController extends AbstractController
     public function apiShow(DossierMedical $dossier): JsonResponse
     {
         return new JsonResponse([
-            'id' => $dossier->getId(),
-            'patient' => $dossier->getUser()->getNom().' '.$dossier->getUser()->getPrenom(),
-            'groupeSanguin' => $dossier->getGroupeSanguin(),
-            'antecedents' => $dossier->getAntecedents(),
-            'allergies' => $dossier->getAllergies(),
-            'poids' => $dossier->getPoids(),
-            'taille' => $dossier->getTaille(),
-            'imc' => $dossier->getIMC(),
-            'tensionSystolique' => $dossier->getTensionSystolique(),
+            'id'                 => $dossier->getId(),
+            'patient'            => $dossier->getUser()->getNom().' '.$dossier->getUser()->getPrenom(),
+            'groupeSanguin'      => $dossier->getGroupeSanguin(),
+            'antecedents'        => $dossier->getAntecedents(),
+            'allergies'          => $dossier->getAllergies(),
+            'poids'              => $dossier->getPoids(),
+            'taille'             => $dossier->getTaille(),
+            'imc'                => $dossier->getIMC(),
+            'tensionSystolique'  => $dossier->getTensionSystolique(),
             'tensionDiastolique' => $dossier->getTensionDiastolique(),
             'frequenceCardiaque' => $dossier->getFrequenceCardiaque(),
-            'risqueCardiaque' => $dossier->getRisqueCardiaque(),
+            'risqueCardiaque'    => $dossier->getRisqueCardiaque(),
         ]);
     }
 }

@@ -1,0 +1,138 @@
+{% extends 'dashboard/base_dashboard.html.twig' %}
+
+{% block body %}
+<div style="max-width:900px; margin:40px auto;">
+
+    <h2>📈 Évolution Prédite — {{ dossier.user.nom }} {{ dossier.user.prenom }}</h2>
+    <p style="color:#6B7280; margin-bottom:30px;">
+        Prédiction par Régression Logistique sur 6 mois
+    </p>
+
+    {% if error %}
+        <div style="background:#fee2e2; color:red; padding:15px; border-radius:12px;">
+            ⚠️ {{ error }}
+        </div>
+
+    {% elseif prediction %}
+
+        {# Risque actuel #}
+        <div style="background:#fff; border-radius:16px; padding:25px; box-shadow:0 4px 15px rgba(0,0,0,0.08); margin-bottom:20px; text-align:center;">
+            <h3>Risque Actuel</h3>
+            <div style="font-size:56px; font-weight:800; color:
+                {{ prediction.risqueActuel == 'CRITIQUE' ? '#dc2626' :
+                   prediction.risqueActuel == 'ÉLEVÉ' ? '#ea580c' :
+                   prediction.risqueActuel == 'MODÉRÉ' ? '#ca8a04' : '#16a34a' }};">
+                {{ prediction.probabiliteActuelle }}%
+            </div>
+            <div style="font-size:20px; font-weight:700;">
+                {{ prediction.risqueActuel }}
+            </div>
+        </div>
+
+        {# Graphique évolution #}
+        <div style="background:#fff; border-radius:16px; padding:25px; box-shadow:0 4px 15px rgba(0,0,0,0.08); margin-bottom:20px;">
+            <h3 style="margin-bottom:15px;">📊 Courbe d'évolution sur 6 mois</h3>
+            <canvas id="evolutionChart" height="80"></canvas>
+        </div>
+
+        {# Tableau évolution #}
+        <div style="background:#fff; border-radius:16px; padding:25px; box-shadow:0 4px 15px rgba(0,0,0,0.08); margin-bottom:20px;">
+            <h3 style="margin-bottom:15px;">📋 Détail mois par mois</h3>
+            <table style="width:100%; border-collapse:collapse;">
+                <tr style="background:#f9fafb;">
+                    <th style="padding:12px; text-align:left;">Mois</th>
+                    <th style="padding:12px; text-align:left;">IMC prédit</th>
+                    <th style="padding:12px; text-align:left;">Tension prédite</th>
+                    <th style="padding:12px; text-align:left;">Probabilité</th>
+                    <th style="padding:12px; text-align:left;">Risque prédit</th>
+                </tr>
+                {% for e in prediction.evolution %}
+                <tr style="{{ loop.index is odd ? 'background:#f9fafb;' : '' }}">
+                    <td style="padding:12px;">Mois {{ e.mois }}</td>
+                    <td style="padding:12px;">{{ e.imc }}</td>
+                    <td style="padding:12px;">{{ e.tension }} mmHg</td>
+                    <td style="padding:12px; font-weight:700;">{{ e.probabilite }}%</td>
+                    <td style="padding:12px;">
+                        <span style="color:
+                            {{ e.risque == 'CRITIQUE' ? '#dc2626' :
+                               e.risque == 'ÉLEVÉ' ? '#ea580c' :
+                               e.risque == 'MODÉRÉ' ? '#ca8a04' : '#16a34a' }};
+                            font-weight:700;">
+                            {{ e.risque == 'CRITIQUE' ? '🔴' :
+                               e.risque == 'ÉLEVÉ' ? '🟠' :
+                               e.risque == 'MODÉRÉ' ? '🟡' : '🟢' }}
+                            {{ e.risque }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+        const ctx = document.getElementById('evolutionChart').getContext('2d');
+        const evolution = {{ prediction.evolution|json_encode|raw }};
+
+        const labels = evolution.map(e => 'Mois ' + e.mois);
+        const probabilities = evolution.map(e => e.probabilite);
+        const imcData = evolution.map(e => e.imc);
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Probabilité risque (%)',
+                        data: probabilities,
+                        borderColor: '#F82239',
+                        backgroundColor: 'rgba(248,34,57,0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'IMC prédit',
+                        data: imcData,
+                        borderColor: '#2F60F5',
+                        backgroundColor: 'rgba(47,96,245,0.1)',
+                        fill: false,
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        min: 0,
+                        max: 100,
+                        title: { display: true, text: 'Probabilité (%)' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: { display: true, text: 'IMC' }
+                    }
+                }
+            }
+        });
+        </script>
+
+    {% endif %}
+
+    <br>
+    <a href="{{ path('admin_dossier_show', {id: dossier.id}) }}"
+       style="background:linear-gradient(90deg,#F82239,#2F60F5); color:#fff; padding:12px 24px; border-radius:12px; text-decoration:none; font-weight:800;">
+        ← Retour au dossier
+    </a>
+
+</div>
+{% endblock %}
