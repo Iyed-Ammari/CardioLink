@@ -1,0 +1,10 @@
+phrase1,phrase2,score
+"J'ai des courbatures et de la fièvre","Je tremble et mon corps est brûlant",0.90
+"Mon cœur bat trop vite sans effort","Je fais de la tachycardie au repos",0.95
+"J'ai du mal à respirer en montant les escaliers","Je suis essoufflé après un effort physique",0.88
+"Le traitement me donne des vertiges","J'ai la tête qui tourne à cause du médicament",0.92
+"Je me sens très triste depuis mon opération","Le moral est au plus bas après la chirurgie",0.85
+"Quelle est la dose pour ce cachet ?","Combien de comprimés dois-je prendre par jour ?",0.90
+"J'ai une douleur aiguë dans la poitrine","Je ressens un pincement très fort au cœur",0.93
+"La grippe m'empêche de me lever","Je suis cloué au lit par le virus",0.87
+"Ma tension est très haute ce matin","Je fais une poussée d'hypertension",0.96
