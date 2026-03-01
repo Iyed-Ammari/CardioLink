@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -61,24 +62,23 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255, nullable: true)]
     #[Assert\Length(max: 255, maxMessage: "L'adresse du cabinet ne peut pas dépasser 255 caractères.")]
     private ?string $cabinet = null;
-   
-   #[ORM\Column(type: 'datetime')]
-   private ?\DateTimeInterface $createdAt = null;
 
+    #[ORM\Column(type: 'datetime')]
+    private ?\DateTimeInterface $createdAt = null;
 
-    #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private ?DossierMedical $dossierMedical = null;
 
     #[ORM\Column]
     private bool $isVerified = false;
+
     #[ORM\Column]
     private bool $isActive = true;
 
 
-    
     // --- RELATIONS MASTER ---
 
-    #[ORM\OneToMany(mappedBy: 'patient', targetEntity: Suivi::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToMany(mappedBy: 'patient', targetEntity: Suivi::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $suivis;
 
     #[ORM\OneToMany(mappedBy: 'medecin', targetEntity: Intervention::class)]
@@ -89,7 +89,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var Collection<int, Commande>
      */
-    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Commande::class, orphanRemoval: true)]
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Commande::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $commandes;
 
     /**
@@ -115,6 +115,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     #[ORM\OneToMany(targetEntity: Conversation::class, mappedBy: 'medecin')]
     private Collection $conversationsAsMedecin;
+
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $imageUrl = null;
 
@@ -124,7 +125,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Message::class, mappedBy: 'sender')]
     private Collection $messages;
 
-    // --- RELATIONS FORUM (AJOUTS) ---
+    // --- RELATIONS FORUM ---
 
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: Post::class, orphanRemoval: true)]
     private Collection $posts;
@@ -134,7 +135,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function __construct()
     {
-        // Initialisations existantes (Master + Commun)
         $this->suivis = new ArrayCollection();
         $this->interventions = new ArrayCollection();
         $this->conversationsAsPatient = new ArrayCollection();
@@ -143,25 +143,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->rendezVouses = new ArrayCollection();
         $this->rendezVousMedecin = new ArrayCollection();
         $this->commandes = new ArrayCollection();
-
-        // Initialisations Forum (Ajout)
         $this->posts = new ArrayCollection();
         $this->comments = new ArrayCollection();
         $this->createdAt = new \DateTime();
     }
 
-    // --- GETTERS & SETTERS STANDARDS ---
-     public function getCreatedAt(): ?\DateTimeInterface
-    {
-        return $this->createdAt;
-    }
+    public function getCreatedAt(): ?\DateTimeInterface { return $this->createdAt; }
+    public function setCreatedAt(\DateTimeInterface $createdAt): static { $this->createdAt = $createdAt; return $this; }
+
     public function getImageUrl(): ?string { return $this->imageUrl; }
     public function setImageUrl(?string $imageUrl): static { $this->imageUrl = $imageUrl; return $this; }
-    public function setCreatedAt(\DateTimeInterface $createdAt): static
-    {
-        $this->createdAt = $createdAt;
-        return $this;
-    }
 
     public function getId(): ?int { return $this->id; }
 
@@ -176,13 +167,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $roles[] = 'ROLE_USER';
         return array_unique($roles);
     }
+
     public function isActive(): bool { return $this->isActive; }
     public function setIsActive(bool $isActive): static { $this->isActive = $isActive; return $this; }
 
     public function setRoles(array $roles): static { $this->roles = $roles; return $this; }
 
     public function getPassword(): ?string { return $this->password; }
-    public function setPassword(string $password): static { $this->password = $password; return $this; }
+    public function setPassword(#[\SensitiveParameter] string $password): static
+    {
+        $this->password = $password;
+        return $this;
+    }
 
     public function eraseCredentials(): void { }
 
@@ -214,7 +210,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function isVerified(): bool { return $this->isVerified; }
     public function setIsVerified(bool $isVerified): static { $this->isVerified = $isVerified; return $this; }
 
-    // --- GETTERS & SETTERS MASTER (SUIVIS & INTERVENTIONS) ---
+    // --- SUIVIS & INTERVENTIONS ---
 
     public function getSuivis(): Collection { return $this->suivis; }
     public function addSuivi(Suivi $suivi): static
@@ -254,7 +250,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    // --- GETTERS & SETTERS COMMUNS (COMMANDES, RDV, MESSAGES) ---
+    // --- COMMANDES, RDV, MESSAGES ---
 
     public function getCommandes(): Collection { return $this->commandes; }
     public function addCommande(Commande $commande): static
@@ -370,13 +366,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    // --- GETTERS & SETTERS FORUM (AJOUTS) ---
+    // --- FORUM ---
 
-    public function getPosts(): Collection
-    {
-        return $this->posts;
-    }
-
+    public function getPosts(): Collection { return $this->posts; }
     public function addPost(Post $post): static
     {
         if (!$this->posts->contains($post)) {
@@ -385,7 +377,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         }
         return $this;
     }
-
     public function removePost(Post $post): static
     {
         if ($this->posts->removeElement($post)) {
@@ -396,11 +387,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getComments(): Collection
-    {
-        return $this->comments;
-    }
-
+    public function getComments(): Collection { return $this->comments; }
     public function addComment(Comment $comment): static
     {
         if (!$this->comments->contains($comment)) {
@@ -409,7 +396,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         }
         return $this;
     }
-
     public function removeComment(Comment $comment): static
     {
         if ($this->comments->removeElement($comment)) {

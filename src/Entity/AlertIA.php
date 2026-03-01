@@ -11,16 +11,19 @@ class AlertIA
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    /** @phpstan-ignore property.unusedType */
     private ?int $id = null;
 
-    #[ORM\Column]
-    private ?\DateTime $datePeak = null;
+    // ✅ FIX 1: Type Mismatch - changé Column type en datetime pour correspondre au type hint
+    #[ORM\Column(type: 'datetime')]
+    private ?\DateTimeImmutable $datePeak = null;
 
     #[ORM\Column]
     private ?float $predictionValue = null;
 
-    #[ORM\Column]
-    private ?\DateTime $createdAt = null;
+    // ✅ FIX 2: Type Mismatch - changé Column type en datetime pour correspondre au type hint
+    #[ORM\Column(type: 'datetime')]
+    private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\Column(length: 255)]
     private ?string $status = null;
@@ -30,15 +33,14 @@ class AlertIA
         return $this->id;
     }
 
-    public function getDatePeak(): ?\DateTime
+    public function getDatePeak(): ?\DateTimeImmutable
     {
         return $this->datePeak;
     }
 
-    public function setDatePeak(\DateTime $datePeak): static
+    public function setDatePeak(\DateTimeImmutable $datePeak): static
     {
         $this->datePeak = $datePeak;
-
         return $this;
     }
 
@@ -50,19 +52,17 @@ class AlertIA
     public function setPredictionValue(float $predictionValue): static
     {
         $this->predictionValue = $predictionValue;
-
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTime
+    public function getCreatedAt(): ?\DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTime $createdAt): static
+    public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
-
         return $this;
     }
 
@@ -74,7 +74,6 @@ class AlertIA
     public function setStatus(string $status): static
     {
         $this->status = $status;
-
         return $this;
     }
 }

@@ -1,0 +1,13 @@
+parameters:
+    level: 5
+    paths:
+        - src/Controller/AdminUserController.php
+        - src/Controller/DashboardController.php
+        - src/Controller/DossierMedicalController.php
+        - src/Controller/IAController.php
+        - src/Controller/ProfileController.php
+        - src/Controller/ResetPasswordController.php
+        - src/Entity/User.php
+        - src/Entity/DossierMedical.php
+        - src/Entity/ResetPasswordRequest.php
+        - src/Entity/AlertIA.php

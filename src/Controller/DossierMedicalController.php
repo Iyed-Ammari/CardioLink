@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\DossierMedical;
+use App\Entity\User;
 use App\Repository\DossierMedicalRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,7 +22,8 @@ class DossierMedicalController extends AbstractController
     #[Route('/mon-dossier', name: 'app_mon_dossier')]
     public function monDossier(EntityManagerInterface $em): Response
     {
-        $user = $this->getUser();
+        /** @var User $user */
+        $user = $this->getUser(); // ✅ CORRIGÉ
         $dossier = $em->getRepository(DossierMedical::class)->findOneBy(['user' => $user]);
 
         return $this->render('dossier_medical/mon_dossier.html.twig', [
@@ -66,7 +68,8 @@ class DossierMedicalController extends AbstractController
     #[Route('/mon-dossier/edit', name: 'app_mon_dossier_edit')]
     public function editMonDossier(Request $request, EntityManagerInterface $em): Response
     {
-        $user = $this->getUser();
+        /** @var User $user */
+        $user = $this->getUser(); // ✅ CORRIGÉ
         $dossier = $em->getRepository(DossierMedical::class)->findOneBy(['user' => $user]);
 
         if (!$dossier) {
@@ -100,7 +103,8 @@ class DossierMedicalController extends AbstractController
     #[Route('/mon-dossier/pdf', name: 'app_mon_dossier_pdf')]
     public function pdf(EntityManagerInterface $em): Response
     {
-        $user = $this->getUser();
+        /** @var User $user */
+        $user = $this->getUser(); // ✅ CORRIGÉ
         $dossier = $em->getRepository(DossierMedical::class)->findOneBy(['user' => $user]);
 
         $options = new Options();

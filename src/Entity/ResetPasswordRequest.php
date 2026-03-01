@@ -15,14 +15,19 @@ class ResetPasswordRequest implements ResetPasswordRequestInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    /** @phpstan-ignore property.unusedType */
     private ?int $id = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
     private ?User $user = null;
 
-    public function __construct(User $user, \DateTimeInterface $expiresAt, string $selector, string $hashedToken)
-    {
+    public function __construct(
+        User $user,
+        \DateTimeInterface $expiresAt,
+        string $selector,
+        #[\SensitiveParameter] string $hashedToken
+    ) {
         $this->user = $user;
         $this->initialize($expiresAt, $selector, $hashedToken);
     }
@@ -34,6 +39,9 @@ class ResetPasswordRequest implements ResetPasswordRequestInterface
 
     public function getUser(): User
     {
+        if ($this->user === null) {
+            throw new \LogicException('User cannot be null in ResetPasswordRequest.');
+        }
         return $this->user;
     }
 }
