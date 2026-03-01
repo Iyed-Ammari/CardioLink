@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Commande;
+use App\Entity\User;
 use App\Repository\CommandeRepository;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
@@ -25,16 +26,20 @@ final class PaiementApiController extends AbstractController
         if (!$this->getUser()) {
             return $this->json(['error' => 'Non authentifié'], 401);
         }
-        /** @var \App\Entity\User $user */
+
+        /** @var User $user */
         $user = $this->getUser();
 
         $commande = $repo->find($id);
         if (!$commande) {
             return $this->json(['error' => 'Commande introuvable'], 404);
         }
-        if ($commande->getUser()->getId() !== $user->getId()) {
+
+        $commandeUser = $commande->getUser();
+        if ($commandeUser === null || $commandeUser->getId() !== $user->getId()) {
             return $this->json(['error' => 'Accès interdit'], 403);
         }
+
         if ($commande->getStatut() !== Commande::STATUT_EN_ATTENTE_PAIEMENT) {
             return $this->json([
                 'error' => 'Cette commande ne peut pas être payée',
@@ -45,8 +50,7 @@ final class PaiementApiController extends AbstractController
         $data = json_decode($request->getContent(), true) ?: [];
 
         $nomCarte    = trim((string)($data['nomCarte'] ?? ''));
-        $numeroCarte = preg_replace('/[\s\-]/', '', (string)($data['numeroCarte'] ?? ''));
-        $expiration  = trim((string)($data['expiration'] ?? ''));
+$numeroCarte = (string) preg_replace('/[\s\-]/', '', (string)($data['numeroCarte'] ?? ''));        $expiration  = trim((string)($data['expiration'] ?? ''));
         $cvv         = trim((string)($data['cvv'] ?? ''));
 
         $errors = [];
@@ -74,7 +78,7 @@ final class PaiementApiController extends AbstractController
         } else {
             [$mois, $annee] = explode('/', $expiration);
             $expTimestamp = mktime(0, 0, 0, (int)$mois + 1, 1, 2000 + (int)$annee);
-            if ($expTimestamp < time()) {
+            if ($expTimestamp !== false && $expTimestamp < time()) {
                 $errors[] = ['field' => 'expiration', 'message' => 'Cette carte est expirée.'];
             }
         }
@@ -94,26 +98,30 @@ final class PaiementApiController extends AbstractController
 
         try {
             foreach ($commande->getLignes() as $l) {
-                $em->lock($l->getProduit(), LockMode::PESSIMISTIC_WRITE);
+                $produit = $l->getProduit();
+                if ($produit !== null) {
+                    $em->lock($produit, LockMode::PESSIMISTIC_WRITE);
+                }
             }
 
             foreach ($commande->getLignes() as $l) {
                 $p = $l->getProduit();
-                if (($p->getStock() ?? 0) < $l->getQuantite()) {
+                if ($p === null || ($p->getStock() ?? 0) < $l->getQuantite()) {
                     $conn->rollBack();
                     return $this->json([
-                        'error' => 'Stock insuffisant pour : ' . $p->getNom(),
+                        'error' => 'Stock insuffisant pour : ' . ($p?->getNom() ?? 'produit inconnu'),
                     ], 409);
                 }
             }
 
             foreach ($commande->getLignes() as $l) {
                 $p = $l->getProduit();
-                $p->setStock(($p->getStock() ?? 0) - $l->getQuantite());
+                if ($p !== null) {
+                    $p->setStock(($p->getStock() ?? 0) - $l->getQuantite());
+                }
             }
 
             $commande->marquerPayee();
-
             $em->flush();
             $conn->commit();
 

@@ -126,20 +126,22 @@ final class AdminProduitController extends AbstractController
         $produit->setImageUrl($url);
     }
 
-    private function storeProductImage(UploadedFile $file, SluggerInterface $slugger): string
-    {
-        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $safeName     = $slugger->slug($originalName)->lower();
-        $ext          = $file->guessExtension() ?: 'jpg';
-        $newFilename  = $safeName.'-'.bin2hex(random_bytes(6)).'.'.$ext;
+   private function storeProductImage(UploadedFile $file, SluggerInterface $slugger): string
+{
+    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+    $safeName     = $slugger->slug($originalName)->lower();
+    $ext          = $file->guessExtension() ?: 'jpg';
+    $newFilename  = $safeName.'-'.bin2hex(random_bytes(6)).'.'.$ext;
 
-        $targetDir = $this->getParameter('kernel.project_dir').'/public/uploads/produits';
-        if (!is_dir($targetDir)) {
-            @mkdir($targetDir, 0775, true);
-        }
-
-        $file->move($targetDir, $newFilename);
-
-        return $newFilename;
+$projectDir = $this->getParameter('kernel.project_dir');
+assert(is_string($projectDir));
+$targetDir = $projectDir . '/public/uploads/produits';
+    if (!is_dir($targetDir)) {
+        @mkdir($targetDir, 0775, true);
     }
+
+    $file->move($targetDir, $newFilename);
+
+    return $newFilename;
+}
 }

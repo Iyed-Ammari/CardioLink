@@ -12,11 +12,15 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/produits')]
 class ProduitApiController extends AbstractController
 {
+    /**
+     * @return array<string, mixed>
+     */
     private function produitToArray(Produit $p): array
     {
         return [
@@ -31,19 +35,22 @@ class ProduitApiController extends AbstractController
         ];
     }
 
-    private function validationErrorsToJson($errors): array
+    /**
+     * @param ConstraintViolationListInterface<\Symfony\Component\Validator\ConstraintViolationInterface> $errors
+     * @return array<int, array<string, string>>
+     */
+    private function validationErrorsToJson(ConstraintViolationListInterface $errors): array
     {
         $out = [];
         foreach ($errors as $e) {
             $out[] = [
                 'field'   => $e->getPropertyPath(),
-                'message' => $e->getMessage(),
+                'message' => (string) $e->getMessage(),
             ];
         }
         return $out;
     }
 
-    // ✅ GET /api/produits — accessible à tous les utilisateurs connectés
     #[Route('', name: 'api_produit_list', methods: ['GET'])]
     #[IsGranted('IS_AUTHENTICATED_FULLY')]
     public function list(ProduitRepository $repo): JsonResponse
@@ -52,27 +59,26 @@ class ProduitApiController extends AbstractController
         return $this->json(array_map(fn(Produit $p) => $this->produitToArray($p), $produits));
     }
 
-    // ✅ GET /api/produits/search — accessible à tous les utilisateurs connectés
     #[Route('/search', name: 'api_produit_search', methods: ['GET'])]
     #[IsGranted('IS_AUTHENTICATED_FULLY')]
     public function search(Request $request, ProduitRepository $repo): JsonResponse
     {
-        $q           = $request->query->get('q');
+        $q           = $request->query->getString('q') ?: null;
         $minPrix     = $request->query->get('minPrix');
         $maxPrix     = $request->query->get('maxPrix');
-        $stockStatus = $request->query->get('stockStatus');
-        $page        = max(1, (int) $request->query->get('page', 1));
-        $limit       = min(50, max(1, (int) $request->query->get('limit', 10)));
-        $categorie   = $request->query->get('categorie');
+        $stockStatus = $request->query->getString('stockStatus') ?: null;
+        $page        = max(1, $request->query->getInt('page', 1));
+        $limit       = min(50, max(1, $request->query->getInt('limit', 10)));
+        $categorie   = $request->query->getString('categorie') ?: null;
 
         $produits = $repo->search(
-            $q ?: null,
+            $q,
+            $categorie,
             ($minPrix !== null && $minPrix !== '') ? (float) $minPrix : null,
             ($maxPrix !== null && $maxPrix !== '') ? (float) $maxPrix : null,
-            $stockStatus ?: null,
+            $stockStatus,
             $page,
-            $limit,
-            $categorie ?: null
+            $limit
         );
 
         return $this->json([
@@ -82,7 +88,6 @@ class ProduitApiController extends AbstractController
         ]);
     }
 
-    // ✅ GET /api/produits/{id} — accessible à tous les utilisateurs connectés
     #[Route('/{id}', name: 'api_produit_show', methods: ['GET'])]
     #[IsGranted('IS_AUTHENTICATED_FULLY')]
     public function show(Produit $produit): JsonResponse
@@ -90,21 +95,20 @@ class ProduitApiController extends AbstractController
         return $this->json($this->produitToArray($produit));
     }
 
-    // ✅ POST /api/produits — ADMIN uniquement
     #[Route('', name: 'api_produit_create', methods: ['POST'])]
-    #[IsGranted('ROLE_ADMIN')] // ✅ CORRECTION : seul l'admin peut créer via API
+    #[IsGranted('ROLE_ADMIN')]
     public function create(
         Request $request,
         EntityManagerInterface $em,
         ValidatorInterface $validator,
         ProduitRepository $repo
     ): JsonResponse {
-        $nom         = (string) $request->request->get('nom', '');
-        $description = $request->request->get('description');
-        $prix        = (string) $request->request->get('prix', '0');
-        $stock       = (int) $request->request->get('stock', 0);
-        $imageUrl    = $request->request->get('imageUrl');
-        $categorie   = $request->request->get('categorie');
+        $nom         = $request->request->getString('nom');
+        $description = $request->request->getString('description') ?: null;
+        $prix        = $request->request->getString('prix') ?: '0';
+        $stock       = $request->request->getInt('stock', 0);
+        $imageUrl    = $request->request->getString('imageUrl') ?: null;
+        $categorie   = $request->request->getString('categorie') ?: null;
 
         /** @var UploadedFile|null $file */
         $file = $request->files->get('image');
@@ -136,13 +140,16 @@ class ProduitApiController extends AbstractController
         $em->persist($produit);
         $em->flush();
 
-        if ($file) {
+        if ($file instanceof UploadedFile) {
             $allowed = ['image/jpeg', 'image/png', 'image/webp'];
             if (!in_array($file->getMimeType(), $allowed, true)) {
                 return $this->json(['error' => 'Format non supporté (jpeg/png/webp).'], 422);
             }
 
-            $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/produits';
+            $projectDir = $this->getParameter('kernel.project_dir');
+            assert(is_string($projectDir));
+            $uploadDir = $projectDir . '/public/uploads/produits';
+
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0777, true);
             }
@@ -160,9 +167,8 @@ class ProduitApiController extends AbstractController
         ], 201);
     }
 
-    // ✅ DELETE /api/produits/{id} — ADMIN uniquement
     #[Route('/{id}', name: 'api_produit_delete', methods: ['DELETE'])]
-    #[IsGranted('ROLE_ADMIN')] 
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(Produit $produit, EntityManagerInterface $em): JsonResponse
     {
         if (($produit->getStock() ?? 0) <= 0) {

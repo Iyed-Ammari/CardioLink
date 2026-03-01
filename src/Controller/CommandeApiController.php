@@ -4,6 +4,7 @@
 namespace App\Controller;
 
 use App\Entity\Commande;
+use App\Entity\User;
 use App\Repository\CommandeRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,7 +19,14 @@ final class CommandeApiController extends AbstractController
     #[Route('', name: 'api_commandes_list', methods: ['GET'])]
     public function list(CommandeRepository $repo): JsonResponse
     {
-        $items = $repo->findCommandesByUser($this->getUser());
+        /** @var User|null $user */
+        $user = $this->getUser();
+
+        if (!$user instanceof User) {
+            return $this->json(['error' => 'Non authentifié'], 401);
+        }
+
+        $items = $repo->findCommandesByUser($user);
 
         $out = array_map(function (Commande $c) {
             return [
@@ -36,15 +44,20 @@ final class CommandeApiController extends AbstractController
     #[Route('/{id}/cancel', name: 'api_commandes_cancel', methods: ['POST'])]
     public function cancel(int $id, CommandeRepository $repo, EntityManagerInterface $em): JsonResponse
     {
-        /** @var \App\Entity\User $user */
+        /** @var User|null $user */
         $user = $this->getUser();
+
+        if (!$user instanceof User) {
+            return $this->json(['error' => 'Non authentifié'], 401);
+        }
 
         $commande = $repo->find($id);
         if (!$commande) {
             return $this->json(['error' => 'Commande introuvable'], 404);
         }
 
-        if ($commande->getUser()->getId() !== $user->getId()) {
+        $commandeUser = $commande->getUser();
+        if ($commandeUser === null || $commandeUser->getId() !== $user->getId()) {
             return $this->json(['error' => 'Accès interdit'], 403);
         }
 

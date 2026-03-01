@@ -1,5 +1,4 @@
 <?php
-// src/Controller/PatientPanierController.php
 
 namespace App\Controller;
 
@@ -13,6 +12,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -48,7 +48,7 @@ final class PatientPanierController extends AbstractController
     }
 
     #[Route('', name: 'patient_panier_show', methods: ['GET'])]
-    public function show(CommandeRepository $commandeRepo, EntityManagerInterface $em)
+    public function show(CommandeRepository $commandeRepo, EntityManagerInterface $em): Response
     {
         $panier = $this->getOrCreatePanier($commandeRepo, $em);
         return $this->render('patient/panier/show.html.twig', [
@@ -86,7 +86,8 @@ final class PatientPanierController extends AbstractController
         }
 
         foreach ($panier->getLignes() as $ligne) {
-            if ($ligne->getProduit()->getId() === $produit->getId()) {
+            $ligneProduit = $ligne->getProduit();
+            if ($ligneProduit !== null && $ligneProduit->getId() === $produit->getId()) {
                 $newQty = $ligne->getQuantite() + $quantite;
                 if (($produit->getStock() ?? 0) < $newQty) {
                     $this->addFlash('danger', 'Stock insuffisant : '.$produit->getNom());
@@ -108,7 +109,7 @@ final class PatientPanierController extends AbstractController
         $ligne = new LigneCommande();
         $ligne->setProduit($produit);
         $ligne->setQuantite($quantite);
-        $ligne->setPrixUnitaire($produit->getPrix());
+        $ligne->setPrixUnitaire((string) $produit->getPrix());
 
         $panier->addLigne($ligne);
         $panier->recalculateTotal();
@@ -136,7 +137,7 @@ final class PatientPanierController extends AbstractController
         }
 
         $commande = $ligne->getCommande();
-        if (!$commande || $commande->getUser()->getId() !== $user->getId()) {
+        if (!$commande || $commande->getUser() === null || $commande->getUser()->getId() !== $user->getId()) {
             $this->addFlash('danger', 'Accès interdit');
             return $this->redirectToRoute('patient_panier_show');
         }
@@ -148,8 +149,8 @@ final class PatientPanierController extends AbstractController
         $quantite = max(1, (int) $request->request->get('quantite', 1));
         $produit  = $ligne->getProduit();
 
-        if (($produit->getStock() ?? 0) < $quantite) {
-            $this->addFlash('danger', 'Stock insuffisant : '.$produit->getNom());
+        if ($produit === null || ($produit->getStock() ?? 0) < $quantite) {
+            $this->addFlash('danger', 'Stock insuffisant');
             return $this->redirectToRoute('patient_panier_show');
         }
 
@@ -177,7 +178,7 @@ final class PatientPanierController extends AbstractController
         }
 
         $commande = $ligne->getCommande();
-        if (!$commande || $commande->getUser()->getId() !== $user->getId()) {
+        if (!$commande || $commande->getUser() === null || $commande->getUser()->getId() !== $user->getId()) {
             $this->addFlash('danger', 'Accès interdit');
             return $this->redirectToRoute('patient_panier_show');
         }
@@ -216,8 +217,8 @@ final class PatientPanierController extends AbstractController
 
         foreach ($panier->getLignes() as $l) {
             $p = $l->getProduit();
-            if (($p->getStock() ?? 0) < $l->getQuantite()) {
-                $this->addFlash('danger', 'Stock insuffisant : '.$p->getNom());
+            if ($p === null || ($p->getStock() ?? 0) < $l->getQuantite()) {
+                $this->addFlash('danger', 'Stock insuffisant');
                 return $this->redirectToRoute('patient_panier_show');
             }
         }

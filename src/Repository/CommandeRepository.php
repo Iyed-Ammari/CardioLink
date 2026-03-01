@@ -8,6 +8,9 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
+/**
+ * @extends ServiceEntityRepository<Commande>
+ */
 class CommandeRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -28,7 +31,9 @@ class CommandeRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    /** @return Commande[] */
+    /**
+     * @return Commande[]
+     */
     public function findCommandesByUser(User $user): array
     {
         return $this->createQueryBuilder('c')
@@ -40,17 +45,13 @@ class CommandeRepository extends ServiceEntityRepository
     }
 
     /**
-     * Pagination des commandes (hors PANIER)
-     * @return array{items:Paginator,total:int,pages:int,page:int,limit:int}
+     * @return array{items:Paginator<Commande>,total:int,pages:int,page:int,limit:int}
      */
     public function paginateNonPanier(int $page = 1, int $limit = 50): array
     {
         $page  = max(1, $page);
-        $limit = max(1, min(100, $limit)); // sécurité
+        $limit = max(1, min(100, $limit));
 
-        // Important: on join user pour éviter N+1 sur email
-        // On ne join pas lignes/produits ici (sinon pagination devient lourde),
-        // tes détails restent OK sur une page de 50.
         $qb = $this->createQueryBuilder('c')
             ->leftJoin('c.user', 'u')->addSelect('u')
             ->andWhere('c.statut != :s')
@@ -59,6 +60,7 @@ class CommandeRepository extends ServiceEntityRepository
             ->setFirstResult(($page - 1) * $limit)
             ->setMaxResults($limit);
 
+        /** @var Paginator<Commande> $paginator */
         $paginator = new Paginator($qb->getQuery(), true);
         $total = count($paginator);
         $pages = (int) ceil($total / $limit);

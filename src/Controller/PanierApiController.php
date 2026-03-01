@@ -4,11 +4,11 @@ namespace App\Controller;
 
 use App\Entity\Commande;
 use App\Entity\LigneCommande;
+use App\Entity\User;
 use App\Repository\CommandeRepository;
 use App\Repository\LigneCommandeRepository;
 use App\Repository\ProduitRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\DBAL\LockMode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,6 +17,9 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/panier')]
 final class PanierApiController extends AbstractController
 {
+    /**
+     * @return array<string, mixed>
+     */
     private function commandeToArray(Commande $c): array
     {
         return [
@@ -26,12 +29,12 @@ final class PanierApiController extends AbstractController
             'montantTotal' => $c->getMontantTotal(),
             'lignes' => array_map(fn(LigneCommande $l) => [
                 'id' => $l->getId(),
-                'produitId' => $l->getProduit()->getId(),
-                'produitNom' => $l->getProduit()->getNom(),
+                'produitId' => $l->getProduit()?->getId(),
+                'produitNom' => $l->getProduit()?->getNom(),
                 'prixUnitaire' => $l->getPrixUnitaire(),
                 'quantite' => $l->getQuantite(),
                 'totalLigne' => $l->getTotalLigne(),
-                'stockActuelProduit' => $l->getProduit()->getStock(),
+                'stockActuelProduit' => $l->getProduit()?->getStock(),
             ], $c->getLignes()->toArray()),
         ];
     }
@@ -46,7 +49,7 @@ final class PanierApiController extends AbstractController
 
     private function getOrCreatePanier(CommandeRepository $commandeRepo, EntityManagerInterface $em): Commande
     {
-        /** @var \App\Entity\User $user */
+        /** @var User $user */
         $user = $this->getUser();
 
         $panier = $commandeRepo->findPanierByUser($user);
@@ -98,7 +101,8 @@ final class PanierApiController extends AbstractController
         }
 
         foreach ($panier->getLignes() as $ligne) {
-            if ($ligne->getProduit()->getId() === $produit->getId()) {
+            $ligneProduit = $ligne->getProduit();
+            if ($ligneProduit !== null && $ligneProduit->getId() === $produit->getId()) {
                 $newQty = $ligne->getQuantite() + $quantite;
                 if (($produit->getStock() ?? 0) < $newQty) {
                     return $this->json([
@@ -109,11 +113,9 @@ final class PanierApiController extends AbstractController
                         'demande' => $newQty,
                     ], 409);
                 }
-
                 $ligne->setQuantite($newQty);
                 $panier->recalculateTotal();
                 $em->flush();
-
                 return $this->json(['message' => 'Quantité mise à jour', 'panier' => $this->commandeToArray($panier)]);
             }
         }
@@ -131,7 +133,7 @@ final class PanierApiController extends AbstractController
         $ligne = new LigneCommande();
         $ligne->setProduit($produit);
         $ligne->setQuantite($quantite);
-        $ligne->setPrixUnitaire($produit->getPrix());
+        $ligne->setPrixUnitaire((string) $produit->getPrix());
 
         $panier->addLigne($ligne);
         $panier->recalculateTotal();
@@ -150,14 +152,16 @@ final class PanierApiController extends AbstractController
         EntityManagerInterface $em
     ): JsonResponse {
         if ($resp = $this->getUserOr401()) return $resp;
-        /** @var \App\Entity\User $user */
+
+        /** @var User $user */
         $user = $this->getUser();
 
         $ligne = $ligneRepo->find($id);
         if (!$ligne) return $this->json(['error' => 'Ligne introuvable'], 404);
 
         $commande = $ligne->getCommande();
-        if (!$commande || $commande->getUser()->getId() !== $user->getId()) {
+        $commandeUser = $commande?->getUser();
+        if (!$commande || $commandeUser === null || $commandeUser->getId() !== $user->getId()) {
             return $this->json(['error' => 'Accès interdit'], 403);
         }
         if (!$commande->canEditPanier()) {
@@ -169,12 +173,10 @@ final class PanierApiController extends AbstractController
         if ($quantite < 1) return $this->json(['error' => 'quantite doit être >= 1'], 422);
 
         $produit = $ligne->getProduit();
-        if (($produit->getStock() ?? 0) < $quantite) {
+        if ($produit === null || ($produit->getStock() ?? 0) < $quantite) {
             return $this->json([
                 'error' => 'Stock insuffisant',
-                'produitId' => $produit->getId(),
-                'produit' => $produit->getNom(),
-                'stock' => $produit->getStock(),
+                'stock' => $produit?->getStock(),
                 'demande' => $quantite,
             ], 409);
         }
@@ -193,14 +195,16 @@ final class PanierApiController extends AbstractController
         EntityManagerInterface $em
     ): JsonResponse {
         if ($resp = $this->getUserOr401()) return $resp;
-        /** @var \App\Entity\User $user */
+
+        /** @var User $user */
         $user = $this->getUser();
 
         $ligne = $ligneRepo->find($id);
         if (!$ligne) return $this->json(['error' => 'Ligne introuvable'], 404);
 
         $commande = $ligne->getCommande();
-        if (!$commande || $commande->getUser()->getId() !== $user->getId()) {
+        $commandeUser = $commande?->getUser();
+        if (!$commande || $commandeUser === null || $commandeUser->getId() !== $user->getId()) {
             return $this->json(['error' => 'Accès interdit'], 403);
         }
         if (!$commande->canEditPanier()) {
@@ -209,7 +213,6 @@ final class PanierApiController extends AbstractController
 
         $commande->removeLigne($ligne);
         $commande->recalculateTotal();
-
         $em->remove($ligne);
         $em->flush();
 
@@ -217,39 +220,39 @@ final class PanierApiController extends AbstractController
     }
 
     #[Route('/checkout', name: 'api_panier_checkout', methods: ['POST'])]
-public function checkout(CommandeRepository $commandeRepo, EntityManagerInterface $em): JsonResponse
-{
-    if ($resp = $this->getUserOr401()) return $resp;
+    public function checkout(CommandeRepository $commandeRepo, EntityManagerInterface $em): JsonResponse
+    {
+        if ($resp = $this->getUserOr401()) return $resp;
 
-    /** @var \App\Entity\User $user */
-    $user = $this->getUser();
+        /** @var User $user */
+        $user = $this->getUser();
 
-    $panier = $commandeRepo->findPanierByUser($user);
-    if (!$panier) return $this->json(['error' => 'Panier introuvable'], 404);
-    if (!$panier->canEditPanier()) return $this->json(['error' => 'Panier non modifiable'], 409);
-    if ($panier->getLignes()->count() === 0) return $this->json(['error' => 'Panier vide'], 409);
+        $panier = $commandeRepo->findPanierByUser($user);
+        if (!$panier) return $this->json(['error' => 'Panier introuvable'], 404);
+        if (!$panier->canEditPanier()) return $this->json(['error' => 'Panier non modifiable'], 409);
+        if ($panier->getLignes()->count() === 0) return $this->json(['error' => 'Panier vide'], 409);
 
-    foreach ($panier->getLignes() as $l) {
-        $p = $l->getProduit();
-        if (($p->getStock() ?? 0) < $l->getQuantite()) {
+        foreach ($panier->getLignes() as $l) {
+            $p = $l->getProduit();
+            if ($p === null || ($p->getStock() ?? 0) < $l->getQuantite()) {
+                return $this->json([
+                    'error' => 'Stock insuffisant',
+                    'produit' => $p?->getNom()
+                ], 409);
+            }
+        }
+
+        try {
+            $panier->recalculateTotal();
+            $panier->validerCommande();
+            $em->flush();
+
             return $this->json([
-                'error' => 'Stock insuffisant',
-                'produit' => $p->getNom()
-            ], 409);
+                'message' => 'Commande validée (EN_ATTENTE_PAIEMENT)',
+                'commande' => $this->commandeToArray($panier)
+            ]);
+        } catch (\Throwable $e) {
+            return $this->json(['error' => 'Checkout échoué', 'details' => $e->getMessage()], 500);
         }
     }
-
-    try {
-        $panier->recalculateTotal();
-        $panier->validerCommande(); 
-        $em->flush();
-
-        return $this->json([
-            'message' => 'Commande validée (EN_ATTENTE_PAIEMENT)',
-            'commande' => $this->commandeToArray($panier)
-        ]);
-    } catch (\Throwable $e) {
-        return $this->json(['error' => 'Checkout échoué', 'details' => $e->getMessage()], 500);
-    }
-}
 }

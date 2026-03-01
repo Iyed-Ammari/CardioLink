@@ -20,6 +20,7 @@ class Commande
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+   /** @phpstan-ignore-next-line */
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'commandes')]
@@ -38,8 +39,13 @@ class Commande
     /**
      * @var Collection<int, LigneCommande>
      */
-    #[ORM\OneToMany(targetEntity: LigneCommande::class, mappedBy: 'commande', cascade: ['persist'], orphanRemoval: true)]
-    private Collection $lignes;
+   #[ORM\OneToMany(
+    targetEntity: LigneCommande::class, 
+    mappedBy: 'commande', 
+    cascade: ['persist', 'remove'],
+    orphanRemoval: true
+)]
+private Collection $lignes;
 
     public function __construct()
     {

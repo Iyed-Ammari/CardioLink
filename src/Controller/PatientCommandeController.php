@@ -1,5 +1,4 @@
 <?php
-// src/Controller/PatientCommandeController.php
 
 namespace App\Controller;
 
@@ -51,7 +50,8 @@ final class PatientCommandeController extends AbstractController
             return $this->redirectToRoute('patient_commandes_index');
         }
 
-        if ($commande->getUser()->getId() !== $user->getId()) {
+        $commandeUser = $commande->getUser();
+        if ($commandeUser === null || $commandeUser->getId() !== $user->getId()) {
             $this->addFlash('danger', 'Accès interdit');
             return $this->redirectToRoute('patient_commandes_index');
         }
@@ -67,7 +67,9 @@ final class PatientCommandeController extends AbstractController
         if ($commande->getStatut() === Commande::STATUT_EN_ATTENTE_PAIEMENT) {
             foreach ($commande->getLignes() as $l) {
                 $p = $l->getProduit();
-                $p->setStock(($p->getStock() ?? 0) + $l->getQuantite());
+                if ($p !== null) {
+                    $p->setStock(($p->getStock() ?? 0) + $l->getQuantite());
+                }
             }
         }
 
@@ -78,7 +80,6 @@ final class PatientCommandeController extends AbstractController
         return $this->redirectToRoute('patient_commandes_index');
     }
 
-    
     #[Route('/{id}/facture', name: 'patient_commande_facture', methods: ['GET'])]
     public function facture(int $id, CommandeRepository $repo, EntityManagerInterface $em): Response
     {
@@ -90,7 +91,8 @@ final class PatientCommandeController extends AbstractController
             return $this->redirectToRoute('patient_commandes_index');
         }
 
-        if ($commande->getUser()->getId() !== $user->getId()) {
+        $commandeUser = $commande->getUser();
+        if ($commandeUser === null || $commandeUser->getId() !== $user->getId()) {
             $this->addFlash('danger', 'Accès interdit');
             return $this->redirectToRoute('patient_commandes_index');
         }
@@ -111,8 +113,10 @@ final class PatientCommandeController extends AbstractController
         ]);
 
         $dompdf = new \Dompdf\Dompdf();
-        $dompdf->getOptions()->setChroot($this->getParameter('kernel.project_dir') . '/public');
-        $dompdf->getOptions()->setIsRemoteEnabled(true);
+$projectDir = $this->getParameter('kernel.project_dir');
+assert(is_string($projectDir));
+$dompdf->getOptions()->setChroot($projectDir . '/public');   
+    $dompdf->getOptions()->setIsRemoteEnabled(true);
         $dompdf->loadHtml($html, 'UTF-8');
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();

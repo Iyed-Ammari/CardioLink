@@ -17,8 +17,8 @@ class Produit
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private ?int $id = null;
-
+/** @phpstan-ignore-next-line */
+     private ?int $id = null;
     #[ORM\Column(length: 255, unique: true)]
     #[Assert\NotBlank(message: 'Le nom est obligatoire.')]
     #[Assert\Length(min: 2, max: 255, minMessage: 'Nom trop court (min 2).')]
