@@ -68,6 +68,7 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             ->where('u.roles LIKE :role')
             ->setParameter('role', '%ROLE_MEDECIN%')
             ->orderBy('u.nom', 'ASC')
+            ->setMaxResults(50)
             ->getQuery()
             ->getResult();
     }
@@ -99,6 +100,7 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             ->where('u.roles LIKE :role')
             ->setParameter('role', '%ROLE_PATIENT%')
             ->orderBy('u.nom', 'ASC')
+            ->setMaxResults(50)
             ->getQuery()
             ->getResult();
     }
