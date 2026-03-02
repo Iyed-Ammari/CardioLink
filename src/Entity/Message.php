@@ -36,6 +36,12 @@ class Message
     #[ORM\Column(length: 50)]
     private ?string $classification = 'NORMAL';
 
+    #[ORM\Column]
+    private ?bool $isPinned = false;
+
+    #[ORM\Column]
+    private ?bool $isArchived = false;
+
     /**
      * @var Collection<int, MessageReaction>
      */
@@ -55,6 +61,28 @@ class Message
     public function setClassification(string $classification): static
     {
         $this->classification = $classification;
+        return $this;
+    }
+
+    public function isPinned(): ?bool
+    {
+        return $this->isPinned;
+    }
+
+    public function setIsPinned(bool $isPinned): static
+    {
+        $this->isPinned = $isPinned;
+        return $this;
+    }
+
+    public function isArchived(): ?bool
+    {
+        return $this->isArchived;
+    }
+
+    public function setIsArchived(bool $isArchived): static
+    {
+        $this->isArchived = $isArchived;
         return $this;
     }
 

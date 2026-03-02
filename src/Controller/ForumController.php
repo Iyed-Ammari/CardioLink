@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Controller;
+
 use App\Entity\PostSummary;
 use App\Entity\Post;
 use App\Repository\PostRepository;
@@ -195,7 +196,7 @@ if ($lastUserPost && $lastUserPost->getEmbedding()) {
             $post->setContent($request->request->get('content'));
             $file = $request->files->get('image');
             if ($file) {
-                $filename = uniqid().'.'.$file->guessExtension();
+                $filename = uniqid() . '.' . $file->guessExtension();
                 $file->move($this->getParameter('posts_images_directory'), $filename);
                 $post->setImage($filename);
             }
@@ -261,7 +262,7 @@ if ($lastUserPost && $lastUserPost->getEmbedding()) {
         $em->flush();
 
         $this->addFlash('success', 'Post supprimé avec succès');
-        
+
         // Redirection selon le rôle
         if (in_array('ROLE_ADMIN', $user->getRoles())) {
             return $this->redirectToRoute('forum_backoffice');
@@ -288,68 +289,68 @@ public function like(Post $post, EntityManagerInterface $em): Response
 {
     $user = $this->getUser();
 
-    if (!$post->isLikedByUser($user)) {
-        $post->addLikedBy($user);
+        if (!$post->isLikedByUser($user)) {
+            $post->addLikedBy($user);
+        }
+
+        $em->flush();
+
+        return $this->redirectToRoute('forum_frontoffice');
     }
+    #[Route('/post/{id}/like', name: 'post_like', methods: ['POST'])]
+    public function toggleLike(Post $post, EntityManagerInterface $em): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Not authenticated'], 403);
+        }
 
-    $em->flush();
-
-    return $this->redirectToRoute('forum_frontoffice');
-}
-#[Route('/post/{id}/like', name: 'post_like', methods: ['POST'])]
-public function toggleLike(Post $post, EntityManagerInterface $em): JsonResponse
-{
-    $user = $this->getUser();
-    if (!$user) {
-        return $this->json(['error' => 'Not authenticated'], 403);
-    }
-
-    if ($post->isLikedByUser($user)) {
-        $post->removeLikedBy($user); // retire le like
-        $liked = false;
-    } else {
-        $post->addLikedBy($user); // ajoute le like
-        $liked = true;
-    }
-
-    $em->persist($post);
-    $em->flush();
-
-    return $this->json([
-        'likes' => $post->getLikes(),
-        'liked' => $liked
-    ]);
-}
-public function forumFrontoffice(Request $request, EntityManagerInterface $em)
-{
-    if ($request->isMethod('POST')) {
-
-        dd($request->files->all()); // 🔥 test uniquement quand tu publies
-
-        $post = new Post();
-        $post->setContent($request->request->get('content'));
-        $post->setTitle($request->request->get('title'));
-        $post->setCreatedAT(new \DateTimeImmutable());
-        $post->setUser($this->getUser());
-
-        $file = $request->files->get('image');
-
-        if ($file) {
-            $filename = uniqid().'.'.$file->guessExtension();
-
-            $file->move(
-                $this->getParameter('posts_images_directory'),
-                $filename
-            );
-
-            $post->setImage($filename);
+        if ($post->isLikedByUser($user)) {
+            $post->removeLikedBy($user); // retire le like
+            $liked = false;
+        } else {
+            $post->addLikedBy($user); // ajoute le like
+            $liked = true;
         }
 
         $em->persist($post);
         $em->flush();
 
-        return $this->redirectToRoute('forum_frontoffice');
+        return $this->json([
+            'likes' => $post->getLikes(),
+            'liked' => $liked
+        ]);
     }
+    public function forumFrontoffice(Request $request, EntityManagerInterface $em)
+    {
+        if ($request->isMethod('POST')) {
+
+            dd($request->files->all()); // 🔥 test uniquement quand tu publies
+
+            $post = new Post();
+            $post->setContent($request->request->get('content'));
+            $post->setTitle($request->request->get('title'));
+            $post->setCreatedAT(new \DateTimeImmutable());
+            $post->setUser($this->getUser());
+
+            $file = $request->files->get('image');
+
+            if ($file) {
+                $filename = uniqid() . '.' . $file->guessExtension();
+
+                $file->move(
+                    $this->getParameter('posts_images_directory'),
+                    $filename
+                );
+
+                $post->setImage($filename);
+            }
+
+            $em->persist($post);
+            $em->flush();
+
+            return $this->redirectToRoute('forum_frontoffice');
+        }
 
     return $this->render('forum/frontoffice.html.twig', [
         'posts' => $em->getRepository(Post::class)->findAll()
@@ -365,50 +366,50 @@ public function generateSummary(Post $post, EntityManagerInterface $em, PostSumm
     $pythonBinary = '"C:\\Users\\Mon Pc\\CardioLink\\ml_env\\Scripts\\python.exe"';
     $pythonScript = '"C:\\Users\\Mon Pc\\CardioLink\\ml\\summarizer.py"';
 
-$descriptors = [
-    0 => ['pipe', 'r'], // stdin
-    1 => ['pipe', 'w'], // stdout
-    2 => ['pipe', 'w'], // stderr
-];
+        $descriptors = [
+            0 => ['pipe', 'r'], // stdin
+            1 => ['pipe', 'w'], // stdout
+            2 => ['pipe', 'w'], // stderr
+        ];
 
-$process = proc_open("$pythonBinary $pythonScript", $descriptors, $pipes);
+        $process = proc_open("$pythonBinary $pythonScript", $descriptors, $pipes);
 
-if (is_resource($process)) {
-    fwrite($pipes[0], $content);
-    fclose($pipes[0]);
+        if (is_resource($process)) {
+            fwrite($pipes[0], $content);
+            fclose($pipes[0]);
 
-    $summary = stream_get_contents($pipes[1]);
-    fclose($pipes[1]);
+            $summary = stream_get_contents($pipes[1]);
+            fclose($pipes[1]);
 
-    $errorOutput = stream_get_contents($pipes[2]);
-    fclose($pipes[2]);
+            $errorOutput = stream_get_contents($pipes[2]);
+            fclose($pipes[2]);
 
-    proc_close($process);
+            proc_close($process);
 
-    if (!empty($errorOutput)) {
-        $summary = "Erreur Python : " . $errorOutput;
-    }
+            if (!empty($errorOutput)) {
+                $summary = "Erreur Python : " . $errorOutput;
+            }
 
-    $summary = trim($summary);
-} else {
-    $summary = "Résumé non disponible";
-}
-    // 🔹 Stocker ou mettre à jour le résumé dans PostSummary
-    $existingSummary = $summaryRepo->findOneBy(['post' => $post]);
-    if ($existingSummary) {
-        $existingSummary->setSummary($summary);
-        $existingSummary->setCreatedAt(new \DateTimeImmutable());
-    } else {
-        $postSummary = new PostSummary();
-        $postSummary->setPost($post);
-        $postSummary->setSummary($summary);
-        $postSummary->setCreatedAt(new \DateTimeImmutable());
-        $em->persist($postSummary);
-    }
+            $summary = trim($summary);
+        } else {
+            $summary = "Résumé non disponible";
+        }
+        // 🔹 Stocker ou mettre à jour le résumé dans PostSummary
+        $existingSummary = $summaryRepo->findOneBy(['post' => $post]);
+        if ($existingSummary) {
+            $existingSummary->setSummary($summary);
+            $existingSummary->setCreatedAt(new \DateTimeImmutable());
+        } else {
+            $postSummary = new PostSummary();
+            $postSummary->setPost($post);
+            $postSummary->setSummary($summary);
+            $postSummary->setCreatedAt(new \DateTimeImmutable());
+            $em->persist($postSummary);
+        }
 
-    $em->flush();
+        $em->flush();
 
-    $this->addFlash('success', 'Résumé généré avec succès !');
+        $this->addFlash('success', 'Résumé généré avec succès !');
 
     return $this->redirectToRoute('forum_frontoffice');
 }
