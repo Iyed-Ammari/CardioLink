@@ -123,6 +123,7 @@ if ($lastUserPost && $lastUserPost->getEmbedding()) {
         foreach ($postSummaries as $ps) {
             $summariesByPost[$ps->getPost()->getId()] = $ps->getSummary();
         }
+    }
 
     // 7. CALCUL DES FLAMMES (Optimisé)
     $flamesByUser = [];
@@ -153,9 +154,6 @@ if ($lastUserPost && $lastUserPost->getEmbedding()) {
                     $previous = $userPost->getCreatedAT();
                 } else { break; }
             }
-
-            $flamesByUser[$userId] = $flames;
-            $usersProcessed[] = $userId;
         }
         $flamesByUser[$userId] = $flames;
         $usersProcessed[] = $userId;
@@ -413,8 +411,7 @@ public function generateSummary(Post $post, EntityManagerInterface $em, PostSumm
 
         $this->addFlash('success', 'Résumé généré avec succès !');
 
-        return $this->redirectToRoute('forum_frontoffice');
-    }
+    return $this->redirectToRoute('forum_frontoffice');
 }
 
 }
