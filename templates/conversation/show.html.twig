@@ -16,26 +16,36 @@
       {% endif %}
     </h1>
 
+    {# Boutons de filtrage #}
+    <div class="mb-3 d-flex gap-2">
+      <button class="btn btn-outline-warning" id="btnPinned" title="Afficher les messages épinglés">
+        📌 Messages épinglés
+      </button>
+      <button class="btn btn-outline-secondary" id="btnArchived" title="Afficher les messages archivés">
+        📦 Messages archivés
+      </button>
+    </div>
+
+    {# Custom Modal Overlay (Bypasses Bootstrap issues entirely) #}
+    <div id="customModalOverlay" class="custom-modal-overlay">
+      <div class="custom-modal-content">
+        <div class="custom-modal-header">
+          <h5 id="customModalTitle">Messages</h5>
+          <button type="button" id="closeCustomModal" class="custom-modal-close">&times;</button>
+        </div>
+        <div class="custom-modal-body" id="customModalBody">
+           </div>
+      </div>
+    </div>
+
     {# Barre de recherche dans les messages #}
     <div class="message-search-bar mb-3">
       <div class="input-group">
-        <input 
-          type="text" 
-          class="form-control" 
-          id="messageSearch" 
-          placeholder="🔍 Chercher dans les messages..." 
-          autocomplete="off"
-        />
-        <button class="btn btn-outline-secondary" type="button" id="searchUpBtn" title="Message précédent">
-          ↑
-        </button>
-        <button class="btn btn-outline-secondary" type="button" id="searchDownBtn" title="Message suivant">
-          ↓
-        </button>
+        <input type="text" class="form-control" id="messageSearch" placeholder="🔍 Chercher dans les messages..." autocomplete="off" />
+        <button class="btn btn-outline-secondary" type="button" id="searchUpBtn" title="Message précédent">↑</button>
+        <button class="btn btn-outline-secondary" type="button" id="searchDownBtn" title="Message suivant">↓</button>
         <span class="input-group-text" id="searchResultCount">0 résultat</span>
-        <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn">
-          ↺ Effacer
-        </button>
+        <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn">↺ Effacer</button>
       </div>
     </div>
 
@@ -43,10 +53,9 @@
     <div class="card" style="height: 500px; overflow-y: auto; background-color: var(--bg-primary);" id="chat-box">
       <div class="card-body" id="messages-list" style="padding: 1.5rem;">
         {% for message in messages %}
-          {# On vérifie si c'est MOI ou l'AUTRE pour l'alignement #}
-        {% set isMe = message.sender == app.user %}
+          {% set isMe = message.sender == app.user %}
         
-        <div class="chat-message {{ isMe ? 'me' : 'other' }} message-container" data-message-id="{{ message.id }}">
+          <div class="chat-message {{ isMe ? 'me' : 'other' }} message-container" data-message-id="{{ message.id }}">
             <div class="message-bubble {{ isMe ? 'me' : 'other' }}">
                 {% if not isMe %}
                     <span class="message-sender">{{ message.sender.prenom }}</span>
@@ -60,16 +69,31 @@
                         <span class="message-status {{ message.isRead ? 'read' : 'sent' }}"></span>
                     {% endif %}
                     {% if message.classification == 'URGENT' %}
-                    <small class="badge bg-danger message-badge">| ⚠️ URGENT</small>
-                {% elseif message.classification == 'ADMINISTRATIF' %}
-                    <small class="badge bg-info message-badge">| 📄 Admin</small>
-                {% elseif message.classification == 'NORMAL' %}
-                    <small class="badge bg-info message-badge">| 🟢 Normal</small>
-                {% endif %}
+                        <small class="badge bg-danger message-badge">| ⚠️ URGENT</small>
+                    {% elseif message.classification == 'ADMINISTRATIF' %}
+                        <small class="badge bg-info message-badge">| 📄 Admin</small>
+                    {% elseif message.classification == 'NORMAL' %}
+                        <small class="badge bg-info message-badge">| 🟢 Normal</small>
+                    {% endif %}
                 </div>
             </div>
 
-            {# Affichage des réactions #}
+            <div class="message-actions dropdown {{ isMe ? 'actions-left' : 'actions-right' }}" data-message-id="{{ message.id }}">
+              <button class="btn-message-actions custom-toggle" title="Actions" aria-haspopup="true" aria-expanded="false">⋯</button>
+              <ul class="dropdown-menu" type="none">
+                <li>
+                  <a class="dropdown-item action-pin" href="#" data-message-id="{{ message.id }}">
+                    {% if message.isPinned %}📌 Dépingler{% else %}📍 Épingler{% endif %}
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item action-archive" href="#" data-message-id="{{ message.id }}">
+                    {% if message.isArchived %}📂 Désarchiver{% else %}📦 Archiver{% endif %}
+                  </a>
+                </li>
+              </ul>
+            </div>
+
             <div class="message-reactions" data-message-id="{{ message.id }}">
                 {% for emoji, reactions in message.reactions|group_by('emoji') %}
                     {% set count = reactions|length %}
@@ -77,14 +101,9 @@
                         {{ emoji }} <span class="reaction-count">{{ count }}</span>
                     </button>
                 {% endfor %}
-                
-                {# Bouton + pour ajouter une réaction #}
-                <button class="add-reaction-btn" title="Ajouter une réaction">
-                    ➕
-                </button>
+                <button class="add-reaction-btn" title="Ajouter une réaction">➕</button>
             </div>
 
-            {# Sélecteur d'emoji #}
             <div class="emoji-picker" style="display: none;">
                 <div class="emoji-grid">
                     <span class="emoji" data-emoji="👍">👍</span>
@@ -99,7 +118,7 @@
                     <span class="emoji" data-emoji="🎉">🎉</span>
                 </div>
             </div>
-        </div>
+          </div>
         {% endfor %}
       </div>
     </div>
@@ -110,235 +129,149 @@
         <textarea class="form-control" placeholder="Votre message..." rows="2" id="messageContent"></textarea>
         <button class="btn btn-primary" id="sendBtn">Envoyer ➤</button>
       </div>
-      {# Liste des suggestions d'autocomplétion #}
       <div id="suggestions-list" class="suggestion-dropdown" style="display: none; position: absolute; bottom: 100%; left: 0; right: 0; width: 100%; max-width: 100%;"></div>
     </div>
   </div>
 
   <style>
+    /* === CUSTOM MODAL (Fixes Bootstrap display issues) === */
+    .custom-modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.5); z-index: 1050;
+      align-items: center; justify-content: center; backdrop-filter: blur(2px);
+    }
+    .custom-modal-content {
+      background-color: #fff; border-radius: 12px; width: 90%; max-width: 600px;
+      max-height: 80vh; display: flex; flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      animation: modalPopIn 0.3s ease-out forwards;
+    }
+    @keyframes modalPopIn {
+      0% { opacity: 0; transform: translateY(-20px) scale(0.95); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .custom-modal-header {
+      padding: 16px 20px; border-bottom: 1px solid #eee; display: flex;
+      justify-content: space-between; align-items: center;
+    }
+    .custom-modal-header h5 { margin: 0; font-weight: 600; }
+    .custom-modal-close {
+      background: none; border: none; font-size: 28px; line-height: 1;
+      color: #999; cursor: pointer; transition: color 0.2s;
+    }
+    .custom-modal-close:hover { color: #333; }
+    .custom-modal-body { padding: 20px; overflow-y: auto; }
+
+    /* Other styles */
     .suggestion-dropdown {
-      background: white;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      max-height: 200px;
-      overflow-y: auto;
-      z-index: 1050 !important;
-      box-shadow: 0 -2px 8px rgba(0,0,0,0.15);
-      margin-top: -2px;
+      background: white; border: 1px solid #ddd; border-radius: 4px;
+      max-height: 200px; overflow-y: auto; z-index: 1050 !important;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.15); margin-top: -2px;
     }
-
     .suggestion-item {
-      padding: 12px 15px;
-      cursor: pointer;
-      border-bottom: 1px solid #eee;
-      transition: background-color 0.15s ease;
-      font-size: 14px;
+      padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #eee;
+      transition: background-color 0.15s ease; font-size: 14px;
     }
-
-    .suggestion-item:last-child {
-      border-bottom: none;
-    }
-
-    .suggestion-item:hover,
-    .suggestion-item.active {
-      background-color: #f0f8ff;
-      border-left: 3px solid #0d6efd;
-      padding-left: 12px;
-    }
-
-    .suggestion-highlight {
-      font-weight: 600;
-      color: #0d6efd;
-    }
-
-    /* === BARRE DE RECHERCHE === */
-    .message-search-bar {
-      background: #f9f9f9;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 12px;
-    }
-
-    #messageSearch {
-      border-right: none;
-    }
-
-    #searchResultCount {
-      background: white;
-      border-left: none;
-      border-right: none;
-      font-weight: 500;
-      font-size: 13px;
-      color: #666;
-    }
-
-    #clearSearchBtn {
-      border-left: none;
-    }
-
-    #searchUpBtn,
-    #searchDownBtn {
-      border-right: none;
-      border-left: none;
-    }
-
-    #searchUpBtn:disabled,
-    #searchDownBtn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .message-not-found {
-      opacity: 0.3;
-      pointer-events: none;
-    }
-
-    .message-found {
-      background: #fffacd !important;
-      border-left: 3px solid #ffc107;
-      box-shadow: 0 0 8px rgba(255, 193, 7, 0.3);
-    }
-
-    .message-current-search {
-      background: #fff59d !important;
-      border-left: 4px solid #ff9800 !important;
-      box-shadow: 0 0 12px rgba(255, 152, 0, 0.5);
-    }
-
-    .message-highlight {
-      background: #ffeb3b;
-      padding: 2px 4px;
-      border-radius: 2px;
-      font-weight: 600;
-    }
-
-    /* === STYLES RÉACTIONS === */
-    .message-reactions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 8px;
-      align-items: center;
-    }
-
-    .reaction-btn {
-      background: #f0f0f0;
-      border: 1px solid #ddd;
-      border-radius: 16px;
-      padding: 4px 10px;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .reaction-btn:hover {
-      background: #e0e0e0;
-      border-color: #999;
-    }
-
-    .reaction-btn.active {
-      background: #d4edff;
-      border-color: #0d6efd;
-    }
-
-    .reaction-count {
-      font-size: 11px;
-      font-weight: 500;
-    }
-
-    .add-reaction-btn {
-      background: transparent;
-      border: 1px dashed #ccc;
-      border-radius: 16px;
-      padding: 4px 10px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .add-reaction-btn:hover {
-      border-color: #0d6efd;
-      background: #f0f8ff;
-    }
-
-    .emoji-picker {
-      background: white;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      margin-top: 8px;
-      z-index: 1000;
-      max-width: 250px;
-    }
-
-    .emoji-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 8px;
-    }
-
-    .emoji {
-      font-size: 24px;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-      user-select: none;
-      border-radius: 4px;
-      padding: 4px;
-    }
-
-    .emoji:hover {
-      transform: scale(1.2);
-      background: #f0f0f0;
-    }
-
-    .message-container:hover .add-reaction-btn {
-      opacity: 1;
-    }
-
-    .message-container:not(:hover) .add-reaction-btn {
-      opacity: 0.5;
-    }
+    .suggestion-item:last-child { border-bottom: none; }
+    .suggestion-item:hover, .suggestion-item.active { background-color: #f0f8ff; border-left: 3px solid #0d6efd; padding-left: 12px; }
+    .suggestion-highlight { font-weight: 600; color: #0d6efd; }
+    .message-search-bar { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; }
+    #messageSearch { border-right: none; }
+    #searchResultCount { background: white; border-left: none; border-right: none; font-weight: 500; font-size: 13px; color: #666; }
+    #clearSearchBtn { border-left: none; }
+    #searchUpBtn, #searchDownBtn { border-right: none; border-left: none; }
+    #searchUpBtn:disabled, #searchDownBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .message-not-found { opacity: 0.3; pointer-events: none; }
+    .message-found { background: #fffacd !important; border-left: 3px solid #ffc107; box-shadow: 0 0 8px rgba(255, 193, 7, 0.3); }
+    .message-current-search { background: #fff59d !important; border-left: 4px solid #ff9800 !important; box-shadow: 0 0 12px rgba(255, 152, 0, 0.5); }
+    .message-highlight { background: #ffeb3b; padding: 2px 4px; border-radius: 2px; font-weight: 600; }
+    .message-reactions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
+    .reaction-btn { background: #f0f0f0; border: 1px solid #ddd; border-radius: 16px; padding: 4px 10px; font-size: 13px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 4px; }
+    .reaction-btn:hover { background: #e0e0e0; border-color: #999; }
+    .reaction-btn.active { background: #d4edff; border-color: #0d6efd; }
+    .reaction-count { font-size: 11px; font-weight: 500; }
+    .add-reaction-btn { background: transparent; border: 1px dashed #ccc; border-radius: 16px; padding: 4px 10px; font-size: 14px; cursor: pointer; transition: all 0.2s ease; }
+    .add-reaction-btn:hover { border-color: #0d6efd; background: #f0f8ff; }
+    .emoji-picker { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-top: 8px; z-index: 1000; max-width: 250px; }
+    .emoji-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .emoji { font-size: 24px; cursor: pointer; transition: transform 0.2s ease; user-select: none; border-radius: 4px; padding: 4px; }
+    .emoji:hover { transform: scale(1.2); background: #f0f0f0; }
+    .message-container:hover .add-reaction-btn { opacity: 1; }
+    .message-container:not(:hover) .add-reaction-btn { opacity: 0.5; }
+    .message-container { position: relative; overflow: visible !important; }
+    .message-actions { position: absolute; top: 8px; opacity: 0; transition: opacity 0.2s ease; z-index: 50; }
+    .message-actions.actions-right { right: 8px; left: auto; }
+    .message-actions.actions-left { left: 8px; right: auto; }
+    .message-container:hover .message-actions { opacity: 1; }
+    .btn-message-actions { background: rgba(0, 0, 0, 0.6); color: white; border: none; border-radius: 50%; width: 32px; height: 32px; padding: 0; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
+    .btn-message-actions:hover { background: rgba(0, 0, 0, 0.85); }
+    .message-actions .dropdown-menu { display: none; position: absolute !important; top: 100%; min-width: 170px; background-color: #ffffff; border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); padding: 8px 0; margin-top: 8px; list-style: none; z-index: 1000; animation: dropdownPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    .message-actions.actions-right .dropdown-menu { right: 0 !important; left: auto !important; }
+    .message-actions.actions-left .dropdown-menu { left: 0 !important; right: auto !important; }
+    @keyframes dropdownPop { 0% { opacity: 0; transform: translateY(-10px) scale(0.95); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+    .message-actions .dropdown-item { display: flex; align-items: center; gap: 10px; padding: 10px 18px; font-size: 14px; font-weight: 500; color: #4a4a4a; text-decoration: none; transition: all 0.2s ease; }
+    .message-actions .dropdown-item:hover { background-color: #f0f8ff; color: #0d6efd; padding-left: 22px; }
   </style>     
 
-  {# --- SCRIPT WEBSOCKET & AJAX --- #}
 <script>
-(function() { // 1. On ouvre une "bulle" isolée (IIFE) pour éviter l'erreur "Already declared"
-    
+(function() {
     const conversationId = {{ conversation.id }};
     const currentUserId = {{ app.user.id }};
     const currentUserPrenom = "{{ app.user.prenom }}";
     
-    // 2. Connexion au WebSocket
     let socket = new WebSocket("ws://localhost:3001");
+    socket.onopen = function(e) { console.log("✅ Connecté au serveur de chat !"); };
 
-    socket.onopen = function(e) {
-        console.log("✅ Connecté au serveur de chat !");
-    };
+    // Marquer toutes les notifications de cette conversation comme lues au chargement
+    async function markConversationNotificationsAsRead() {
+        try {
+            const response = await fetch(`/messages/${conversationId}/mark-notifications-read`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            const data = await response.json();
+            if (data.status === 'success' && data.count > 0) {
+                console.log(`✅ ${data.count} notification(s) marquée(s) comme lue(s)`);
+                
+                // Envoyer un événement WebSocket pour notifier les autres
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: 'notificationsRead',
+                        conversationId: conversationId,
+                        userId: currentUserId,
+                        count: data.count
+                    }));
+                }
+
+                // Dispatcher un événement personnalisé pour mettre à jour le FAB
+                window.dispatchEvent(new CustomEvent('notificationsMarkAsRead', {
+                    detail: { conversationId: conversationId, count: data.count }
+                }));
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors du marquage des notifications:', error);
+        }
+    }
+
+    // Appeler la fonction au chargement du script
+    markConversationNotificationsAsRead();
 
     socket.onmessage = function(event) {
         const data = JSON.parse(event.data);
-        // On n'affiche le message que s'il appartient à CETTE conversation
         if (data.conversationId === conversationId) {
-            // Si c'est moi qui l'ai envoyé, on l'a déjà affiché via AJAX, donc on ignore
             if (data.senderId !== currentUserId) {
-                appendMessage(data.content, false, data.senderPrenom || 'Dr.', data.time, data.classification);
+                appendMessage(data.content, false, data.senderPrenom || 'Dr.', data.time, data.classification, data.messageId);
             }
         }
     };
 
-    // 3. Gestion intelligente de la fermeture (Pour Turbo)
-    // Quand l'utilisateur quitte la page, on coupe la connexion pour éviter les doublons
     document.addEventListener('turbo:before-cache', function() {
-        if (socket) {
-            socket.close();
-        }
+        if (socket) socket.close();
     }, { once: true });
 
-    // 4. Envoi du message
     const sendBtn = document.getElementById('sendBtn');
     const msgInput = document.getElementById('messageContent');
     const suggestionsList = document.getElementById('suggestions-list');
@@ -397,15 +330,12 @@
             const messageText = messageContent ? messageContent.textContent.toLowerCase() : '';
             
             if (searchTerm === '') {
-                // Réinitialiser : afficher tous les messages
                 messageElement.classList.remove('message-not-found', 'message-found', 'message-current-search');
-                messageContent.innerHTML = messageContent.textContent; // Supprimer les highlights
+                messageContent.innerHTML = messageContent.textContent; 
             } else if (messageText.includes(searchTerm)) {
-                // Message trouvé
                 messageElement.classList.remove('message-not-found');
                 messageElement.classList.add('message-found');
                 
-                // Ajouter les highlights
                 const originalText = messageContent.textContent;
                 const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
                 const highlightedText = originalText.replace(regex, '<span class="message-highlight">$1</span>');
@@ -414,14 +344,12 @@
                 foundMessages.push(messageElement);
                 matchCount++;
             } else {
-                // Message non trouvé
                 messageElement.classList.remove('message-found');
                 messageElement.classList.add('message-not-found');
-                messageContent.innerHTML = messageContent.textContent; // Supprimer les highlights
+                messageContent.innerHTML = messageContent.textContent; 
             }
         });
 
-        // Mise à jour du compteur
         if (searchTerm === '') {
             searchResultCount.textContent = '0 résultat';
         } else {
@@ -430,30 +358,24 @@
     }
 
     function highlightCurrentSearchResult() {
-        // Retirer la classe du message précédent
         foundMessages.forEach(msg => {
             msg.classList.remove('message-current-search');
         });
 
-        // Ajouter la classe au message actuel
         if (currentSearchIndex >= 0 && currentSearchIndex < foundMessages.length) {
             const currentMsg = foundMessages[currentSearchIndex];
             currentMsg.classList.add('message-current-search');
 
-            // Scroller vers le message
             const chatBox = document.getElementById('chat-box');
             if (chatBox) {
                 chatBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 currentMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
-
-            // Mettre à jour le compteur pour afficher X/Y
             updateSearchResultsDisplay();
         }
     }
 
     function updateSearchNavigation() {
-        // Activer/désactiver les boutons selon le nombre de résultats
         if (searchUpBtn && searchDownBtn) {
             const hasResults = foundMessages.length > 0;
             searchUpBtn.disabled = !hasResults;
@@ -467,57 +389,40 @@
         searchResultCount.textContent = `${position}/${foundMessages.length}`;
     }
 
-    // === FIN RECHERCHE DE MESSAGES ===
-
     // === AUTOCOMPLÉTION ===
     let selectedSuggestionIndex = -1;
     let currentSuggestions = [];
 
     if (msgInput) {
-        // Récupérer les suggestions
         msgInput.addEventListener('input', debounce(async function() {
             const input = msgInput.value.trim();
-            
-            console.log('🔍 Input:', input, 'Length:', input.length);
-            
             if (input.length < 2) {
                 suggestionsList.style.display = 'none';
-                console.log('❌ Input trop court');
                 return;
             }
 
             try {
                 const url = "{{ path('app_conversation_suggestions', {id: conversation.id}) }}";
-                console.log('📡 Fetch URL:', url);
-                
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ input: input })
                 });
-
-                console.log('✅ Response status:', response.status);
                 
                 const data = await response.json();
-                console.log('📦 Response data:', data);
-                
                 currentSuggestions = data.suggestions || [];
                 selectedSuggestionIndex = -1;
-
-                console.log('💡 Suggestions reçues:', currentSuggestions.length, currentSuggestions);
 
                 if (currentSuggestions.length > 0) {
                     displaySuggestions(input);
                 } else {
                     suggestionsList.style.display = 'none';
-                    console.log('⚠️ Aucune suggestion trouvée');
                 }
             } catch (error) {
                 console.error('❌ Erreur autocomplétion:', error);
             }
         }, 300));
 
-        // Navigation au clavier
         msgInput.addEventListener('keydown', function(e) {
             if (suggestionsList.style.display === 'none') return;
 
@@ -544,7 +449,6 @@
             const item = document.createElement('div');
             item.className = 'suggestion-item';
             
-            // Surligner la partie qui correspond à l'input
             const inputLower = input.toLowerCase();
             const suggestionLower = suggestion.toLowerCase();
             const matchIndex = suggestionLower.indexOf(inputLower);
@@ -563,7 +467,6 @@
                 selectedSuggestionIndex = index;
                 updateSuggestionSelection();
             });
-            
             suggestionsList.appendChild(item);
         });
         suggestionsList.style.display = 'block';
@@ -584,7 +487,6 @@
         selectedSuggestionIndex = -1;
     }
 
-    // Fonction debounce pour limiter les appels API
     function debounce(func, delay) {
         let timeoutId;
         return function(...args) {
@@ -593,24 +495,18 @@
         };
     }
 
-    // Fermer les suggestions quand on clique ailleurs
     document.addEventListener('click', function(e) {
         if (msgInput && suggestionsList) {
             const isClickInTextarea = msgInput.contains(e.target);
             const isClickInSuggestions = suggestionsList.contains(e.target);
-            
             if (!isClickInTextarea && !isClickInSuggestions) {
-                console.log('🔚 Fermeture des suggestions');
                 suggestionsList.style.display = 'none';
             }
         }
     });
 
-    // === FIN AUTOCOMPLÉTION ===
-
     if (sendBtn && msgInput) {
         sendBtn.addEventListener('click', sendMessage);
-
         msgInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -623,7 +519,6 @@
         const content = msgInput.value.trim();
         if (!content) return;
 
-        // A. Sauvegarde en BDD (AJAX)
         fetch("{{ path('app_conversation_send', {id: conversation.id}) }}", {
             method: "POST",
             headers: { 'Content-Type': 'application/json' },
@@ -632,25 +527,20 @@
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                // B. Affichage pour MOI
-                
-
-                // C. Diffusion WebSocket
-                if (socket.readyState === WebSocket.OPEN) {
-                    const payload = {
-                    conversationId: conversationId,
-                    content: content,
-                    senderId: currentUserId,
-                    senderPrenom: currentUserPrenom,
-                    
-                    // 👇 Important pour que l'autre personne voie la couleur
-                    classification: data.classification, 
-                    
-                    time: data.createdAt
-                };
-                appendMessage(content, true, 'Moi', data.createdAt, data.classification);
+                appendMessage(content, true, 'Moi', data.createdAt, data.classification, data.messageId);
                 msgInput.value = '';
                 suggestionsList.style.display = 'none';
+
+                if (socket.readyState === WebSocket.OPEN) {
+                    const payload = {
+                        conversationId: conversationId,
+                        messageId: data.messageId, 
+                        content: content,
+                        senderId: currentUserId,
+                        senderPrenom: currentUserPrenom,
+                        classification: data.classification, 
+                        time: data.createdAt
+                    };
                     socket.send(JSON.stringify(payload));
                 }
             }
@@ -658,9 +548,7 @@
         .catch(error => console.error('Erreur:', error));
     }
 
-    // Fonction d'affichage HTML
-    // Fonction d'affichage mise à jour avec la classe 'message-status'
-    function appendMessage(text, isMe, senderName, time, classification) {
+    function appendMessage(text, isMe, senderName, time, classification, messageId) {
         const list = document.getElementById('messages-list');
         if (!list) return;
 
@@ -675,15 +563,26 @@
 
         const senderDisplay = isMe ? '' : `<span class="message-sender">${senderName}</span>`;
         const statusHtml = isMe ? '<span class="message-status sent"></span>' : '';
+        
+        const actionsHtml = `
+            <div class="message-actions dropdown ${isMe ? 'actions-left' : 'actions-right'}" data-message-id="${messageId}">
+              <button class="btn-message-actions custom-toggle" title="Actions" aria-haspopup="true" aria-expanded="false">⋯</button>
+              <ul class="dropdown-menu" type="none" style="display: none;">
+                <li><a class="dropdown-item action-pin" href="#" data-message-id="${messageId}">📍 Épingler</a></li>
+                <li><a class="dropdown-item action-archive" href="#" data-message-id="${messageId}">📦 Archiver</a></li>
+              </ul>
+            </div>
+        `;
 
         const html = `
-            <div class="chat-message ${isMe ? 'me' : 'other'} message-container" data-message-id="">
+            <div class="chat-message ${isMe ? 'me' : 'other'} message-container" data-message-id="${messageId}">
                 <div class="message-bubble ${isMe ? 'me' : 'other'}">
                     ${senderDisplay}
                     <div class="message-content">${text}</div>
                     <div class="message-time">${time}${statusHtml} | ${badgeHtml}</div>
                 </div>
-                <div class="message-reactions" data-message-id="">
+                ${actionsHtml}
+                <div class="message-reactions" data-message-id="${messageId}">
                     <button class="add-reaction-btn" title="Ajouter une réaction">➕</button>
                     <div class="emoji-picker" style="display: none;">
                         <div class="emoji-grid">
@@ -702,12 +601,9 @@
                 </div>
             </div>
         `;
-        
         list.insertAdjacentHTML('beforeend', html);
         const chatBox = document.getElementById('chat-box');
         if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
-        
-        // Attacher les événements aux réactions du nouveau message
         attachReactionEvents(list.lastElementChild);
     }
 
@@ -718,7 +614,7 @@
         const emojis = messageElement.querySelectorAll('.emoji');
         const messageContainer = messageElement;
 
-        if (addBtn) {
+        if (addBtn && emojiPicker) {
             addBtn.addEventListener('click', function() {
                 emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
             });
@@ -728,18 +624,14 @@
             emoji.addEventListener('click', function() {
                 const selectedEmoji = this.getAttribute('data-emoji');
                 addReaction(messageContainer, selectedEmoji);
-                emojiPicker.style.display = 'none';
+                if(emojiPicker) emojiPicker.style.display = 'none';
             });
         });
     }
 
     function addReaction(messageElement, emoji) {
         const messageId = messageElement.getAttribute('data-message-id');
-        
-        if (!messageId) {
-            console.warn('❌ Message ID non trouvé');
-            return;
-        }
+        if (!messageId) return;
 
         fetch("{{ path('app_message_react', {id: 'DUMMY'}) }}".replace('DUMMY', messageId), {
             method: 'POST',
@@ -748,8 +640,6 @@
         })
         .then(response => response.json())
         .then(data => {
-            console.log('😊 Réaction:', data);
-            
             if (data.status === 'added' || data.status === 'removed') {
                 updateReactionsDisplay(messageElement, data.reactions);
             }
@@ -759,8 +649,6 @@
 
     function updateReactionsDisplay(messageElement, reactions) {
         const reactionsContainer = messageElement.querySelector('.message-reactions');
-        
-        // Récréer l'affichage des réactions
         let reactionsHtml = '';
         reactions.forEach(reaction => {
             const isActive = reaction.hasReacted ? ' active' : '';
@@ -768,8 +656,6 @@
                 ${reaction.emoji} <span class="reaction-count">${reaction.count}</span>
             </button>`;
         });
-
-        // Ajouter le bouton +
         reactionsHtml += `<button class="add-reaction-btn" title="Ajouter une réaction">➕</button>
             <div class="emoji-picker" style="display: none;">
                 <div class="emoji-grid">
@@ -785,21 +671,162 @@
                     <span class="emoji" data-emoji="🎉">🎉</span>
                 </div>
             </div>`;
-
         reactionsContainer.innerHTML = reactionsHtml;
-        
-        // Réattacher les événements
         attachReactionEvents(messageElement);
     }
 
-    // Attacher les événements à tous les messages au chargement
     document.querySelectorAll('.message-container').forEach(messageElement => {
         attachReactionEvents(messageElement);
     });
+
+    // === GESTION ÉPINGLAGE/ARCHIVAGE, DROPDOWNS ET NOTIFICATIONS ===
+    document.addEventListener('click', function(e) {
+        const isDropdownButton = e.target.closest('.custom-toggle');
+        if (!isDropdownButton) {
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                menu.style.display = 'none';
+            });
+        } else {
+            e.preventDefault();
+            const dropdownMenu = isDropdownButton.nextElementSibling;
+            if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
+                const isCurrentlyVisible = dropdownMenu.style.display === 'block';
+                document.querySelectorAll('.dropdown-menu').forEach(menu => menu.style.display = 'none');
+                dropdownMenu.style.display = isCurrentlyVisible ? 'none' : 'block';
+            }
+        }
+
+        const pinBtn = e.target.closest('.action-pin');
+        if (pinBtn) {
+            e.preventDefault();
+            const messageId = pinBtn.getAttribute('data-message-id');
+            if(!messageId) return;
+
+            fetch(`/messages/${conversationId}/message/${messageId}/pin`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    showNotification(data.message, 'success');
+                    pinBtn.innerHTML = data.isPinned ? '📌 Dépingler' : '📍 Épingler';
+                } else {
+                    showNotification(data.error || 'Erreur lors de l\'épinglage', 'danger');
+                }
+            })
+            .catch(err => console.error('Erreur Pin:', err));
+        }
+
+        const archiveBtn = e.target.closest('.action-archive');
+        if (archiveBtn) {
+            e.preventDefault();
+            const messageId = archiveBtn.getAttribute('data-message-id');
+            if(!messageId) return;
+
+            fetch(`/messages/${conversationId}/message/${messageId}/archive`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    showNotification(data.message, 'success');
+                    archiveBtn.innerHTML = data.isArchived ? '📂 Désarchiver' : '📦 Archiver';
+                } else {
+                    showNotification(data.error || 'Erreur lors de l\'archivage', 'danger');
+                }
+            })
+            .catch(err => console.error('Erreur Archive:', err));
+        }
+    });
+
+    // === NOUVELLE GESTION DES LISTES VIA LA METHODE DYNAMIQUE DU CONTROLLER ===
+    const overlay = document.getElementById('customModalOverlay');
+    const modalTitle = document.getElementById('customModalTitle');
+    const modalBody = document.getElementById('customModalBody');
+    const closeModalBtn = document.getElementById('closeCustomModal');
+
+    // Fermeture de la modale custom
+    closeModalBtn.addEventListener('click', () => overlay.style.display = 'none');
+    overlay.addEventListener('click', (e) => {
+        if(e.target === overlay) overlay.style.display = 'none';
+    });
+
+    // Ouverture et chargement des messages avec la NOUVELLE METHODE DYNAMIQUE
+    function openSpecialList(type) {
+        modalTitle.textContent = type === 'pinned' ? '📌 Messages épinglés' : '📦 Messages archivés';
+        modalBody.innerHTML = `
+            <div class="text-center my-4">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">Chargement en cours...</p>
+            </div>`;
+        
+        // Afficher l'overlay
+        overlay.style.display = 'flex';
+
+        // Appel dynamique de notre NOUVELLE route /messages/{id}/filter/{type}
+        fetch(`/messages/${conversationId}/filter/${type}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.messages.length === 0) {
+                    modalBody.innerHTML = `<p class="text-center text-muted my-4">Aucun message ${type === 'pinned' ? 'épinglé' : 'archivé'}</p>`;
+                    return;
+                }
+                
+                let html = '';
+                data.messages.forEach(msg => {
+                    // Change border color depending on pinned or archived
+                    const borderColor = type === 'pinned' ? '#ffc107' : '#6c757d';
+                    
+                    html += `
+                        <div class="card mb-3 shadow-sm" style="border-left: 4px solid ${borderColor}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fw-bold" style="color: ${borderColor}">${type === 'pinned' ? '📌' : '📦'} ${msg.sender}</span>
+                                    <small class="text-muted">${msg.createdAt}</small>
+                                </div>
+                                <p class="card-text mb-0">${msg.content}</p>
+                            </div>
+                        </div>`;
+                });
+                modalBody.innerHTML = html;
+            })
+            .catch(err => {
+                console.error('Erreur:', err);
+                modalBody.innerHTML = `<p class="text-danger text-center my-4">Erreur lors de la récupération des messages.</p>`;
+            });
+    }
+
+    // Connecter les boutons pour utiliser cette nouvelle fonction
+    document.getElementById('btnPinned')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        openSpecialList('pinned');
+    });
+
+    document.getElementById('btnArchived')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        openSpecialList('archived');
+    });
+
+    function showNotification(message, type = 'info') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed shadow`;
+        alertDiv.style.top = '20px';
+        alertDiv.style.right = '20px';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => alertDiv.remove(), 3000);
+    }
     
-    // Scroll au chargement
     const chatBox = document.getElementById('chat-box');
     if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
-})(); // <--- Fin de l'isolation
+
+})();
 </script>
 {% endblock %}

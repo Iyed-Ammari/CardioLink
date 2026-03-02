@@ -110,6 +110,505 @@
       
       syncIcon()
     </script>
+
+    {# === SYSTÈME DE NOTIFICATIONS FAB === #}
+    <div id="notificationsFAB" class="notifications-fab">
+      <button id="fabButton" class="fab-button" title="Notifications">
+        💬
+        <span id="notificationBadge" class="notification-badge" style="display: none;">0</span>
+      </button>
+      <div id="notificationsPanel" class="notifications-panel" style="display: none;">
+        <div class="notifications-header">
+          <h5>Notifications</h5>
+          <button id="closeNotificationsBtn" class="close-btn">&times;</button>
+        </div>
+        <div id="notificationsList" class="notifications-list">
+          <p class="empty-state">Aucune notification</p>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      /* === FAB STYLES === */
+      .notifications-fab {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        z-index: 1000;
+        font-family: 'Inter', sans-serif;
+      }
+
+      .fab-button {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        color: white;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      .fab-button:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 16px rgba(13, 110, 253, 0.6);
+      }
+
+      .fab-button:active {
+        transform: scale(0.95);
+      }
+
+      .notification-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: #dc3545;
+        color: white;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        border: 2px solid white;
+        animation: badgePulse 2s infinite;
+      }
+
+      @keyframes badgePulse {
+        0%, 100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+      }
+
+      .notifications-panel {
+        position: absolute;
+        bottom: 80px;
+        right: 0;
+        width: 350px;
+        max-height: 500px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        display: flex;
+        flex-direction: column;
+        animation: slideUp 0.3s ease;
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .notifications-header {
+        padding: 16px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .notifications-header h5 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #999;
+        padding: 0;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .close-btn:hover {
+        color: #333;
+      }
+
+      .notifications-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0;
+      }
+
+      .notification-item {
+        padding: 12px 16px;
+        border-bottom: 1px solid #f0f0f0;
+        cursor: pointer;
+        transition: background 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .notification-item:hover {
+        background: #f9f9f9;
+      }
+
+      .notification-item.unread {
+        background: #f0f8ff;
+        border-left: 3px solid #0d6efd;
+        padding-left: 13px;
+      }
+
+      .notification-sender {
+        font-weight: 600;
+        color: #0d6efd;
+        font-size: 13px;
+      }
+
+      .notification-message {
+        color: #555;
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .notification-time {
+        color: #999;
+        font-size: 12px;
+      }
+
+      .empty-state {
+        text-align: center;
+        color: #999;
+        padding: 24px 16px;
+        margin: 0;
+        font-size: 14px;
+      }
+
+      @media (max-width: 576px) {
+        .notifications-fab {
+          bottom: 20px;
+          right: 20px;
+        }
+
+        .notifications-panel {
+          width: calc(100vw - 40px);
+          max-height: 400px;
+          right: -20px;
+        }
+      }
+    </style>
+
+    <script>
+      (function() {
+        const fabButton = document.getElementById('fabButton');
+        const notificationsPanel = document.getElementById('notificationsPanel');
+        const notificationsList = document.getElementById('notificationsList');
+        const notificationBadge = document.getElementById('notificationBadge');
+        const closeNotificationsBtn = document.getElementById('closeNotificationsBtn');
+
+        // Toggle panel
+        fabButton.addEventListener('click', function() {
+          notificationsPanel.style.display = notificationsPanel.style.display === 'none' ? 'block' : 'none';
+          if (notificationsPanel.style.display === 'block') {
+            loadNotifications();
+          }
+        });
+
+        // Close panel
+        closeNotificationsBtn?.addEventListener('click', function() {
+          notificationsPanel.style.display = 'none';
+        });
+
+        // Close panel when clicking outside
+        document.addEventListener('click', function(e) {
+          if (!e.target.closest('.notifications-fab')) {
+            notificationsPanel.style.display = 'none';
+          }
+        });
+
+        // Load notifications
+        async function loadNotifications() {
+          try {
+            const response = await fetch('/messages/notifications/unread');
+            const data = await response.json();
+
+            if (data.notifications.length === 0) {
+              notificationsList.innerHTML = '<p class="empty-state">Aucune notification</p>';
+              notificationBadge.style.display = 'none';
+            } else {
+              notificationsList.innerHTML = data.notifications.map(notif => `
+                <div class="notification-item unread" data-notification-id="${notif.id}" data-conversation-id="${notif.conversationId}">
+                  <span class="notification-sender">💬 ${notif.senderName}</span>
+                  <span class="notification-message">${notif.content}</span>
+                  <span class="notification-time">${notif.createdAt}</span>
+                </div>
+              `).join('');
+
+              notificationBadge.textContent = data.count;
+              notificationBadge.style.display = 'flex';
+
+              // Add click handlers
+              document.querySelectorAll('.notification-item').forEach(item => {
+                item.addEventListener('click', function() {
+                  const conversationId = this.dataset.conversationId;
+                  const notificationId = this.dataset.notificationId;
+
+                  // Mark as read and redirect
+                  fetch(`/messages/notifications/${notificationId}/read`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'X-Requested-With': 'XMLHttpRequest'
+                    }
+                  }).then(() => {
+                    window.location.href = `/messages/${conversationId}`;
+                  });
+                });
+              });
+            }
+          } catch (error) {
+            console.error('Erreur chargement notifications:', error);
+          }
+        }
+
+        // Load count on page load
+        async function updateNotificationCount() {
+          try {
+            const response = await fetch('/messages/notifications/count');
+            const data = await response.json();
+            
+            if (data.count > 0) {
+              notificationBadge.textContent = data.count;
+              notificationBadge.style.display = 'flex';
+            } else {
+              notificationBadge.style.display = 'none';
+            }
+          } catch (error) {
+            console.error('Erreur:', error);
+          }
+        }
+
+        // Initialiser au chargement
+        updateNotificationCount();
+
+        // Rafraîchir le badge toutes les 30 secondes
+        setInterval(updateNotificationCount, 30000);
+
+        // Écouter les événements personnalisés quand les notifications d'une conversation sont marquées comme lues
+        window.addEventListener('notificationsMarkAsRead', async function(e) {
+          console.log(`📬 Événement: ${e.detail.count} notification(s) marquée(s) comme lue(s) pour la conversation ${e.detail.conversationId}`);
+          // Attendre un peu puis rafraîchir le badge
+          await new Promise(resolve => setTimeout(resolve, 300));
+          updateNotificationCount();
+        });
+
+        // Écouter les événements WebSocket pour les notifications
+        window.addEventListener('websocketNotificationUpdate', async function(e) {
+          console.log('📬 Mise à jour WebSocket des notifications');
+          updateNotificationCount();
+        });
+      })();
+    </script>
+
+    {# === WEBSOCKET CONNECTION FOR AUTHENTICATED USERS === #}
+    {% if app.user %}
+    <script>
+      (function() {
+        const userId = {{ app.user.id }};
+        let ws = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 10;
+        const reconnectDelay = 3000; // 3 secondes
+
+        function connectWebSocket() {
+          try {
+            ws = new WebSocket('ws://localhost:3001/messages');
+
+            ws.onopen = function() {
+              console.log('✅ WebSocket connecté');
+              reconnectAttempts = 0;
+              // Envoyer le userId au serveur
+              ws.send(JSON.stringify({
+                type: 'auth',
+                userId: userId
+              }));
+            };
+
+            ws.onmessage = function(event) {
+              try {
+                const data = JSON.parse(event.data);
+
+                if (data.type === 'notification') {
+                  console.log('📬 Nouvelle notification reçue:', data);
+                  
+                  // Mettre à jour le compteur
+                  updateNotificationCount();
+
+                  // Afficher une alerte visuelle si la page est visible
+                  if (document.visibilityState === 'visible') {
+                    showToastNotification(data);
+                  }
+
+                  // Optionnel: jouer un son
+                  playNotificationSound();
+                }
+
+                if (data.type === 'message') {
+                  console.log('💬 Message reçu:', data);
+                  // La page de conversation gérera le message en temps réel
+                  window.dispatchEvent(new CustomEvent('newMessage', { detail: data }));
+                }
+
+                if (data.type === 'notificationsRead') {
+                  console.log('✅ Notifications marquées comme lues par utilisateur', data.userId);
+                  // Mettre à jour le compteur de notifications
+                  updateNotificationCount();
+                }
+              } catch (error) {
+                console.error('Erreur parsing WebSocket message:', error);
+              }
+            };
+
+            ws.onerror = function(error) {
+              console.error('❌ Erreur WebSocket:', error);
+            };
+
+            ws.onclose = function() {
+              console.log('❌ WebSocket fermé');
+              attemptReconnect();
+            };
+          } catch (error) {
+            console.error('Erreur connexion WebSocket:', error);
+            attemptReconnect();
+          }
+        }
+
+        function attemptReconnect() {
+          if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            console.log(`⏳ Tentative de reconnexion ${reconnectAttempts}/${maxReconnectAttempts} dans ${reconnectDelay}ms...`);
+            setTimeout(connectWebSocket, reconnectDelay);
+          } else {
+            console.error('❌ Connexion WebSocket failed after max attempts');
+          }
+        }
+
+        function showToastNotification(data) {
+          // Créer un toast notification
+          const toast = document.createElement('div');
+          toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #0d6efd;
+            color: white;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+            z-index: 9999;
+            max-width: 350px;
+            animation: slideIn 0.3s ease;
+            font-size: 14px;
+          `;
+          toast.innerHTML = `
+            <strong>💬 ${data.senderName}</strong><br>
+            ${data.message || 'Nouveau message reçu'}
+          `;
+          document.body.appendChild(toast);
+
+          setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+          }, 5000);
+        }
+
+        function playNotificationSound() {
+          // Créer un son de notification simple avec Web Audio API
+          try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+          } catch (error) {
+            // Ignorer les erreurs (certains navigateurs/contextes ne supportent pas)
+          }
+        }
+
+        // Connecter au WebSocket au chargement
+        connectWebSocket();
+
+        // Gérer la visibilité de la page
+        document.addEventListener('visibilitychange', function() {
+          if (document.visibilityState === 'visible' && (!ws || ws.readyState !== WebSocket.OPEN)) {
+            console.log('🔄 Page visible - vérification connexion WebSocket');
+            if (!ws || ws.readyState === WebSocket.CLOSED) {
+              connectWebSocket();
+            }
+          }
+        });
+
+        // Nettoyer la connexion avant de quitter la page
+        window.addEventListener('beforeunload', function() {
+          if (ws) {
+            ws.close();
+          }
+        });
+      })();
+    </script>
+
+    <style>
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateX(400px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes slideOut {
+        from {
+          opacity: 1;
+          transform: translateX(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateX(400px);
+        }
+      }
+    </style>
+    {% endif %}
     
   </body>
 </html>
