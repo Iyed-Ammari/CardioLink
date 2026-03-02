@@ -1,200 +1,248 @@
-<link rel="stylesheet" href="{{ asset('assets/forum.css') }}">
+{# templates/admin/forum_backoffice.html.twig #}
 
-<!-- Top Header -->
-<header class="top-header">
-  <div class="header-left">
-<img src="{{ asset('assets/image/logo.png') }}" alt="Logo" class="logo" style="width:80px; height:100px;">    <div class="platform-name">
-      <span class="title">CardioLink</span>
-      <span class="subtitle">Healthcare Platform</span>
+{% extends 'base.html.twig' %}
+
+{% block title %}CardioLink | Administration Community{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --admin-primary: #2F60F5;
+            --admin-secondary: #F82239;
+            --admin-bg: #f4f7fe;
+            --card-shadow: 0 10px 30px rgba(47, 96, 245, 0.08);
+        }
+
+        /* On ajuste le main-content pour le backoffice */
+        .admin-page-wrapper {
+            display: flex;
+            margin: -2rem; /* Annule le padding par défaut du main de base si nécessaire */
+            min-height: calc(100vh - 60px);
+            background-color: var(--admin-bg);
+        }
+
+        /* Sidebar interne */
+        .admin-sidebar {
+            width: 280px;
+            background: white;
+            border-right: 1px solid #e5e7eb;
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .admin-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0.8rem 1rem;
+            color: #64748b;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .admin-nav-link:hover, .admin-nav-link.active {
+            background: #eff6ff;
+            color: var(--admin-primary);
+        }
+
+        /* Zone de contenu principale */
+        .admin-main {
+            flex: 1;
+            padding: 2.5rem;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        /* Cartes de posts */
+        .admin-post-card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid #edf2f7;
+        }
+
+        .admin-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: #eff6ff;
+            color: var(--admin-primary);
+        }
+
+        .btn-action {
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-del {
+            background: linear-gradient(45deg, var(--admin-secondary), #d90429);
+            color: white;
+        }
+
+        .btn-view {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            color: #1e293b;
+        }
+
+        /* Stats à droite */
+        .admin-grid {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 20px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: var(--card-shadow);
+        }
+
+        .stat-icon {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="admin-page-wrapper">
+    <aside class="admin-sidebar">
+        <h3 style="padding-left: 1rem; font-size: 0.9rem; color: #94a3b8; text-transform: uppercase;">Management</h3>
+        <a href="#" class="admin-nav-link active"><i class="fas fa-users"></i> Community</a>
+        <a href="#" class="admin-nav-link"><i class="fas fa-chart-line"></i> Analytics</a>
+        <a href="#" class="admin-nav-link"><i class="fas fa-shield-alt"></i> Modération</a>
+        
+        <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 1rem 0;">
+        
+        <a href="{{ path('forum_frontoffice') }}" class="admin-nav-link" style="color: var(--admin-primary);">
+            <i class="fas fa-arrow-left"></i> Retour au Forum
+        </a>
+    </aside>
+
+    <div class="admin-main">
+        <div class="admin-header">
+            <div>
+                <h1 style="margin:0; font-weight: 800; color: #1e293b;">Gestion de la Communauté</h1>
+                <p style="color: #64748b; margin: 5px 0 0 0;">Contrôlez et modérez les publications patients.</p>
+            </div>
+            
+            <div style="display: flex; gap: 1rem;">
+                <input type="text" id="search-admin" placeholder="Filtrer les titres..." 
+                       style="padding: 0.7rem 1.2rem; border-radius: 12px; border: 1px solid #e2e8f0; width: 250px;">
+                <select id="sort-admin" style="padding: 0.7rem; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <option value="recent">Plus récents</option>
+                    <option value="titre">Titre A-Z</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="admin-grid">
+            <section id="posts-container-admin">
+                {% for post in posts %}
+                    <article class="admin-post-card">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                            <span class="admin-badge">Post ID #{{ post.id }}</span>
+                            <small style="color: #94a3b8;">{{ post.createdAt|date('d/m/Y H:i') }}</small>
+                        </div>
+                        
+                        <h3 style="margin: 0 0 0.5rem 0; font-weight: 700;">{{ post.title }}</h3>
+                        <p style="color: #475569; font-size: 0.95rem; line-height: 1.5;">{{ post.content }}</p>
+                        
+                        <div style="margin: 1rem 0; font-size: 0.85rem; color: #64748b;">
+                            <i class="fas fa-user-circle"></i> Auteur: <strong>{{ post.user.nom }} {{ post.user.prenom }}</strong>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px solid #f1f5f9;">
+                            <button class="btn-action btn-view toggle-comments-btn">
+                                <i class="far fa-comments"></i> {{ post.comments|length }} Réponses
+                            </button>
+                            
+                            <form method="post" action="{{ path('forum_delete', { id: post.id }) }}" onsubmit="return confirm('Supprimer définitivement ?');">
+                                <button class="btn-action btn-del">
+                                    <i class="fas fa-trash-alt"></i> Supprimer
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="comments-section" style="display:none; margin-top: 1.5rem; background: #f8fafc; padding: 1rem; border-radius: 12px;">
+                            {% for comment in post.comments %}
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #eef2f6;">
+                                    <p style="margin:0; font-size: 0.9rem;">{{ comment.content }}</p>
+                                    <form method="post" action="{{ path('comment_delete', { id: comment.id }) }}">
+                                        <button style="background:none; border:none; color:var(--admin-secondary); cursor:pointer;"><i class="fas fa-times"></i></button>
+                                    </form>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </section>
+
+            <aside>
+                <div class="stat-box">
+                    <div class="stat-icon" style="background: #eff6ff; color: var(--admin-primary);"><i class="fas fa-envelope-open-text"></i></div>
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 800;">{{ posts|length }}</div>
+                        <div style="font-size: 0.8rem; color: #64748b;">Discussions</div>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon" style="background: #fff1f2; color: var(--admin-secondary);"><i class="fas fa-comment-dots"></i></div>
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 800;">{{ comments|length }}</div>
+                        <div style="font-size: 0.8rem; color: #64748b;">Commentaires</div>
+                    </div>
+                </div>
+            </aside>
+        </div>
     </div>
-  </div>
-
-  <div class="header-center">
-    <span class="community-name" style="background: linear-gradient(45deg, #2F60F5, #F82239); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Wellness <strong>Community</strong></span>
-    <span class="community-subtitle">Connect, Share, and Manage Posts & Comments</span>
-  </div>
-
-  <div class="header-right">
-    <input type="text" placeholder="Search posts..." class="search-bar">
-  </div>
-</header>
-
-<div class="container">
-
-  <!-- Sidebar gauche -->
-  <nav class="sidebar">
-    <div class="logo">backoffice</div>
-    <a href="{{ path('forum_frontoffice') }}" style="background: ; text-align:center; margin-bottom:0.5rem; display:block; padding:0.5rem; border-radius:5px; font-weight:600; cursor:pointer;">
-      Aller au Front-Office
-    </a>
-
-    <a href="{{ path('forum_frontoffice') }}" class="active">Community</a>
-    <a href="#">Dashboard</a>
-    <a href="#">Patients</a>
-    <a href="#">Monitoring</a>
-    <a href="#">Appointments</a>
-    <a href="#">Reports</a>
-    <a href="#">Notifications</a>
-    <a href="#">Settings</a>
-  </nav>
-
-
-  <!-- Contenu principal + panel droit -->
-  <div class="content-area">
-
-    <div class="main-content">
-      <h2>Liste des posts</h2>
-
-      {% for post in posts %}
-        <article class="post-card admin" style="margin-bottom:1rem; padding:1rem; border-radius:8px; border-left: 4px solid #2F60F5; background:#fff;">
-          <h3>{{ post.title }}</h3>
-          <p>{{ post.content }}</p>
-          <p class="post-meta">Par {{ post.user.nom }} {{ post.user.prenom }} ({{ post.user.roles|join(', ') }})</p>
-          <small>{{ post.createdAt|date('d/m/Y H:i') }}</small>
-
-          <!-- Bouton supprimer post -->
-          <form method="post" action="{{ path('forum_delete', { id: post.id }) }}" style="margin-top:0.5rem;">
-            <button style="background: linear-gradient(45deg, #2F60F5, #F82239); color:#fff; border:none; padding:0.5rem 1rem; border-radius:5px; font-weight:600; cursor:pointer;">Supprimer le post</button>
-          </form>
-
-          <!-- Bouton toggle commentaires -->
-          <button class="toggle-comments-btn" style="
-              margin-top:0.5rem; 
-              background: linear-gradient(45deg, #2F60F5, #F82239); 
-              color:#fff; 
-              border:none; 
-              padding:0.5rem 1rem; 
-              border-radius:5px; 
-              cursor:pointer;
-              font-weight:600;
-          ">
-              Afficher les commentaires
-          </button>
-
-          <!-- Section commentaires -->
-          <div class="comments-section" style="display:none; margin-top:1rem; padding-top:1rem; border-top:1px solid #ddd;">
-            <h4>Commentaires</h4>
-
-            {% for comment in post.comments %}
-              <div class="comment-card" style="margin-bottom:0.8rem; padding:0.5rem; border:1px solid #eee; border-radius:8px;">
-                <p>{{ comment.content }}</p>
-                <p class="post-meta">
-                  Par {{ comment.user.nom }} {{ comment.user.prenom }}
-                  • {{ comment.createdAt|date('d/m/Y H:i') }}
-                </p>
-
-                <!-- Bouton supprimer commentaire -->
-                <form method="post" action="{{ path('comment_delete', { id: comment.id }) }}">
-                  <button style="background: linear-gradient(45deg, #F82239, #2F60F5); color:#fff; border:none; padding:0.3rem 0.8rem; border-radius:5px; cursor:pointer;">Supprimer</button>
-                </form>
-              </div>
-            {% else %}
-              <p style="color:#6b7280;">Aucun commentaire pour le moment.</p>
-            {% endfor %}
-          </div>
-        </article>
-      {% else %}
-        <p>Aucun post pour le moment.</p>
-      {% endfor %}
-    </div>
-
-    <!-- Right panel -->
-    <div class="right-panel">
-      <div class="panel-card">
-        <h3>Statistiques</h3>
-        <ul>
-          <li>Total posts : {{ posts|length }}</li>
-          <li>Total commentaires : {{ comments|length }}</li>
-        </ul>
-      </div>
-    </div>
-
-  </div>
 </div>
 
-<!-- JS simple pour toggle commentaires -->
 <script>
-  document.querySelectorAll('.toggle-comments-btn').forEach(button => {
-    button.addEventListener('click', () => {
-      const comments = button.nextElementSibling;
-      if (comments.style.display === 'none') {
-        comments.style.display = 'block';
-        button.textContent = 'Masquer les commentaires';
-      } else {
-        comments.style.display = 'none';
-        button.textContent = 'Afficher les commentaires';
-      }
+    // Toggle Commentaires
+    document.querySelectorAll('.toggle-comments-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const section = btn.closest('article').querySelector('.comments-section');
+            section.style.display = section.style.display === 'none' ? 'block' : 'none';
+        });
     });
-  });
+
+    // Recherche simple
+    document.getElementById('search-admin').addEventListener('input', function(e) {
+        const text = e.target.value.toLowerCase();
+        document.querySelectorAll('.admin-post-card').forEach(card => {
+            const title = card.querySelector('h3').textContent.toLowerCase();
+            card.style.display = title.includes(text) ? 'block' : 'none';
+        });
+    });
 </script>
-
-<!-- JS pour recherche et tri -->
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const searchInput = document.getElementById('search-admin');
-    const sortSelect = document.getElementById('sort-admin');
-    const postsContainer = document.getElementById('posts-container-admin');
-
-    // Fonction pour trier et afficher les posts
-    function sortAndDisplayPosts() {
-      const query = searchInput.value.toLowerCase().trim();
-      const sortValue = sortSelect.value;
-      
-      // Récupérer tous les posts en tant qu'array
-      let allPosts = Array.from(postsContainer.querySelectorAll('.post-card'));
-      
-      // Filtrer par recherche
-      let visiblePosts = allPosts.filter(post => {
-        const title = post.querySelector('h3').textContent.toLowerCase();
-        return title.includes(query);
-      });
-
-      // Trier les posts
-      visiblePosts.sort((a, b) => {
-        if (sortValue === 'titre-asc') {
-          const titleA = a.querySelector('h3').textContent.toLowerCase();
-          const titleB = b.querySelector('h3').textContent.toLowerCase();
-          return titleA.localeCompare(titleB);
-        } else if (sortValue === 'titre-desc') {
-          const titleA = a.querySelector('h3').textContent.toLowerCase();
-          const titleB = b.querySelector('h3').textContent.toLowerCase();
-          return titleB.localeCompare(titleA);
-        } else if (sortValue === 'recent') {
-          const dateStrA = a.querySelector('small').textContent;
-          const dateStrB = b.querySelector('small').textContent;
-          const dateA = parseDate(dateStrA);
-          const dateB = parseDate(dateStrB);
-          return dateB - dateA;
-        } else if (sortValue === 'ancien') {
-          const dateStrA = a.querySelector('small').textContent;
-          const dateStrB = b.querySelector('small').textContent;
-          const dateA = parseDate(dateStrA);
-          const dateB = parseDate(dateStrB);
-          return dateA - dateB;
-        }
-      });
-
-      // Réorganiser les posts dans le DOM
-      allPosts.forEach(post => post.style.display = 'none');
-      visiblePosts.forEach(post => {
-        post.style.display = 'block';
-        postsContainer.appendChild(post);
-      });
-    }
-
-    // Fonction pour parser la date au format "d/m/Y H:i"
-    function parseDate(dateStr) {
-      const parts = dateStr.trim().split(' ');      
-      if (parts.length >= 2) {
-        const [day, month, year] = parts[0].split('/');
-        const [hours, minutes] = parts[1].split(':');
-        return new Date(year, month - 1, day, hours, minutes);
-      }
-      return new Date(0);
-    }
-
-    // Événements pour recherche et tri
-    searchInput.addEventListener('input', sortAndDisplayPosts);
-    sortSelect.addEventListener('change', sortAndDisplayPosts);
-  });
-</script>
+{% endblock %}
