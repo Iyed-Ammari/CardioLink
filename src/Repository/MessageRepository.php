@@ -23,6 +23,10 @@ class MessageRepository extends ServiceEntityRepository
     public function findByConversation(Conversation $conversation): array
     {
         return $this->createQueryBuilder('m')
+            ->leftJoin('m.reactions', 'r') // On joint les réactions
+            ->addSelect('r')               // On force la récupération immédiate
+            ->leftJoin('m.sender', 's')    // Bonne pratique : On joint l'expéditeur aussi !
+            ->addSelect('s')
             ->where('m.conversation = :conversation')
             ->setParameter('conversation', $conversation)
             ->orderBy('m.createdAt', 'ASC')
