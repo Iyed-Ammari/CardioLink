@@ -8,8 +8,9 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
-
 #[ORM\Entity(repositoryClass: RendezVousRepository::class)]
+#[ORM\Table(name: "rendezvous")] // nom de table en singulier
+#[ORM\HasLifecycleCallbacks]
 class RendezVous
 {
     #[ORM\Id]
@@ -17,24 +18,28 @@ class RendezVous
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     #[Assert\NotNull(message: "Veuillez choisir une date")]
     #[Assert\GreaterThan("now", message: "Le rendez-vous doit être dans le futur")]
-    private ?\DateTime $dateHeure = null;
+    private ?\DateTimeImmutable $dateHeure = null;
 
-
-    #[ORM\Column(length: 50)]
+    #[ORM\Column(type: 'string', length: 50)]
     #[Assert\NotBlank(message: 'Le statut est obligatoire')]
-    #[Assert\Choice(choices: ['En attente', 'Confirmé', 'Annulé', 'Complété'], message: 'Le statut doit être valide')]
-    private ?string $statut = null;
+    #[Assert\Choice(
+        choices: ['En attente', 'Confirmé', 'Annulé', 'Complété'],
+        message: 'Le statut doit être valide'
+    )]
+    private string $statut;
 
-    #[ORM\Column(length: 50)]
+    #[ORM\Column(type: 'string', length: 50)]
     #[Assert\NotBlank(message: "Choisissez un type de consultation")]
-    #[Assert\Choice(['Présentiel', 'Télémédecine'])]
-    private ?string $type = null;
+    #[Assert\Choice(
+        choices: ['Présentiel', 'Télémedecine'],
+        message: "Type invalide"
+    )]
+    private string $type;
 
-
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
     #[Assert\Url(message: 'Le lien de visio doit être une URL valide')]
     private ?string $lienVisio = null;
 
@@ -45,17 +50,15 @@ class RendezVous
         minMessage: "Veuillez donner plus de détails (minimum 10 caractères)",
         max: 500
     )]
-    private ?string $remarques = null;
-
+    private string $remarques;
 
     #[ORM\ManyToOne(inversedBy: 'rendezVouses')]
-    #[Assert\NotBlank(message: 'Le patient est obligatoire')]
+    #[Assert\NotNull(message: 'Le patient est obligatoire')]
     private ?User $patient = null;
 
     #[ORM\ManyToOne(inversedBy: 'rendezVousMedecin')]
     #[Assert\NotNull(message: "Veuillez sélectionner un médecin")]
     private ?User $medecin = null;
-
 
     #[ORM\ManyToOne(inversedBy: 'rendezVouses')]
     private ?Lieu $lieu = null;
@@ -63,44 +66,46 @@ class RendezVous
     #[ORM\OneToOne(mappedBy: 'consultation', cascade: ['persist', 'remove'])]
     private ?Ordonnance $ordonnance = null;
 
+    // =========================
+    // GETTERS & SETTERS
+    // =========================
+
     public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function getDateHeure(): ?\DateTime
-    {
-        return $this->dateHeure;
-    }
+public function getDateHeure(): \DateTimeImmutable
+{
+    return $this->dateHeure;
+}
 
-    public function setDateHeure(\DateTime $dateHeure): static
-    {
-        $this->dateHeure = $dateHeure;
+public function setDateHeure(\DateTimeImmutable $dateHeure): self
+{
+    $this->dateHeure = $dateHeure;
+    return $this;
+}
+    
 
-        return $this;
-    }
-
-    public function getStatut(): ?string
+    public function getStatut(): string
     {
         return $this->statut;
     }
 
-    public function setStatut(string $statut): static
+    public function setStatut(string $statut): self
     {
         $this->statut = $statut;
-
         return $this;
     }
 
-    public function getType(): ?string
+    public function getType(): string
     {
         return $this->type;
     }
 
-    public function setType(string $type): static
+    public function setType(string $type): self
     {
         $this->type = $type;
-
         return $this;
     }
 
@@ -109,22 +114,20 @@ class RendezVous
         return $this->lienVisio;
     }
 
-    public function setLienVisio(?string $lienVisio): static
+    public function setLienVisio(?string $lienVisio): self
     {
         $this->lienVisio = $lienVisio;
-
         return $this;
     }
 
-    public function getRemarques(): ?string
+    public function getRemarques(): string
     {
         return $this->remarques;
     }
 
-    public function setRemarques(string $remarques): static
+    public function setRemarques(string $remarques): self
     {
         $this->remarques = $remarques;
-
         return $this;
     }
 
@@ -133,10 +136,9 @@ class RendezVous
         return $this->patient;
     }
 
-    public function setPatient(?User $patient): static
+    public function setPatient(?User $patient): self
     {
         $this->patient = $patient;
-
         return $this;
     }
 
@@ -145,10 +147,9 @@ class RendezVous
         return $this->medecin;
     }
 
-    public function setMedecin(?User $medecin): static
+    public function setMedecin(?User $medecin): self
     {
         $this->medecin = $medecin;
-
         return $this;
     }
 
@@ -157,10 +158,9 @@ class RendezVous
         return $this->lieu;
     }
 
-    public function setLieu(?Lieu $lieu): static
+    public function setLieu(?Lieu $lieu): self
     {
         $this->lieu = $lieu;
-
         return $this;
     }
 
@@ -169,14 +169,12 @@ class RendezVous
         return $this->ordonnance;
     }
 
-    public function setOrdonnance(?Ordonnance $ordonnance): static
+    public function setOrdonnance(?Ordonnance $ordonnance): self
     {
-        // unset the owning side of the relation if necessary
         if ($ordonnance === null && $this->ordonnance !== null) {
             $this->ordonnance->setConsultation(null);
         }
 
-        // set the owning side of the relation if necessary
         if ($ordonnance !== null && $ordonnance->getConsultation() !== $this) {
             $ordonnance->setConsultation($this);
         }
@@ -185,15 +183,30 @@ class RendezVous
 
         return $this;
     }
-    #[Assert\Callback]
-public function validateTypeLieu(ExecutionContextInterface $context): void
-{
-    
 
-    if ($this->type === 'Télémédecine' && $this->lieu !== null) {
-        $context->buildViolation('Un rendez-vous en visio ne doit pas avoir de lieu physique')
-            ->atPath('lieu')
-            ->addViolation();
+    // =========================
+    // VALIDATION PERSONNALISÉE
+    // =========================
+
+    #[Assert\Callback]
+    public function validateTypeLieu(ExecutionContextInterface $context): void
+    {
+        if ($this->type === 'Télémedecine' && $this->lieu !== null) {
+            $context->buildViolation('Un rendez-vous en visio ne doit pas avoir de lieu physique')
+                ->atPath('lieu')
+                ->addViolation();
+        }
+    }
+
+    // =========================
+    // LIFECYCLE CALLBACK
+    // =========================
+
+  #[ORM\PrePersist]
+public function initializeDateHeure(): void
+{
+    if (!isset($this->dateHeure)) {
+        $this->dateHeure = new \DateTimeImmutable();
     }
 }
 }
