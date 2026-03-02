@@ -405,6 +405,9 @@ class ConversationController extends AbstractController
     public function getUnreadNotifications(): JsonResponse
     {
         $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['notifications' => [], 'count' => 0]);
+        }
         $notifications = $this->notificationRepository->findUnreadByUser($user);
 
         $data = [];
@@ -439,6 +442,9 @@ class ConversationController extends AbstractController
     public function countUnreadNotifications(): JsonResponse
     {
         $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['count' => 0]);
+        }
         $count = $this->notificationRepository->countUnreadByUser($user);
 
         return $this->json(['count' => $count]);
@@ -448,6 +454,9 @@ class ConversationController extends AbstractController
     public function markConversationNotificationsRead(int $conversationId): JsonResponse
     {
         $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['status' => 'error', 'message' => 'User not authenticated'], 401);
+        }
         $conversation = $this->conversationRepository->find($conversationId);
 
         if (!$conversation) {

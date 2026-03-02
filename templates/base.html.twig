@@ -112,6 +112,7 @@
     </script>
 
     {# === SYSTÈME DE NOTIFICATIONS FAB === #}
+    {% if app.user %}
     <div id="notificationsFAB" class="notifications-fab">
       <button id="fabButton" class="fab-button" title="Notifications">
         💬
@@ -127,6 +128,7 @@
         </div>
       </div>
     </div>
+    {% endif %}
 
     <style>
       /* === FAB STYLES === */
@@ -317,6 +319,7 @@
     </style>
 
     <script>
+      {% if app.user %}
       (function() {
         const fabButton = document.getElementById('fabButton');
         const notificationsPanel = document.getElementById('notificationsPanel');
@@ -426,6 +429,7 @@
           updateNotificationCount();
         });
       })();
+      {% endif %}
     </script>
 
     {# === WEBSOCKET CONNECTION FOR AUTHENTICATED USERS === #}
