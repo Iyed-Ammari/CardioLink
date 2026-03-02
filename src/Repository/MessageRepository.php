@@ -27,6 +27,36 @@ class MessageRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * Récupère les messages épinglés d'une conversation
+     */
+    public function findPinnedByConversation(Conversation $conversation): array
+    {
+        return $this->createQueryBuilder('m')
+            ->where('m.conversation = :conversation')
+            ->andWhere('m.isPinned = :isPinned')
+            ->setParameter('conversation', $conversation)
+            ->setParameter('isPinned', true)
+            ->orderBy('m.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Récupère les messages archivés d'une conversation
+     */
+    public function findArchivedByConversation(Conversation $conversation): array
+    {
+        return $this->createQueryBuilder('m')
+            ->where('m.conversation = :conversation')
+            ->andWhere('m.isArchived = :isArchived')
+            ->setParameter('conversation', $conversation)
+            ->setParameter('isArchived', true)
+            ->orderBy('m.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
     //    /**
     //     * @return Message[] Returns an array of Message objects
     //     */

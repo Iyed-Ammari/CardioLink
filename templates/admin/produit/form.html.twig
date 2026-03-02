@@ -252,6 +252,67 @@
     const urlInput  = document.getElementById('{{ form.imageUrl.vars.id }}');
     const fileName  = document.getElementById('fileName');
 
+    const prixInput  = document.getElementById('{{ form.prix.vars.id }}');
+    const stockInput = document.getElementById('{{ form.stock.vars.id }}');
+
+    // ✅ Prix: autorise chiffres + (.) ou (,) une seule fois + max 2 décimales
+    function sanitizePrix(v){
+      v = (v || '').replace(/[^\d.,]/g, '');      // enlève lettres
+      v = v.replace(',', '.');                    // normalise
+      const firstDot = v.indexOf('.');
+      if (firstDot !== -1) {
+        // supprime les autres points
+        v = v.slice(0, firstDot + 1) + v.slice(firstDot + 1).replace(/\./g, '');
+        // limite à 2 décimales
+        const parts = v.split('.');
+        if (parts[1] && parts[1].length > 2) {
+          v = parts[0] + '.' + parts[1].slice(0, 2);
+        }
+      }
+      return v;
+    }
+
+    function attachPrix(el){
+      if(!el) return;
+
+      el.addEventListener('keydown', (e) => {
+        const okKeys = ['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End'];
+        if (okKeys.includes(e.key)) return;
+
+        if ((e.ctrlKey || e.metaKey) && ['a','c','v','x'].includes(e.key.toLowerCase())) return;
+
+        // autoriser chiffre / . / ,
+        if (!/^\d$/.test(e.key) && e.key !== '.' && e.key !== ',') e.preventDefault();
+      });
+
+      el.addEventListener('input', () => { el.value = sanitizePrix(el.value); });
+      el.addEventListener('paste', () => setTimeout(() => { el.value = sanitizePrix(el.value); }, 0));
+
+      // ✅ important: en edit, nettoie la valeur pré-remplie si besoin
+      el.value = sanitizePrix(el.value);
+    }
+
+    // ✅ Stock: chiffres seulement
+    function attachDigitsOnly(el){
+      if(!el) return;
+
+      el.addEventListener('keydown', (e) => {
+        const okKeys = ['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End'];
+        if (okKeys.includes(e.key)) return;
+
+        if ((e.ctrlKey || e.metaKey) && ['a','c','v','x'].includes(e.key.toLowerCase())) return;
+
+        if (!/^\d$/.test(e.key)) e.preventDefault();
+      });
+
+      el.addEventListener('input', () => { el.value = (el.value || '').replace(/[^\d]/g, ''); });
+      el.addEventListener('paste', () => setTimeout(() => { el.value = (el.value || '').replace(/[^\d]/g, ''); }, 0));
+    }
+
+    attachPrix(prixInput);
+    attachDigitsOnly(stockInput);
+
+    // --- ton code imageUrl/imageFile
     if (!fileInput || !urlInput || !fileName) return;
 
     fileInput.addEventListener('change', () => {

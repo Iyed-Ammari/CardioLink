@@ -1,109 +1,113 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Mes Suivis Cardiaques {% endblock %}
+{% block title %}Mes Suivis{% endblock %}
 
 {% block body %}
-<div class="container mt-5">
-    <div class="row">
-        <div class="col-md-12">
-            <h1 class="mb-4">
-                <i class="fas fa-heartbeat"></i> Mes Suivis Cardiaques
-            </h1>
+<div class="container-fluid mt-5 px-5"> {# container-fluid pour occuper plus d'espace #}
+    <h1 class="mb-4" style="font-size: 2.5rem; font-weight: bold;">Mes Suivis</h1>
 
-            {% if app.flashes %}
-                {% for type, messages in app.flashes %}
-                    {% for message in messages %}
-                        <div class="alert alert-{{ type == 'success' ? 'success' : 'danger' }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    {% endfor %}
-                {% endfor %}
-            {% endif %}
+    {# Bouton Nouveau Suivi Plus Grand #}
+    <div class="mb-5">
+        <a href="{{ path('app_suivi_new') }}" class="btn text-white" style="background: linear-gradient(to right, #d83a56, #516be1); border-radius: 12px; padding: 15px 35px; font-size: 1.2rem; font-weight: 600; border: none;">
+            Nouveau Suivi
+        </a>
+    </div>
 
-            <div class="mb-4">
-                <a href="{{ path('app_suivi_new') }}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Nouveau Suivi
-                </a>
-            </div>
-
-            {% if suivis|length > 0 %}
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Type de donnée</th>
-                                <th>Valeur</th>
-                                <th>Unité</th>
-                                <th>Date de saisie</th>
-                                <th>Urgence</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for suivi in suivis %}
-                                <tr class="
-                                    {% if suivi.niveauUrgence == 'Critique' %}
-                                        table-danger
-                                    {% elseif suivi.niveauUrgence == 'Stable' %}
-                                        table-warning
-                                    {% else %}
-                                        table-light
-                                    {% endif %}
-                                ">
-                                    <td>
-                                        <strong>{{ suivi.typeDonnee }}</strong>
-                                    </td>
-                                    <td>{{ suivi.valeur }}</td>
-                                    <td>{{ suivi.unite }}</td>
-                                    <td>{{ suivi.dateSaisie|format_datetime('medium', 'short') }}</td>
-                                    <td>
-                                        <span class="badge bg-
-                                            {% if suivi.niveauUrgence == 'Critique' %}
-                                                danger
-                                            {% elseif suivi.niveauUrgence == 'Stable' %}
-                                                warning
-                                            {% else %}
-                                                success
-                                            {% endif %}
-                                        ">
-                                            {{ suivi.niveauUrgence }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <a href="{{ path('app_suivi_show', {'id': suivi.id}) }}" class="btn btn-sm btn-info">
-                                            <i class="fas fa-eye">
-                                            👁️
-                                            </i>
-                                        </a>
-                                        <a href="{{ path('app_suivi_edit', {'id': suivi.id}) }}" class="btn btn-sm btn-warning">
-                                            <i class="fas fa-edit">✏️</i>
-                                        </a>
-                                        <form method="POST" action="{{ path('app_suivi_delete', {'id': suivi.id}) }}" style="display:inline;">
-                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ suivi.id) }}">
-                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Êtes-vous sûr ?')">
-                                                <i class="fas fa-trash">🗑️</i>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i> Aucun suivi enregistré. 
-                    <a href="{{ path('app_suivi_new') }}">Commencez maintenant</a>
-                </div>
-            {% endif %}
+    {# Barre de Recherche Plus Imposante #}
+    <form method="get" class="mb-5">
+        <div class="input-group" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <input type="text" name="search" class="form-control" 
+                   placeholder="Rechercher par type (Tension, SpO2...) ou urgence..." 
+                   style="border-radius: 12px; border: 1px solid #eee; padding: 20px; font-size: 1.1rem;"
+                   value="{{ current_search }}">
         </div>
+        <button class="btn mt-3 text-white shadow" type="submit" style="background: linear-gradient(to right, #d83a56, #516be1); border-radius: 10px; padding: 12px 40px; font-size: 1.1rem; border: none;">
+            Rechercher
+        </button>
+        {% if current_search %}
+            <a href="{{ path('app_suivi_index') }}" class="btn btn-link text-decoration-none text-muted ms-3" style="font-size: 1.1rem;">✖ Effacer</a>
+        {% endif %}
+    </form>
+
+    {# Tableau avec lignes espacées et texte plus grand #}
+    <div class="table-responsive">
+        <table class="table table-borderless align-middle" style="font-size: 1.15rem;"> {# Taille de police augmentée #}
+            <thead>
+                <tr style="border-bottom: 3px solid #f1f1f1; color: #333;">
+                    <th class="py-4 px-3" style="width: 20%;">Type de donnée</th>
+                    <th class="py-4 px-3" style="width: 15%;">Valeur / Unité</th>
+                    <th class="py-4 px-3 text-center" style="width: 25%;">
+                        <div style="margin-bottom: 8px; font-weight: 700;">Date de saisie</div>
+                        <div class="d-flex justify-content-center gap-3">
+                            <a href="{{ path('app_suivi_index', {direction: 'ASC', search: current_search}) }}" 
+                               class="text-decoration-none {{ current_direction == 'ASC' ? 'text-primary' : 'text-muted' }}" style="font-size: 1.5rem;">
+                                ↑
+                            </a>
+                            <a href="{{ path('app_suivi_index', {direction: 'DESC', search: current_search}) }}" 
+                               class="text-decoration-none {{ current_direction == 'DESC' ? 'text-primary' : 'text-muted' }}" style="font-size: 1.5rem;">
+                                ↓
+                            </a>
+                        </div>
+                    </th>
+                    <th class="py-4 px-3" style="width: 15%;">Urgence</th>
+                    <th class="py-4 px-3 text-center" style="width: 25%;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for suivi in suivis %}
+                    <tr style="border-bottom: 1px solid #f8f8f8; transition: all 0.2s ease;">
+                        <td class="py-4 px-3">
+                            <span style="font-weight: 600; color: #000;">{{ suivi.typeDonnee }}</span>
+                        </td>
+                        <td class="py-4 px-3">
+                            <span style="font-size: 1.2rem; font-weight: 500;">{{ suivi.valeur }}</span> 
+                            <span class="text-muted ms-1" style="font-size: 0.95rem;">{{ suivi.unite }}</span>
+                        </td>
+                        <td class="py-4 px-3 text-center text-secondary">
+                            {{ suivi.dateSaisie|date('d/m/Y H:i') }}
+                        </td>
+                        <td class="py-4 px-3">
+                            <span class="badge" style="padding: 10px 15px; border-radius: 8px; font-size: 0.95rem; 
+                                {{ suivi.niveauUrgence == 'Critique' ? 'background-color: #ffe5e5; color: #d83a56;' : 
+                                   (suivi.niveauUrgence == 'Stable' ? 'background-color: #fff4e5; color: #ff8c00;' : 'background-color: #e5f9f0; color: #27ae60;') }}">
+                                {{ suivi.niveauUrgence }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-3 text-center">
+                            <div class="d-flex justify-content-center align-items-center gap-4">
+                                {# Voir #}
+                                <a href="{{ path('app_suivi_show', {id: suivi.id}) }}" class="text-dark" title="Voir">
+                                    <i class="fas fa-eye" style="font-size: 1.3rem;"></i> 👁️
+                                </a>
+                                {# Modifier #}
+                                <a href="{{ path('app_suivi_edit', {id: suivi.id}) }}" class="text-warning" title="Modifier">
+                                    <i class="fas fa-edit" style="font-size: 1.3rem;"></i> ✏️
+                                </a>
+                                {# Supprimer bouton style dégradé agrandi #}
+                                <form method="POST" action="{{ path('app_suivi_delete', {id: suivi.id}) }}" onsubmit="return confirm('Confirmer la suppression ?')" style="display:inline;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ suivi.id) }}">
+                                    <button class="btn shadow-sm text-white" style="background: linear-gradient(to bottom right, #d83a56, #516be1); border-radius: 10px; border: none; padding: 10px 20px; font-size: 1.1rem;">
+                                        🗑️
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted" style="font-size: 1.2rem;">Aucun suivi trouvé.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 
 <style>
-    .table-hover tbody tr:hover {
-        background-color: rgba(0, 0, 0, 0.05);
+    /* Effet au survol des lignes pour plus de modernité */
+    tbody tr:hover {
+        background-color: #fafafa !important;
+        transform: scale(1.005);
     }
 </style>
 {% endblock %}

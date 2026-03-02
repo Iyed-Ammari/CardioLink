@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\MessageRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -34,6 +36,23 @@ class Message
     #[ORM\Column(length: 50)]
     private ?string $classification = 'NORMAL';
 
+    #[ORM\Column]
+    private ?bool $isPinned = false;
+
+    #[ORM\Column]
+    private ?bool $isArchived = false;
+
+    /**
+     * @var Collection<int, MessageReaction>
+     */
+    #[ORM\OneToMany(targetEntity: MessageReaction::class, mappedBy: 'message', cascade: ['remove'])]
+    private Collection $reactions;
+
+    public function __construct()
+    {
+        $this->reactions = new ArrayCollection();
+    }
+
     public function getClassification(): ?string
     {
         return $this->classification;
@@ -42,6 +61,28 @@ class Message
     public function setClassification(string $classification): static
     {
         $this->classification = $classification;
+        return $this;
+    }
+
+    public function isPinned(): ?bool
+    {
+        return $this->isPinned;
+    }
+
+    public function setIsPinned(bool $isPinned): static
+    {
+        $this->isPinned = $isPinned;
+        return $this;
+    }
+
+    public function isArchived(): ?bool
+    {
+        return $this->isArchived;
+    }
+
+    public function setIsArchived(bool $isArchived): static
+    {
+        $this->isArchived = $isArchived;
         return $this;
     }
 
@@ -106,6 +147,35 @@ class Message
     public function setIsRead(bool $isRead): static
     {
         $this->isRead = $isRead;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, MessageReaction>
+     */
+    public function getReactions(): Collection
+    {
+        return $this->reactions;
+    }
+
+    public function addReaction(MessageReaction $reaction): static
+    {
+        if (!$this->reactions->contains($reaction)) {
+            $this->reactions->add($reaction);
+            $reaction->setMessage($this);
+        }
+
+        return $this;
+    }
+
+    public function removeReaction(MessageReaction $reaction): static
+    {
+        if ($this->reactions->removeElement($reaction)) {
+            if ($reaction->getMessage() === $this) {
+                $reaction->setMessage(null);
+            }
+        }
 
         return $this;
     }
