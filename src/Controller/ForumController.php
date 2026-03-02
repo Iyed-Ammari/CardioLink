@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\String\Slugger\SluggerInterface;
-
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 class ForumController extends AbstractController
 {
     // Page d'accueil
@@ -27,137 +27,149 @@ class ForumController extends AbstractController
     // =============================
     // FRONT-OFFICE (affichage + création)
     // =============================
-    #[Route('/forum/frontoffice', name: 'forum_frontoffice')]
-    public function frontoffice(
-        Request $request,
-        PostRepository $postRepository,
-        EntityManagerInterface $em
-    ): Response {
-        $user = $this->getUser();
 
-        if (!$user) {
-            $this->addFlash('error', 'Vous devez être connecté pour créer un post');
-            return $this->redirectToRoute('app_login');
+#[Route('/forum/frontoffice', name: 'forum_frontoffice')]
+public function frontoffice(
+    Request $request,
+    PostRepository $postRepository,
+    EntityManagerInterface $em,
+    HttpClientInterface $client
+): Response {
+    $user = $this->getUser();
+    if (!$user) {
+        $this->addFlash('error', 'Vous devez être connecté pour créer un post');
+        return $this->redirectToRoute('app_login');
+    }
+
+    // 1. GESTION DE LA CRÉATION
+    if ($request->isMethod('POST') && !$request->query->get('search') && !$request->query->get('sort')) {
+        $post = new Post();
+        $post->setUser($user);
+        $post->setTitle($request->request->get('title'));
+        $post->setContent($request->request->get('content'));
+        $post->setCreatedAT(new \DateTimeImmutable());
+
+        $file = $request->files->get('image');
+        if ($file) {
+            $filename = uniqid().'.'.$file->guessExtension();
+            $file->move($this->getParameter('posts_images_directory'), $filename);
+            $post->setImage($filename);
         }
 
-        // 🔹 Création d'un post
-        if ($request->isMethod('POST') && !$request->query->get('search') && !$request->query->get('sort')) {
-            $post = new Post();
-            $post->setUser($user);
-            $post->setTitle($request->request->get('title'));
-            $post->setContent($request->request->get('content'));
-            $post->setCreatedAT(new \DateTimeImmutable());
-
-            $file = $request->files->get('image');
-            if ($file) {
-                $filename = uniqid() . '.' . $file->guessExtension();
-                $file->move($this->getParameter('posts_images_directory'), $filename);
-                $post->setImage($filename);
+        try {
+            $response = $client->request('POST', 'http://127.0.0.1:8002/embed', [
+                'json' => ['text' => $post->getContent()],
+                'timeout' => 2
+            ]);
+            if ($response->getStatusCode() === 200) {
+                $post->setEmbedding($response->toArray()['vector']);
             }
-
-            $em->persist($post);
-            $em->flush();
-
-            $this->addFlash('success', 'Post créé avec succès !');
-            return $this->redirectToRoute('forum_frontoffice');
+        } catch (\Exception $e) {
+            // IA indisponible, on continue sans erreur
         }
 
-        // 🔹 Chargement des posts
-        $allPosts = $postRepository->findBy([], ['createdAT' => 'DESC']);
+        $em->persist($post);
+        $em->flush();
+        $this->addFlash('success', 'Post créé avec succès !');
+        return $this->redirectToRoute('forum_frontoffice');
+    }
 
-        // 🔹 Recherche
-        $search = $request->query->get('search', '');
-        if ($search) {
-            $allPosts = array_filter($allPosts, fn($p) => stripos($p->getTitle(), $search) !== false);
-        }
+    // 2. CHARGEMENT INITIAL
+    $allPosts = $postRepository->findBy([], ['createdAT' => 'DESC']);
 
-        // 🔹 Tri
-        $sort = $request->query->get('sort', 'recent');
-        usort($allPosts, function ($a, $b) use ($sort) {
-            if ($sort === 'titre-asc') return strcasecmp($a->getTitle(), $b->getTitle());
-            if ($sort === 'titre-desc') return strcasecmp($b->getTitle(), $a->getTitle());
-            if ($sort === 'ancien') return $a->getCreatedAT() <=> $b->getCreatedAT();
-            return $b->getCreatedAT() <=> $a->getCreatedAT(); // recent par défaut
-        });
+    // 3. RECHERCHE (Une seule fois suffit)
+    $search = $request->query->get('search', '');
+    if ($search) {
+        $allPosts = array_filter($allPosts, fn($p) => stripos($p->getTitle(), $search) !== false);
+    }
 
-        // 🔹 Récupérer les résumés pour affichage
-        $postIds = array_map(fn($p) => $p->getId(), $allPosts);
+    // 4. 🤖 IA MATCHING (Suggestions basées sur le post le plus récent de la liste)
+    // 3. 🤖 IA MATCHING PERSONNALISÉ
+$recommendedPosts = [];
+
+// On cherche le tout dernier post écrit par l'utilisateur connecté
+$lastUserPost = $postRepository->findOneBy(
+    ['user' => $user], 
+    ['createdAT' => 'DESC']
+);
+
+if ($lastUserPost && $lastUserPost->getEmbedding()) {
+    // L'IA compare le dernier post de l'utilisateur avec TOUT le reste du forum
+    $recommendedPosts = $postRepository->findSimilarPosts(
+        $lastUserPost->getEmbedding(), 
+        $lastUserPost->getId() // On exclut son propre post des résultats
+    );
+}
+    // 5. TRI
+    $sort = $request->query->get('sort', 'recent');
+    usort($allPosts, function($a, $b) use ($sort) {
+        if ($sort === 'titre-asc') return strcasecmp($a->getTitle(), $b->getTitle());
+        if ($sort === 'titre-desc') return strcasecmp($b->getTitle(), $a->getTitle());
+        if ($sort === 'ancien') return $a->getCreatedAT() <=> $b->getCreatedAT();
+        return $b->getCreatedAT() <=> $a->getCreatedAT();
+    });
+
+    // 6. RÉSUMÉS
+    $postIds = array_map(fn($p) => $p->getId(), $allPosts);
+    $summariesByPost = [];
+    if (!empty($postIds)) {
         $postSummaries = $em->getRepository(PostSummary::class)
             ->createQueryBuilder('ps')
             ->where('ps.post IN (:postIds)')
             ->setParameter('postIds', $postIds)
-            ->orderBy('ps.createdAt', 'DESC')
             ->getQuery()
             ->getResult();
 
-        $summariesByPost = [];
         foreach ($postSummaries as $ps) {
-            $postId = $ps->getPost()->getId();
-            if (!isset($summariesByPost[$postId])) {
-                $summariesByPost[$postId] = $ps->getSummary();
-            }
+            $summariesByPost[$ps->getPost()->getId()] = $ps->getSummary();
         }
 
+    // 7. CALCUL DES FLAMMES (Optimisé)
+    $flamesByUser = [];
+    $now = new \DateTimeImmutable();
+    $usersProcessed = [];
 
+    foreach ($allPosts as $post) {
+        $postUser = $post->getUser();
+        $userId = $postUser->getId();
 
+        if (in_array($userId, $usersProcessed)) continue;
 
-        // ===== CALCUL DES FLAMMES PAR UTILISATEUR =====
-        // ===== CALCUL DES FLAMMES PAR UTILISATEUR (TEST 1 MINUTE) =====
-        // ===== CALCUL DES FLAMMES PAR UTILISATEUR (TEST 1 MINUTE) =====
-        // ===== CALCUL DES FLAMMES PAR UTILISATEUR (1 MINUTE TEST) =====
-        // ===== CALCUL DES FLAMMES PAR UTILISATEUR =====
-        $flamesByUser = [];
-        $now = new \DateTimeImmutable();
-        $usersProcessed = [];
+        $userPosts = $postRepository->findBy(['user' => $postUser], ['createdAT' => 'DESC']);
+        $flames = 0;
+        $previous = null;
 
-        foreach ($allPosts as $post) {
-            $userId = $post->getUser()->getId();
-
-            if (in_array($userId, $usersProcessed)) {
-                continue;
-            }
-
-            // Récupérer tous les posts de l'utilisateur, du plus récent au plus ancien
-            $userPosts = $postRepository->findBy(['user' => $post->getUser()], ['createdAT' => 'DESC']);
-
-            $flames = 0;
-            $previous = null;
-
-            foreach ($userPosts as $userPost) {
-                if (!$previous) {
-                    // Premier post, vérifie si dans la dernière minute
-                    $diff = $now->getTimestamp() - $userPost->getCreatedAT()->getTimestamp();
-                    if ($diff <= 60) { // 1 minute
-                        $flames = 1;
-                        $previous = $userPost->getCreatedAT();
-                    } else {
-                        $flames = 0;
-                        break;
-                    }
-                } else {
-                    // Diff entre ce post et le précédent
-                    $diff = $previous->getTimestamp() - $userPost->getCreatedAT()->getTimestamp();
-                    if ($diff <= 60) {
-                        $flames++;
-                        $previous = $userPost->getCreatedAT();
-                    } else {
-                        break;
-                    }
-                }
+        foreach ($userPosts as $userPost) {
+            if (!$previous) {
+                $diff = $now->getTimestamp() - $userPost->getCreatedAT()->getTimestamp();
+                if ($diff <= 60) { 
+                    $flames = 1;
+                    $previous = $userPost->getCreatedAT();
+                } else { break; }
+            } else {
+                $diff = $previous->getTimestamp() - $userPost->getCreatedAT()->getTimestamp();
+                if ($diff <= 60) {
+                    $flames++;
+                    $previous = $userPost->getCreatedAT();
+                } else { break; }
             }
 
             $flamesByUser[$userId] = $flames;
             $usersProcessed[] = $userId;
         }
-        // ===== RENDER =====
-        return $this->render('forum/frontoffice.html.twig', [
-            'posts' => $allPosts,
-            'search' => $search,
-            'sort' => $sort,
-            'flamesByUser' => $flamesByUser,
-            'summariesByPost' => $summariesByPost,
-        ]);
+        $flamesByUser[$userId] = $flames;
+        $usersProcessed[] = $userId;
     }
+    dump($recommendedPosts);
+    return $this->render('forum/frontoffice.html.twig', [
+        'posts' => $allPosts,
+        'search' => $search,
+        'sort' => $sort,
+        'recommendedPosts' => $recommendedPosts,
+        'flamesByUser' => $flamesByUser,
+        'summariesByPost' => $summariesByPost,
+    ]);
+}
     // =============================
     // MODIFIER UN POST (FRONT-OFFICE)
     // =============================
@@ -263,17 +275,21 @@ class ForumController extends AbstractController
     // =============================
     // VOIR UN POST
     // =============================
-    #[Route('/forum/{id}', name: 'forum_show')]
-    public function show(Post $post): Response
-    {
-        return $this->render('forum/show.html.twig', [
-            'post' => $post,
-        ]);
-    }
-    #[Route('/post/{id}/like', name: 'post_like')]
-    public function like(Post $post, EntityManagerInterface $em): Response
-    {
-        $user = $this->getUser();
+    #[Route('/forum/post/{id}', name: 'forum_post_show')]
+public function show(Post $post): Response
+{
+    // On récupère les commentaires (assure-toi d'avoir une relation dans ton entité Post)
+    $comments = $post->getComments(); 
+
+    return $this->render('forum/show.html.twig', [
+        'post' => $post,
+        'comments' => $comments,
+    ]);
+}
+#[Route('/post/{id}/like', name: 'post_like')]
+public function like(Post $post, EntityManagerInterface $em): Response
+{
+    $user = $this->getUser();
 
         if (!$post->isLikedByUser($user)) {
             $post->addLikedBy($user);
@@ -338,18 +354,19 @@ class ForumController extends AbstractController
             return $this->redirectToRoute('forum_frontoffice');
         }
 
-        return $this->render('forum/frontoffice.html.twig', [
-            'posts' => $em->getRepository(Post::class)->findAll()
-        ]);
-    }
-    #[Route('/forum/post/{id}/generate-summary', name: 'generate_summary', methods: ['POST'])]
-    public function generateSummary(Post $post, EntityManagerInterface $em, PostSummaryRepository $summaryRepo): Response
-    {
-        $content = $post->getContent();
+    return $this->render('forum/frontoffice.html.twig', [
+        'posts' => $em->getRepository(Post::class)->findAll()
+    ]);
+}
 
-        // 🔹 Chemin du script Python
-        $pythonBinary = '"C:\\Users\\Asus\\Desktop\\CardioLink\\ai_service\\venv\\Scripts\\python.exe"';
-        $pythonScript = '"C:\\Users\\Asus\\Desktop\\CardioLink\\ml\\summarizer.py"';
+#[Route('/forum/post/{id}/generate-summary', name: 'generate_summary', methods: ['POST'])]
+public function generateSummary(Post $post, EntityManagerInterface $em, PostSummaryRepository $summaryRepo): Response
+{
+    $content = $post->getContent();
+
+    // 🔹 Chemin du script Python
+    $pythonBinary = '"C:\\Users\\Mon Pc\\CardioLink\\ml_env\\Scripts\\python.exe"';
+    $pythonScript = '"C:\\Users\\Mon Pc\\CardioLink\\ml\\summarizer.py"';
 
         $descriptors = [
             0 => ['pipe', 'r'], // stdin
@@ -398,4 +415,6 @@ class ForumController extends AbstractController
 
         return $this->redirectToRoute('forum_frontoffice');
     }
+}
+
 }
