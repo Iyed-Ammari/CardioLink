@@ -20,7 +20,7 @@ class RendezVousRepository extends ServiceEntityRepository
     /**
      * Vérifie la disponibilité d'un créneau pour un médecin
      */
-    public function countCrenau(\DateTime $debut, User $medecin, ?int $excludeId = null): int
+    public function countCrenau(\DateTimeImmutable $debut, User $medecin, ?int $excludeId = null): int
     {
         // On suppose qu'un RDV dure 30 min
         $fin = (clone $debut)->modify('+30 minutes');
@@ -45,13 +45,16 @@ class RendezVousRepository extends ServiceEntityRepository
     /**
      * Recherche globale avec filtrage par rôle et tris dynamiques
      */
+    /**
+ * @return RendezVous[]
+ */
     public function searchGlobal(
         ?string $search,
         ?string $sortField,
         ?string $sortOrder,
         User $user,
         string $role
-    ) {
+    ) : array{
         $qb = $this->createQueryBuilder('r')
             ->leftJoin('r.patient', 'p') // On lie la table User pour le patient
             ->leftJoin('r.medecin', 'm')  // On lie la table User pour le médecin
@@ -123,6 +126,9 @@ class RendezVousRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
     }
+    /**
+ * @return array<int, array<string, mixed>>
+ */
     public function getStatsMensuellesMedecin(int $medecinId): array
     {
         return $this->createQueryBuilder('r')
@@ -134,18 +140,21 @@ class RendezVousRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+    /**
+ * @return RendezVous[]
+ */
     public function findRdvPourDemain(): array
-    {
-        $demain = new \DateTime('+1 day');
-        $debut = (clone $demain)->setTime(0, 0, 0);
-        $fin = (clone $demain)->setTime(23, 59, 59);
+{
+    $demain = new \DateTime('+1 day');
+    $debut = (clone $demain)->setTime(0, 0, 0);
+    $fin = (clone $demain)->setTime(23, 59, 59);
 
-        return $this->createQueryBuilder('r')
-            // Correction ici : date -> dateHeure
-            ->where('r.dateHeure BETWEEN :debut AND :fin')
-            ->setParameter('debut', $debut)
-            ->setParameter('fin', $fin)
-            ->getQuery()
-            ->getResult();
-    }
+    return $this->createQueryBuilder('r')
+        // Correction ici : date -> dateHeure
+        ->where('r.dateHeure BETWEEN :debut AND :fin') 
+        ->setParameter('debut', $debut)
+        ->setParameter('fin', $fin)
+        ->getQuery()
+        ->getResult();
+}
 }
