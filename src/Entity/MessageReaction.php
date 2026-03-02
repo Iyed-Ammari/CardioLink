@@ -12,7 +12,7 @@ class MessageReaction
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private ?int $id = null;
+    private ?int $id = null;// @phpstan-ignore property.unusedType
 
     #[ORM\ManyToOne(inversedBy: 'reactions')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]

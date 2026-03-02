@@ -18,9 +18,6 @@ class MessageReactionRepository extends ServiceEntityRepository
         parent::__construct($registry, MessageReaction::class);
     }
 
-    /**
-     * Récupère une réaction spécifique
-     */
     public function findReaction(Message $message, User $user, string $emoji): ?MessageReaction
     {
         return $this->createQueryBuilder('mr')
@@ -35,11 +32,11 @@ class MessageReactionRepository extends ServiceEntityRepository
     }
 
     /**
-     * Récupère les réactions d'un message groupées par emoji avec comptage
+     * @return array<int, array<string, mixed>>
      */
     public function findReactionsSummary(Message $message): array
     {
-        $results = $this->createQueryBuilder('mr')
+        return $this->createQueryBuilder('mr')
             ->select('mr.emoji, COUNT(mr.id) as count')
             ->where('mr.message = :message')
             ->setParameter('message', $message)
@@ -47,12 +44,10 @@ class MessageReactionRepository extends ServiceEntityRepository
             ->orderBy('count', 'DESC')
             ->getQuery()
             ->getResult();
-
-        return $results;
     }
 
     /**
-     * Récupère les utilisateurs qui ont réagi avec un emoji spécifique
+     * @return User[]
      */
     public function findUsersByEmoji(Message $message, string $emoji): array
     {

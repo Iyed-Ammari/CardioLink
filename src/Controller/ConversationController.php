@@ -9,7 +9,6 @@ use App\Entity\MessageReaction;
 use App\Entity\Notification;
 use App\Entity\User;
 use App\Repository\ConversationRepository;
-use App\Repository\InterventionRepository;
 use App\Repository\MessageReactionRepository;
 use App\Repository\MessageRepository;
 use App\Repository\NotificationRepository;
@@ -33,7 +32,6 @@ class ConversationController extends AbstractController
         private MessageReactionRepository $reactionRepository,
         private NotificationRepository $notificationRepository,
         private UserRepository $userRepository,
-        private InterventionRepository $interventionRepository,
         private EntityManagerInterface $entityManager
     ) {}
 
@@ -41,10 +39,18 @@ class ConversationController extends AbstractController
     public function index(Request $request): Response
     {
         $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException('Accès refusé.');
+        }
         
-        $search = $request->query->get('search', '');
-        $sortBy = $request->query->get('sortBy', 'updated');
-        $order = $request->query->get('order', 'DESC');
+        $searchParam = $request->query->get('search', '');
+        $search = is_string($searchParam) ? $searchParam : '';
+        
+        $sortByParam = $request->query->get('sortBy', 'updated');
+        $sortBy = is_string($sortByParam) ? $sortByParam : 'updated';
+        
+        $orderParam = $request->query->get('order', 'DESC');
+        $order = is_string($orderParam) ? $orderParam : 'DESC';
         
         if (!in_array($sortBy, ['updated', 'created', 'contact', 'status'])) {
             $sortBy = 'updated';
@@ -80,6 +86,9 @@ class ConversationController extends AbstractController
     public function start(User $recipient): Response
     {
         $currentUser = $this->getUser();
+        if (!$currentUser instanceof User) {
+            throw $this->createAccessDeniedException('Accès refusé.');
+        }
 
         if ($currentUser === $recipient) {
             $this->addFlash('danger', 'Vous ne pouvez pas parler à vous-même.');
@@ -127,6 +136,9 @@ class ConversationController extends AbstractController
     {
         $messages = $this->messageRepository->findByConversation($conversation);
         $currentUser = $this->getUser();
+        if (!$currentUser instanceof User) {
+            throw $this->createAccessDeniedException('Accès refusé.');
+        }
 
         $hasUpdates = false;
         foreach ($messages as $message) {
@@ -153,8 +165,13 @@ class ConversationController extends AbstractController
         EntityManagerInterface $entityManager,
         HttpClientInterface $client
     ): JsonResponse {
+        $currentUser = $this->getUser();
+        if (!$currentUser instanceof User) {
+            return $this->json(['error' => 'Non autorisé'], 401);
+        }
+
         $data = json_decode($request->getContent(), true);
-        $content = $data['content'] ?? null;
+        $content = isset($data['content']) && is_string($data['content']) ? $data['content'] : null;
 
         if (!$content) {
             return $this->json(['error' => 'Message vide'], 400);
@@ -163,7 +180,7 @@ class ConversationController extends AbstractController
         $message = new Message();
         $message->setContent($content);
         $message->setConversation($conversation);
-        $message->setSender($this->getUser());
+        $message->setSender($currentUser);
         $message->setCreatedAt(new \DateTime());
         $message->setIsRead(false);
 
@@ -175,7 +192,7 @@ class ConversationController extends AbstractController
 
             if ($response->getStatusCode() === 200) {
                 $aiResult = $response->toArray();
-                $classification = $aiResult['classification'] ?? 'NORMAL';
+                $classification = isset($aiResult['classification']) && is_string($aiResult['classification']) ? $aiResult['classification'] : 'NORMAL';
             }
         } catch (\Exception $e) {
             // IA non disponible
@@ -200,13 +217,13 @@ class ConversationController extends AbstractController
 
         // Créer une notification pour l'autre utilisateur
         $recipient = $conversation->getPatient();
-        if ($this->getUser() === $recipient) {
+        if ($currentUser === $recipient) {
             $recipient = $conversation->getMedecin();
         }
 
         $notification = new Notification();
         $notification->setRecipient($recipient);
-        $notification->setSender($this->getUser());
+        $notification->setSender($currentUser);
         $notification->setConversation($conversation);
         $notification->setMessage($message);
         $notification->setContent($content);
@@ -216,17 +233,14 @@ class ConversationController extends AbstractController
         $entityManager->persist($notification);
         $entityManager->flush();
 
-        $user = $this->getUser();
-        $nomComplet = 'Moi';
-        if ($user instanceof User) {
-            $nomComplet = $user->getPrenom() . ' ' . $user->getNom();
-        }
+        $nomComplet = $currentUser->getPrenom() . ' ' . $currentUser->getNom();
+        $createdAtStr = $message->getCreatedAt() ? $message->getCreatedAt()->format('H:i') : '';
 
         return $this->json([
             'status' => 'success',
             'messageId' => $message->getId(),
             'senderName' => $nomComplet,
-            'createdAt' => $message->getCreatedAt()->format('H:i'),
+            'createdAt' => $createdAtStr,
             'classification' => $classification
         ]);
     }
@@ -235,7 +249,7 @@ class ConversationController extends AbstractController
     public function getSuggestions(Conversation $conversation, Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
-        $input = strtolower(trim($data['input'] ?? ''));
+        $input = strtolower(trim(isset($data['input']) && is_string($data['input']) ? $data['input'] : ''));
 
         if (strlen($input) < 2) {
             return $this->json(['suggestions' => []]);
@@ -255,11 +269,15 @@ class ConversationController extends AbstractController
         $recentPhrases = [];
         foreach (array_slice($messages, -10) as $message) {
             $content = $message->getContent();
-            $sentences = preg_split('/[.!?]+/', $content, -1, PREG_SPLIT_NO_EMPTY);
-            foreach ($sentences as $sentence) {
-                $phrase = trim($sentence);
-                if (strlen($phrase) > 3) {
-                    $recentPhrases[] = $phrase;
+            if ($content !== null) {
+                $sentences = preg_split('/[.!?]+/', $content, -1, PREG_SPLIT_NO_EMPTY);
+                if (is_array($sentences)) {
+                    foreach ($sentences as $sentence) {
+                        $phrase = trim($sentence);
+                        if (strlen($phrase) > 3) {
+                            $recentPhrases[] = $phrase;
+                        }
+                    }
                 }
             }
         }
@@ -279,13 +297,17 @@ class ConversationController extends AbstractController
     public function addReaction(Message $message, Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
-        $emoji = $data['emoji'] ?? null;
+        $emoji = isset($data['emoji']) && is_string($data['emoji']) ? $data['emoji'] : null;
 
         if (!$emoji) {
             return $this->json(['error' => 'Emoji manquant'], 400);
         }
 
         $user = $this->getUser();
+        if (!$user instanceof User) {
+            return $this->json(['error' => 'Non autorisé'], 401);
+        }
+
         $existingReaction = $this->reactionRepository->findReaction($message, $user, $emoji);
 
         if ($existingReaction) {
@@ -314,6 +336,9 @@ class ConversationController extends AbstractController
         }
     }
 
+    /**
+     * @return array<int, array{emoji: string, count: int, hasReacted: bool}>
+     */
     private function getMessageReactions(Message $message): array
     {
         $summary = $this->reactionRepository->findReactionsSummary($message);
@@ -321,9 +346,9 @@ class ConversationController extends AbstractController
         
         $formattedReactions = [];
         foreach ($summary as $item) {
-            $emoji = $item['emoji'];
-            $count = $item['count'];
-            $hasReacted = $currentUser ? (bool) $this->reactionRepository->findReaction($message, $currentUser, $emoji) : false;
+            $emoji = (string) $item['emoji'];
+            $count = (int) $item['count'];
+            $hasReacted = ($currentUser instanceof User) ? (bool) $this->reactionRepository->findReaction($message, $currentUser, $emoji) : false;
             
             $formattedReactions[] = [
                 'emoji' => $emoji,
@@ -340,7 +365,7 @@ class ConversationController extends AbstractController
         $conversation = $this->conversationRepository->find($conversationId);
         $message = $this->messageRepository->find($messageId);
 
-        if (!$conversation || !$message || $message->getConversation()->getId() !== $conversation->getId()) {
+        if (!$conversation || !$message || !$message->getConversation() || $message->getConversation()->getId() !== $conversation->getId()) {
             return $this->json(['error' => 'Message non trouvé'], 404);
         }
 
@@ -360,7 +385,7 @@ class ConversationController extends AbstractController
         $conversation = $this->conversationRepository->find($conversationId);
         $message = $this->messageRepository->find($messageId);
 
-        if (!$conversation || !$message || $message->getConversation()->getId() !== $conversation->getId()) {
+        if (!$conversation || !$message || !$message->getConversation() || $message->getConversation()->getId() !== $conversation->getId()) {
             return $this->json(['error' => 'Message non trouvé'], 404);
         }
 
@@ -374,7 +399,6 @@ class ConversationController extends AbstractController
         ]);
     }
 
-    // NOUVELLE METHODE DYNAMIQUE (Remplace getPinned et getArchived)
     #[Route('/{id}/filter/{type}', name: 'conversation_filter_messages', methods: ['GET'])]
     public function getFilteredMessages(Conversation $conversation, string $type): JsonResponse
     {
@@ -388,11 +412,12 @@ class ConversationController extends AbstractController
 
         $messages = [];
         foreach ($filteredMessages as $message) {
+            $sender = $message->getSender();
             $messages[] = [
                 'id' => $message->getId(),
                 'content' => $message->getContent(),
-                'sender' => $message->getSender()->getPrenom() . ' ' . $message->getSender()->getNom(),
-                'createdAt' => $message->getCreatedAt()->format('d/m/Y H:i')
+                'sender' => $sender ? $sender->getPrenom() . ' ' . $sender->getNom() : 'Inconnu',
+                'createdAt' => $message->getCreatedAt() ? $message->getCreatedAt()->format('d/m/Y H:i') : ''
             ];
         }
 
@@ -405,22 +430,28 @@ class ConversationController extends AbstractController
     public function getUnreadNotifications(): JsonResponse
     {
         $user = $this->getUser();
-        if (!$user) {
+        if (!$user instanceof User) {
             return $this->json(['notifications' => [], 'count' => 0]);
         }
         $notifications = $this->notificationRepository->findUnreadByUser($user);
 
         $data = [];
         foreach ($notifications as $notification) {
-            $data[] = [
-                'id' => $notification->getId(),
-                'senderName' => $notification->getSender()->getPrenom() . ' ' . $notification->getSender()->getNom(),
-                'senderPrenom' => $notification->getSender()->getPrenom(),
-                'conversationId' => $notification->getConversation()->getId(),
-                'content' => substr($notification->getContent(), 0, 50) . (strlen($notification->getContent()) > 50 ? '...' : ''),
-                'createdAt' => $notification->getCreatedAt()->format('H:i'),
-                'type' => ($user === $notification->getConversation()->getPatient() ? 'Dr. ' : '')
-            ];
+            $sender = $notification->getSender();
+            $conversation = $notification->getConversation();
+            
+            if ($sender && $conversation) {
+                $contentStr = $notification->getContent() ?? '';
+                $data[] = [
+                    'id' => $notification->getId(),
+                    'senderName' => $sender->getPrenom() . ' ' . $sender->getNom(),
+                    'senderPrenom' => $sender->getPrenom(),
+                    'conversationId' => $conversation->getId(),
+                    'content' => substr($contentStr, 0, 50) . (strlen($contentStr) > 50 ? '...' : ''),
+                    'createdAt' => $notification->getCreatedAt() ? $notification->getCreatedAt()->format('H:i') : '',
+                    'type' => ($user === $conversation->getPatient() ? 'Dr. ' : '')
+                ];
+            }
         }
 
         return $this->json([
@@ -442,7 +473,7 @@ class ConversationController extends AbstractController
     public function countUnreadNotifications(): JsonResponse
     {
         $user = $this->getUser();
-        if (!$user) {
+        if (!$user instanceof User) {
             return $this->json(['count' => 0]);
         }
         $count = $this->notificationRepository->countUnreadByUser($user);
@@ -454,7 +485,7 @@ class ConversationController extends AbstractController
     public function markConversationNotificationsRead(int $conversationId): JsonResponse
     {
         $user = $this->getUser();
-        if (!$user) {
+        if (!$user instanceof User) {
             return $this->json(['status' => 'error', 'message' => 'User not authenticated'], 401);
         }
         $conversation = $this->conversationRepository->find($conversationId);
@@ -463,7 +494,6 @@ class ConversationController extends AbstractController
             return $this->json(['status' => 'error', 'message' => 'Conversation not found'], 404);
         }
 
-        // Récupérer toutes les notifications non lues de cette conversation pour cet utilisateur
         $notifications = $this->entityManager->createQuery(
             'SELECT n FROM App\Entity\Notification n 
              WHERE n.recipient = :user 
@@ -474,9 +504,10 @@ class ConversationController extends AbstractController
         ->setParameter('conversation', $conversation)
         ->getResult();
 
-        // Marquer toutes comme lues
         foreach ($notifications as $notification) {
-            $notification->setIsRead(true);
+            if ($notification instanceof Notification) {
+                $notification->setIsRead(true);
+            }
         }
 
         $this->entityManager->flush();

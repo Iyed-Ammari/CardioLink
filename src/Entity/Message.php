@@ -14,7 +14,7 @@ class Message
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private ?int $id = null;
+    private ?int $id = null;// @phpstan-ignore property.unusedType
 
     #[ORM\ManyToOne(inversedBy: 'messages')]
     #[ORM\JoinColumn(nullable: false)]
@@ -34,56 +34,23 @@ class Message
     private ?bool $isRead = null;
 
     #[ORM\Column(length: 50)]
-    private ?string $classification = 'NORMAL';
+    private string $classification = 'NORMAL';
 
     #[ORM\Column]
-    private ?bool $isPinned = false;
+    private bool $isPinned = false;
 
     #[ORM\Column]
-    private ?bool $isArchived = false;
+    private bool $isArchived = false;
 
     /**
      * @var Collection<int, MessageReaction>
      */
-    #[ORM\OneToMany(targetEntity: MessageReaction::class, mappedBy: 'message', cascade: ['remove'])]
+    #[ORM\OneToMany(targetEntity: MessageReaction::class, mappedBy: 'message')]
     private Collection $reactions;
 
     public function __construct()
     {
         $this->reactions = new ArrayCollection();
-    }
-
-    public function getClassification(): ?string
-    {
-        return $this->classification;
-    }
-
-    public function setClassification(string $classification): static
-    {
-        $this->classification = $classification;
-        return $this;
-    }
-
-    public function isPinned(): ?bool
-    {
-        return $this->isPinned;
-    }
-
-    public function setIsPinned(bool $isPinned): static
-    {
-        $this->isPinned = $isPinned;
-        return $this;
-    }
-
-    public function isArchived(): ?bool
-    {
-        return $this->isArchived;
-    }
-
-    public function setIsArchived(bool $isArchived): static
-    {
-        $this->isArchived = $isArchived;
-        return $this;
     }
 
     public function getId(): ?int
@@ -99,7 +66,6 @@ class Message
     public function setConversation(?Conversation $conversation): static
     {
         $this->conversation = $conversation;
-
         return $this;
     }
 
@@ -111,7 +77,6 @@ class Message
     public function setSender(?User $sender): static
     {
         $this->sender = $sender;
-
         return $this;
     }
 
@@ -123,7 +88,6 @@ class Message
     public function setContent(string $content): static
     {
         $this->content = $content;
-
         return $this;
     }
 
@@ -135,7 +99,6 @@ class Message
     public function setCreatedAt(\DateTime $createdAt): static
     {
         $this->createdAt = $createdAt;
-
         return $this;
     }
 
@@ -147,7 +110,39 @@ class Message
     public function setIsRead(bool $isRead): static
     {
         $this->isRead = $isRead;
+        return $this;
+    }
 
+    public function getClassification(): string
+    {
+        return $this->classification;
+    }
+
+    public function setClassification(string $classification): static
+    {
+        $this->classification = $classification;
+        return $this;
+    }
+
+    public function isPinned(): bool
+    {
+        return $this->isPinned;
+    }
+
+    public function setIsPinned(bool $isPinned): static
+    {
+        $this->isPinned = $isPinned;
+        return $this;
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->isArchived;
+    }
+
+    public function setIsArchived(bool $isArchived): static
+    {
+        $this->isArchived = $isArchived;
         return $this;
     }
 
@@ -165,7 +160,6 @@ class Message
             $this->reactions->add($reaction);
             $reaction->setMessage($this);
         }
-
         return $this;
     }
 
@@ -176,7 +170,6 @@ class Message
                 $reaction->setMessage(null);
             }
         }
-
         return $this;
     }
 }

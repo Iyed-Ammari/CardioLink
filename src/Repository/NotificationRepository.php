@@ -18,7 +18,7 @@ class NotificationRepository extends ServiceEntityRepository
     }
 
     /**
-     * Récupère les notifications non lues d'un utilisateur
+     * @return Notification[]
      */
     public function findUnreadByUser(User $user): array
     {
@@ -33,7 +33,7 @@ class NotificationRepository extends ServiceEntityRepository
     }
 
     /**
-     * Récupère les N dernières notifications d'un utilisateur
+     * @return Notification[]
      */
     public function findRecentByUser(User $user, int $limit = 10): array
     {
@@ -46,12 +46,9 @@ class NotificationRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /**
-     * Compte les notifications non lues
-     */
     public function countUnreadByUser(User $user): int
     {
-        return $this->createQueryBuilder('n')
+        return (int) $this->createQueryBuilder('n')
             ->select('COUNT(n.id)')
             ->where('n.recipient = :user')
             ->andWhere('n.isRead = :isRead')
