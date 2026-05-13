@@ -44,9 +44,9 @@ class IAController extends AbstractController
         foreach ($allResults as $r) {
             if ($r['peak'] && $r['prediction'] > 80) {
                 $alert = new AlertIA();
-                $alert->setDatePeak(new \DateTime($r['date']));
+                $alert->setDatePeak(new \DateTimeImmutable($r['date']));
                 $alert->setPredictionValue($r['prediction']);
-                $alert->setCreatedAt(new \DateTime());
+                $alert->setCreatedAt(new \DateTimeImmutable());
                 $alert->setStatus($r['risk']);
                 $em->persist($alert);
             }
