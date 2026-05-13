@@ -363,8 +363,8 @@ public function generateSummary(Post $post, EntityManagerInterface $em, PostSumm
     $content = $post->getContent();
 
     // 🔹 Chemin du script Python
-    $pythonBinary = '"C:\\Users\\Mon Pc\\CardioLink\\ml_env\\Scripts\\python.exe"';
-    $pythonScript = '"C:\\Users\\Mon Pc\\CardioLink\\ml\\summarizer.py"';
+    $pythonBinary = '"C:\\Users\\Asus\\Desktop\\CardioLink\\ai_service\\venv\\Scripts\\python.exe"';
+    $pythonScript = '"C:\\Users\\Asus\\Desktop\\CardioLink\\ml\\summarizer.py"';
 
         $descriptors = [
             0 => ['pipe', 'r'], // stdin
