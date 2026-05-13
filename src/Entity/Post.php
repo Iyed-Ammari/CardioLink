@@ -27,9 +27,15 @@ class Post
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAT = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $image = null;
+
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
     private ?User $user = null;
+
+    #[ORM\Column(type: 'integer')]
+    private int $likes = 0;
 
     /**
      * @var Collection<int, Comment>
@@ -37,70 +43,79 @@ class Post
     #[ORM\OneToMany(targetEntity: Comment::class, mappedBy: 'post')]
     private Collection $comments;
 
+    /**
+     * @var Collection<int, User>
+     */
+    #[ORM\ManyToMany(targetEntity: User::class)]
+    #[ORM\JoinTable(name: "post_likes")]
+    private Collection $likedBy;
+
+    #[ORM\OneToOne(mappedBy: 'post', targetEntity: PostSummary::class)]
+    private ?PostSummary $summary = null;
+
+    // 🤖 AJOUT POUR L'IA : On stocke le vecteur sous forme de JSON (liste de nombres)
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $embedding = null;
+
     public function __construct()
     {
         $this->comments = new ArrayCollection();
+        $this->likedBy = new ArrayCollection();
     }
 
-    public function getId(): ?int
-    {
-        return $this->id;
-    }
+    // ====================== GETTERS & SETTERS EXISTANTS ======================
 
-    public function getUser(): ?User
-    {
-        return $this->user;
-    }
+    public function getId(): ?int { return $this->id; }
 
-    public function setUser(?User $user): static
+    public function getUser(): ?User { return $this->user; }
+    public function setUser(?User $user): static { $this->user = $user; return $this; }
+
+    public function getTitle(): ?string { return $this->title; }
+    public function setTitle(string $title): static { $this->title = $title; return $this; }
+
+    public function getContent(): ?string { return $this->content; }
+    public function setContent(string $content): static { $this->content = $content; return $this; }
+
+    public function getCreatedAT(): ?\DateTimeImmutable { return $this->createdAT; }
+    public function setCreatedAT(\DateTimeImmutable $createdAT): static { $this->createdAT = $createdAT; return $this; }
+
+    public function getLikes(): int { return $this->likes; }
+    public function setLikes(int $likes): static { $this->likes = $likes; return $this; }
+
+    public function getImage(): ?string { return $this->image; }
+    public function setImage(?string $image): static { $this->image = $image; return $this; }
+
+    // ====================== LIKE SYSTEM ======================
+
+    public function getLikedBy(): Collection { return $this->likedBy; }
+
+    public function addLikedBy(User $user): static
     {
-        $this->user = $user;
+        if (!$this->likedBy->contains($user)) {
+            $this->likedBy->add($user);
+            $this->likes++;
+        }
         return $this;
     }
 
-    public function getTitle(): ?string
+    public function removeLikedBy(User $user): static
     {
-        return $this->title;
-    }
-
-    public function setTitle(string $title): static
-    {
-        $this->title = $title;
-
+        if ($this->likedBy->contains($user)) {
+            $this->likedBy->removeElement($user);
+            if ($this->likes > 0) { $this->likes--; }
+        }
         return $this;
     }
 
-    public function getContent(): ?string
+    public function isLikedByUser(?User $user): bool
     {
-        return $this->content;
+        if (!$user) return false;
+        return $this->likedBy->contains($user);
     }
 
-    public function setContent(string $content): static
-    {
-        $this->content = $content;
+    // ====================== COMMENTS ======================
 
-        return $this;
-    }
-
-    public function getCreatedAT(): ?\DateTimeImmutable
-    {
-        return $this->createdAT;
-    }
-
-    public function setCreatedAT(\DateTimeImmutable $createdAT): static
-    {
-        $this->createdAT = $createdAT;
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Comment>
-     */
-    public function getComments(): Collection
-    {
-        return $this->comments;
-    }
+    public function getComments(): Collection { return $this->comments; }
 
     public function addComment(Comment $comment): static
     {
@@ -108,18 +123,27 @@ class Post
             $this->comments->add($comment);
             $comment->setPost($this);
         }
-
         return $this;
     }
 
     public function removeComment(Comment $comment): static
     {
         if ($this->comments->removeElement($comment)) {
-            if ($comment->getPost() === $this) {
-                $comment->setPost(null);
-            }
+            if ($comment->getPost() === $this) { $comment->setPost(null); }
         }
+        return $this;
+    }
 
+    // ====================== 🤖 AI METHODS ======================
+
+    public function getEmbedding(): ?array
+    {
+        return $this->embedding;
+    }
+
+    public function setEmbedding(?array $embedding): static
+    {
+        $this->embedding = $embedding;
         return $this;
     }
 }

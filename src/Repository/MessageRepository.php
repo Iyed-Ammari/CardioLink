@@ -17,9 +17,16 @@ class MessageRepository extends ServiceEntityRepository
         parent::__construct($registry, Message::class);
     }
 
+    /**
+     * @return Message[]
+     */
     public function findByConversation(Conversation $conversation): array
     {
         return $this->createQueryBuilder('m')
+            ->leftJoin('m.reactions', 'r') // On joint les réactions
+            ->addSelect('r')               // On force la récupération immédiate
+            ->leftJoin('m.sender', 's')    // Bonne pratique : On joint l'expéditeur aussi !
+            ->addSelect('s')
             ->where('m.conversation = :conversation')
             ->setParameter('conversation', $conversation)
             ->orderBy('m.createdAt', 'ASC')
@@ -27,28 +34,33 @@ class MessageRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    //    /**
-    //     * @return Message[] Returns an array of Message objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('m')
-    //            ->andWhere('m.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('m.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * @return Message[]
+     */
+    public function findPinnedByConversation(Conversation $conversation): array
+    {
+        return $this->createQueryBuilder('m')
+            ->where('m.conversation = :conversation')
+            ->andWhere('m.isPinned = :isPinned')
+            ->setParameter('conversation', $conversation)
+            ->setParameter('isPinned', true)
+            ->orderBy('m.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
 
-    //    public function findOneBySomeField($value): ?Message
-    //    {
-    //        return $this->createQueryBuilder('m')
-    //            ->andWhere('m.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+    /**
+     * @return Message[]
+     */
+    public function findArchivedByConversation(Conversation $conversation): array
+    {
+        return $this->createQueryBuilder('m')
+            ->where('m.conversation = :conversation')
+            ->andWhere('m.isArchived = :isArchived')
+            ->setParameter('conversation', $conversation)
+            ->setParameter('isArchived', true)
+            ->orderBy('m.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
 }

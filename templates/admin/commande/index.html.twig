@@ -1,153 +1,636 @@
 {# templates/admin/commande/index.html.twig #}
 {% extends 'admin/base.html.twig' %}
+{% block title %}Commandes — CardioLink Admin{% endblock %}
 
-{% block title %}Marketplace — Commandes{% endblock %}
-
-{# ✅ IMPORTANT: base.html.twig affiche block body, donc on garde TON style et on change فقط content -> body #}
 {% block body %}
-  <div class="space-y-6">
-    {# Header #}
-    <div class="flex items-start justify-between gap-4">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --red:    #F82239;
+    --blue:   #2F60F5;
+    --grad:   linear-gradient(135deg, #F82239 0%, #2F60F5 100%);
+    --dark:   #0D0F14;
+    --card:   #ffffff;
+    --border: rgba(15,23,42,.07);
+    --muted:  #94A3B8;
+    --text:   #0F172A;
+    --font:   'Plus Jakarta Sans', sans-serif;
+  }
+
+  .cmd-page * { font-family: var(--font); box-sizing: border-box; }
+
+  /* ── Hero ─────────────────────────────────────── */
+  .cmd-hero {
+    background: var(--dark);
+    border-radius: 22px;
+    padding: 30px 34px;
+    margin-bottom: 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cmd-hero::before {
+    content: '';
+    position: absolute; top: -100px; right: -60px;
+    width: 340px; height: 340px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(248,34,57,.18) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .cmd-hero::after {
+    content: '';
+    position: absolute; bottom: -80px; left: 35%;
+    width: 280px; height: 280px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(47,96,245,.15) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .cmd-hero-inner {
+    position: relative; z-index: 1;
+    display: flex; align-items: flex-start;
+    justify-content: space-between; gap: 20px; flex-wrap: wrap;
+  }
+
+  .cmd-hero-title {
+    font-size: 26px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -.3px;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+  .cmd-hero-title strong {
+    font-weight: 800;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .chip-row { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 18px; }
+  .hero-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 999px; padding: 4px 12px;
+    font-size: 11.5px; font-weight: 500; color: rgba(255,255,255,.6);
+    letter-spacing: .1px;
+  }
+
+  .pipeline {
+    display: inline-flex; align-items: center; gap: 0;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px; padding: 9px 16px;
+  }
+  .pip-step {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 500; color: rgba(255,255,255,.45);
+    padding: 0 8px;
+  }
+  .pip-step .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: rgba(255,255,255,.15); flex-shrink: 0;
+  }
+  .pip-step.s-attente .dot { background: #F59E0B; }
+  .pip-step.s-payee   .dot { background: #3B82F6; }
+  .pip-step.s-livree  .dot { background: #10B981; }
+  .pip-step.s-attente,
+  .pip-step.s-payee,
+  .pip-step.s-livree  { color: rgba(255,255,255,.7); }
+  .pip-arrow { font-size: 10px; color: rgba(255,255,255,.15); }
+
+  .hero-ca { text-align: right; flex-shrink: 0; }
+  .hero-ca-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 1.2px;
+    text-transform: uppercase; color: rgba(255,255,255,.35);
+    margin-bottom: 6px;
+  }
+  .hero-ca-value {
+    font-size: 30px; font-weight: 700; color: #fff;
+    letter-spacing: -1px; line-height: 1;
+  }
+  .hero-ca-value span { font-size: 14px; font-weight: 400; color: rgba(255,255,255,.4); margin-left: 4px; }
+
+  /* ── KPI Cards ─────────────────────────────────── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  @media(max-width:900px){ .stats-grid{ grid-template-columns:repeat(2,1fr); } }
+
+  .stat-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 22px;
+    position: relative; overflow: hidden;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(15,23,42,.08); }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    border-radius: 16px 16px 0 0;
+  }
+  .stat-card.c-attente::before { background: linear-gradient(90deg,#F59E0B,#FCD34D); }
+  .stat-card.c-payee::before   { background: linear-gradient(90deg,#3B82F6,#93C5FD); }
+  .stat-card.c-livree::before  { background: linear-gradient(90deg,#10B981,#6EE7B7); }
+  .stat-card.c-ca::before      { background: var(--grad); }
+
+  .stat-icon {
+    width: 38px; height: 38px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; margin-bottom: 16px;
+  }
+  .c-attente .stat-icon { background: rgba(245,158,11,.09); }
+  .c-payee   .stat-icon { background: rgba(59,130,246,.09); }
+  .c-livree  .stat-icon { background: rgba(16,185,129,.09); }
+  .c-ca      .stat-icon { background: rgba(248,34,57,.09); }
+
+  .stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat-label {
+    font-size: 11.5px; font-weight: 500; color: var(--muted);
+    letter-spacing: .2px;
+  }
+
+  /* ── Filters ───────────────────────────────────── */
+  .filters-bar {
+    background: var(--card); border: 1.5px solid var(--border);
+    border-radius: 14px; padding: 12px 16px;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .filter-btn {
+    height: 34px; padding: 0 14px; border-radius: 9px;
+    border: 1.5px solid var(--border); background: #F8FAFC;
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    cursor: pointer; transition: all .15s ease;
+    font-family: var(--font);
+    display: inline-flex; align-items: center; gap: 5px;
+    text-decoration: none;
+  }
+  .filter-btn:hover { border-color: rgba(47,96,245,.25); color: var(--blue); background: rgba(47,96,245,.04); }
+  .filter-btn.active {
+    background: var(--dark); border-color: var(--dark); color: #fff;
+    box-shadow: 0 3px 10px rgba(13,15,20,.18);
+    font-weight: 700;
+  }
+  .filter-btn .count {
+    font-size: 10px; font-weight: 700; border-radius: 999px;
+    padding: 1px 6px; background: rgba(255,255,255,.18);
+  }
+  .filter-btn:not(.active) .count { background: rgba(100,116,139,.1); color: var(--muted); }
+  .filter-sep { width: 1px; height: 20px; background: var(--border); }
+
+  .search-wrap { flex: 1; min-width: 180px; position: relative; }
+  .search-wrap .si { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--muted); pointer-events: none; }
+  .search-input {
+    width: 100%; height: 34px; border-radius: 9px;
+    border: 1.5px solid var(--border); background: #F8FAFC;
+    padding: 0 12px 0 32px; font-size: 12.5px; font-weight: 500;
+    color: var(--text); outline: none; font-family: var(--font);
+    transition: .15s;
+  }
+  .search-input:focus { border-color: rgba(47,96,245,.35); background: #fff; box-shadow: 0 0 0 3px rgba(47,96,245,.07); }
+
+  /* ── Table ─────────────────────────────────────── */
+  .cmd-table-wrap {
+    background: var(--card); border: 1.5px solid var(--border);
+    border-radius: 18px; overflow: hidden;
+    box-shadow: 0 2px 20px rgba(15,23,42,.04);
+  }
+  .cmd-table-head {
+    padding: 14px 20px; border-bottom: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: #FAFBFC;
+  }
+  .cmd-table-head-title {
+    font-size: 13.5px; font-weight: 700; color: var(--text);
+  }
+  .cmd-count-badge {
+    background: var(--dark); color: #fff; border-radius: 999px;
+    padding: 3px 12px; font-size: 11px; font-weight: 600;
+    font-family: 'DM Mono', monospace; letter-spacing: .3px;
+  }
+
+  table.cmd-table { width: 100%; border-collapse: collapse; }
+  table.cmd-table thead tr {
+    background: #F8FAFC; border-bottom: 1px solid var(--border);
+  }
+  table.cmd-table thead th {
+    padding: 11px 18px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted); text-align: left;
+  }
+  table.cmd-table thead th.right { text-align: right; }
+
+  table.cmd-table tbody tr {
+    border-bottom: 1px solid rgba(15,23,42,.04);
+    transition: background .12s;
+  }
+  table.cmd-table tbody tr:last-child { border-bottom: none; }
+  table.cmd-table tbody tr:hover { background: #FAFBFC; }
+
+  table.cmd-table tbody td { padding: 15px 18px; }
+
+  .cell-id {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px; font-weight: 500; color: var(--text);
+  }
+  .cell-id small {
+    font-size: 10.5px; color: var(--muted); font-weight: 400;
+    display: block; margin-top: 2px; font-family: var(--font);
+  }
+
+  .cell-patient { display: flex; align-items: center; gap: 10px; }
+  .patient-avatar {
+    width: 34px; height: 34px; border-radius: 10px;
+    background: linear-gradient(135deg, rgba(248,34,57,.1), rgba(47,96,245,.1));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--blue); flex-shrink: 0;
+    border: 1.5px solid rgba(47,96,245,.1);
+  }
+  .patient-email { font-size: 13px; font-weight: 600; color: var(--text); }
+  .patient-meta  { font-size: 11px; color: var(--muted); font-weight: 400; margin-top: 1px; }
+
+  .cell-date { font-size: 12.5px; font-weight: 500; color: var(--text); }
+  .cell-date small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; margin-top: 1px; }
+
+  .s-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 11px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; border: 1.5px solid;
+    white-space: nowrap; letter-spacing: .1px;
+  }
+  .s-badge .sdot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+  .sb-attente { background:rgba(245,158,11,.07); color:#92400E; border-color:rgba(245,158,11,.2); }
+  .sb-attente .sdot { background:#F59E0B; }
+  .sb-payee   { background:rgba(59,130,246,.07); color:#1E40AF; border-color:rgba(59,130,246,.2); }
+  .sb-payee   .sdot { background:#3B82F6; animation: pdot 1.8s ease-in-out infinite; }
+  .sb-livree  { background:rgba(16,185,129,.07); color:#065F46; border-color:rgba(16,185,129,.2); }
+  .sb-livree  .sdot { background:#10B981; }
+  .sb-annulee { background:rgba(248,34,57,.07); color:#991B1B; border-color:rgba(248,34,57,.15); }
+  .sb-annulee .sdot { background:#F82239; }
+  @keyframes pdot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.5)} }
+
+  .cell-total {
+    text-align: right;
+    font-size: 14px; font-weight: 700; color: var(--text);
+    letter-spacing: -.2px; font-family: 'DM Mono', monospace;
+  }
+
+  .cell-actions { text-align: right; }
+  .btn-deliver {
+    height: 36px; padding: 0 16px; border-radius: 10px; border: none;
+    background: linear-gradient(135deg, #2F60F5, #1D4ED8);
+    color: #fff; font-size: 12px; font-weight: 600; cursor: pointer;
+    font-family: var(--font);
+    box-shadow: 0 3px 12px rgba(47,96,245,.25);
+    transition: all .15s; display: inline-flex; align-items: center; gap: 5px;
+    letter-spacing: .1px;
+  }
+  .btn-deliver:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(47,96,245,.3); }
+  .no-action { font-size: 12px; color: #CBD5E1; }
+
+  .btn-expand {
+    width: 26px; height: 26px; border-radius: 7px; border: 1.5px solid var(--border);
+    background: #fff; cursor: pointer; display: inline-flex; align-items: center;
+    justify-content: center; font-size: 14px; color: var(--muted);
+    transition: all .15s; margin-right: 6px; font-family: monospace;
+    vertical-align: middle;
+  }
+  .btn-expand:hover { border-color: rgba(47,96,245,.25); color: var(--blue); }
+  .btn-expand.open  { background: var(--dark); border-color: var(--dark); color: #fff; }
+
+  .detail-row td { padding: 0 !important; background: #F8FAFC; }
+  .detail-inner {
+    padding: 12px 18px 12px 60px;
+    border-top: 1px dashed rgba(15,23,42,.06);
+  }
+  .detail-inner table { width: auto; }
+  .detail-inner td {
+    padding: 4px 14px 4px 0 !important; font-size: 12px; color: var(--muted);
+    font-weight: 500; background: transparent !important; border: none !important;
+  }
+  .detail-inner td strong { color: var(--text); font-weight: 700; }
+  .cat-tag {
+    background: rgba(47,96,245,.07); color: #1D4ED8; border-radius: 5px;
+    padding: 1px 7px; font-size: 10px; font-weight: 700; margin-left: 6px;
+  }
+
+  .flash-msg {
+    border-radius: 12px; padding: 11px 16px; font-size: 12.5px; font-weight: 600;
+    margin-bottom: 14px; border: 1.5px solid;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .flash-success { background:#ECFDF5; border-color:#A7F3D0; color:#065F46; }
+  .flash-danger  { background:#FEF2F2; border-color:#FECACA; color:#991B1B; }
+
+  .empty-cell { padding: 52px 20px !important; text-align: center; }
+  .empty-icon { font-size: 36px; margin-bottom: 8px; }
+  .empty-msg  { font-size: 13px; font-weight: 500; color: var(--muted); }
+
+  /* Pagination row (utilise filter-btn) */
+  .pager {
+    display:flex;gap:8px;align-items:center;justify-content:flex-end;
+    margin: 12px 0;
+  }
+  .pager .info {
+    font-size:12px;color:#94A3B8;font-weight:600;
+  }
+  .pager .disabled {
+    opacity:.5; cursor:not-allowed;
+  }
+</style>
+
+<div class="cmd-page">
+
+  {# Flash #}
+  {% for label, msgs in app.flashes %}
+    {% for m in msgs %}
+      <div class="flash-msg {{ label == 'success' ? 'flash-success' : 'flash-danger' }}">
+        {{ label == 'success' ? '✅' : '❌' }} {{ m }}
+      </div>
+    {% endfor %}
+  {% endfor %}
+
+  {# ── Calculs Twig sur la page courante ── #}
+  {% set nbAttente = 0 %}{% set nbPayee = 0 %}{% set nbLivree = 0 %}{% set caPayees = 0 %}{% set totalCA = 0 %}
+  {% for c in commandes %}
+    {% if c.statut == 'EN_ATTENTE_PAIEMENT' %}{% set nbAttente = nbAttente + 1 %}{% endif %}
+    {% if c.statut == 'PAYEE' %}{% set nbPayee = nbPayee + 1 %}{% set caPayees = caPayees + c.montantTotal %}{% endif %}
+    {% if c.statut == 'LIVREE' %}{% set nbLivree = nbLivree + 1 %}{% endif %}
+    {% if c.statut in ['PAYEE','LIVREE'] %}{% set totalCA = totalCA + c.montantTotal %}{% endif %}
+  {% endfor %}
+
+  {# ── Hero ── #}
+  <div class="cmd-hero">
+    <div class="cmd-hero-inner">
       <div>
-        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900">
-          Marketplace — Commandes
-        </h1>
-        
-      </div>
-
-      <div class="flex items-center gap-2">
-        <span class="text-sm text-slate-600 font-semibold">
-          Total : {{ commandes|length }}
-        </span>
-      </div>
-    </div>
-
-    {# ✅ Flash messages (TON style, gardé) #}
-    <div class="space-y-3">
-      {% for label, msgs in app.flashes %}
-        {% for m in msgs %}
-          {% set color =
-            label == 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' :
-            (label == 'danger' ? 'border-red-200 bg-red-50 text-red-800' :
-            'border-slate-200 bg-slate-50 text-slate-800')
-          %}
-          <div class="rounded-xl border px-4 py-3 text-sm {{ color }}">
-            <span class="font-bold uppercase mr-2">{{ label }}</span>
-            <span>{{ m }}</span>
-          </div>
-        {% endfor %}
-      {% endfor %}
-    </div>
-
-    {# Card container #}
-    <div class="rounded-2xl bg-white shadow-lg shadow-slate-200/70 ring-1 ring-slate-200">
-      <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-        <div class="font-bold text-slate-900">Liste des commandes</div>
-        <div class="text-sm text-slate-500">
-          Statuts : EN_ATTENTE_PAIEMENT → PAYEE → LIVREE
+        <div class="cmd-hero-title">
+          Marketplace — <strong>Commandes</strong>
+        </div>
+        <div class="chip-row">
+          <span class="hero-chip">🏥 CardioLink</span>
+          <span class="hero-chip">{{ total }} commandes</span>
+          <span class="hero-chip">Page {{ page }}/{{ pages }}</span>
+        </div>
+        <div class="pipeline">
+          <div class="pip-step s-attente"><span class="dot"></span>En attente paiement</div>
+          <span class="pip-arrow">→</span>
+          <div class="pip-step s-payee"><span class="dot"></span>Payée</div>
+          <span class="pip-arrow">→</span>
+          <div class="pip-step s-livree"><span class="dot"></span>Livrée</div>
         </div>
       </div>
-
-      <div class="p-4">
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-left">
-            <thead>
-              <tr class="text-xs uppercase tracking-wider text-slate-500">
-                <th class="py-3 px-3">ID</th>
-                <th class="py-3 px-3">Patient</th>
-                <th class="py-3 px-3">Date</th>
-                <th class="py-3 px-3">Statut</th>
-                <th class="py-3 px-3 text-right">Total</th>
-                <th class="py-3 px-3 text-right">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody class="divide-y divide-slate-100">
-              {% for c in commandes %}
-                {% set statut = c.statut %}
-                {% set badge =
-                  statut == 'EN_ATTENTE_PAIEMENT' ? 'bg-amber-50 text-amber-700 ring-amber-200' :
-                  (statut == 'PAYEE' ? 'bg-blue-50 text-blue-700 ring-blue-200' :
-                  (statut == 'LIVREE' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' :
-                  (statut == 'ANNULEE' ? 'bg-red-50 text-red-700 ring-red-200' :
-                  'bg-slate-50 text-slate-700 ring-slate-200')))
-                %}
-
-                <tr class="hover:bg-slate-50/60 transition">
-                  <td class="py-4 px-3 font-extrabold text-slate-900">
-                    #{{ c.id }}
-                  </td>
-
-                  <td class="py-4 px-3">
-                    <div class="font-semibold text-slate-900">{{ c.user.email }}</div>
-                    <div class="text-xs text-slate-500">
-                      {{ c.lignes|length }} lignes
-                    </div>
-                  </td>
-
-                  <td class="py-4 px-3 text-slate-700">
-                    {{ c.dateCommande ? (c.dateCommande|date('Y-m-d H:i')) : '-' }}
-                  </td>
-
-                  <td class="py-4 px-3">
-                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ring-1 {{ badge }}">
-                      {{ statut }}
-                    </span>
-                  </td>
-
-                  <td class="py-4 px-3 text-right font-extrabold text-slate-900">
-                    {{ c.montantTotal }} TND
-                  </td>
-
-                  <td class="py-4 px-3">
-                    <div class="flex justify-end gap-2">
-                      {% if c.statut == 'EN_ATTENTE_PAIEMENT' %}
-                        <form method="post" action="{{ path('admin_commande_pay', {id: c.id}) }}">
-                          <input type="hidden" name="_token" value="{{ csrf_token('admin_pay_' ~ c.id) }}">
-                          <button
-                            type="submit"
-                            class="rounded-xl px-4 py-2 text-sm font-bold text-white shadow-lg transition-all
-                                   bg-gradient-to-r from-[#F82239] via-rose-500 to-[#2F60F5]
-                                   hover:opacity-95 active:scale-[0.99]">
-                            Marquer PAYEE
-                          </button>
-                        </form>
-                      {% endif %}
-
-                      {% if c.statut == 'PAYEE' %}
-                        <form method="post" action="{{ path('admin_commande_deliver', {id: c.id}) }}">
-                          <input type="hidden" name="_token" value="{{ csrf_token('admin_deliver_' ~ c.id) }}">
-                          <button
-                            type="submit"
-                            class="rounded-xl px-4 py-2 text-sm font-bold text-white shadow-lg transition-all
-                                   bg-gradient-to-r from-[#2F60F5] via-indigo-500 to-[#F82239]
-                                   hover:opacity-95 active:scale-[0.99]">
-                            Marquer LIVREE
-                          </button>
-                        </form>
-                      {% endif %}
-
-                      {# Si pas d’action possible #}
-                      {% if c.statut not in ['EN_ATTENTE_PAIEMENT','PAYEE'] %}
-                        <span class="text-sm text-slate-400 font-semibold px-3 py-2">
-                          —
-                        </span>
-                      {% endif %}
-                    </div>
-                  </td>
-                </tr>
-
-              {% else %}
-                <tr>
-                  <td colspan="6" class="py-10 text-center text-slate-500">
-                    Aucune commande.
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+      <div class="hero-ca">
+        <div class="hero-ca-label">Chiffre d'affaires (page)</div>
+        <div class="hero-ca-value">
+          {{ totalCA|number_format(2, '.', ' ') }}<span>TND</span>
         </div>
       </div>
     </div>
   </div>
+
+  {# ── Stats (page courante) ── #}
+  <div class="stats-grid">
+    <div class="stat-card c-attente">
+      <div class="stat-icon">⏳</div>
+      <div class="stat-value">{{ nbAttente }}</div>
+      <div class="stat-label">En attente paiement (page)</div>
+    </div>
+    <div class="stat-card c-payee">
+      <div class="stat-icon">💳</div>
+      <div class="stat-value">{{ nbPayee }}</div>
+      <div class="stat-label">Payées — à livrer (page)</div>
+    </div>
+    <div class="stat-card c-livree">
+      <div class="stat-icon">📦</div>
+      <div class="stat-value">{{ nbLivree }}</div>
+      <div class="stat-label">Livrées (page)</div>
+    </div>
+    <div class="stat-card c-ca">
+      <div class="stat-icon">💰</div>
+      <div class="stat-value" style="font-size:22px;">{{ caPayees|number_format(0, '.', ' ') }}</div>
+      <div class="stat-label">TND à encaisser (page)</div>
+    </div>
+  </div>
+
+  {# ── Filtres (page courante) ── #}
+  <div class="filters-bar">
+    <button class="filter-btn active" onclick="filterRows('all',this)">
+      Tout <span class="count">{{ commandes|length }}</span>
+    </button>
+    <button class="filter-btn" onclick="filterRows('EN_ATTENTE_PAIEMENT',this)">
+      ⏳ Attente <span class="count">{{ nbAttente }}</span>
+    </button>
+    <button class="filter-btn" onclick="filterRows('PAYEE',this)">
+      💳 Payées <span class="count">{{ nbPayee }}</span>
+    </button>
+    <button class="filter-btn" onclick="filterRows('LIVREE',this)">
+      📦 Livrées <span class="count">{{ nbLivree }}</span>
+    </button>
+    <div class="filter-sep"></div>
+    <div class="search-wrap">
+      <span class="si">🔍</span>
+      <input type="text" class="search-input" placeholder="Rechercher patient, ID…" oninput="searchRows(this.value)">
+    </div>
+  </div>
+
+  {# ── Pagination (haut) ── #}
+  {% if pages > 1 %}
+    <div class="pager">
+      {% if page > 1 %}
+        <a class="filter-btn" href="{{ path('admin_commandes_index', {page: page-1, limit: limit}) }}">← Précédent</a>
+      {% else %}
+        <span class="filter-btn disabled">← Précédent</span>
+      {% endif %}
+
+      <span class="info">Page {{ page }} / {{ pages }} — Total {{ total }}</span>
+
+      {% if page < pages %}
+        <a class="filter-btn" href="{{ path('admin_commandes_index', {page: page+1, limit: limit}) }}">Suivant →</a>
+      {% else %}
+        <span class="filter-btn disabled">Suivant →</span>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# ── Table ── #}
+  <div class="cmd-table-wrap">
+    <div class="cmd-table-head">
+      <div class="cmd-table-head-title">Liste des commandes</div>
+      <span class="cmd-count-badge" id="visibleCount">{{ commandes|length }} / {{ total }}</span>
+    </div>
+
+    <table class="cmd-table" id="cmdTable">
+      <thead>
+        <tr>
+          <th>Commande</th>
+          <th>Patient</th>
+          <th>Date</th>
+          <th>Statut</th>
+          <th class="right">Total</th>
+          <th class="right">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in commandes %}
+          {% set statut = c.statut %}
+
+          <tr class="cmd-row" data-statut="{{ statut }}" data-search="{{ c.user.email|lower }} #{{ c.id }}">
+            <td>
+              <button class="btn-expand" onclick="toggleDetail({{ c.id }})" id="expand-{{ c.id }}">+</button>
+              <span class="cell-id">
+                #{{ c.id }}
+                <small>{{ c.lignes|length }} article(s)</small>
+              </span>
+            </td>
+
+            <td>
+              <div class="cell-patient">
+                <div class="patient-avatar">{{ c.user.email|slice(0,1)|upper }}</div>
+                <div>
+                  <div class="patient-email">{{ c.user.email }}</div>
+                  <div class="patient-meta">Patient</div>
+                </div>
+              </div>
+            </td>
+
+            <td class="cell-date">
+              {{ c.dateCommande ? (c.dateCommande|date('d/m/Y')) : '—' }}
+              <small>{{ c.dateCommande ? (c.dateCommande|date('H:i')) : '' }}</small>
+            </td>
+
+            <td>
+              {% if statut == 'EN_ATTENTE_PAIEMENT' %}
+                <span class="s-badge sb-attente"><span class="sdot"></span>En attente</span>
+              {% elseif statut == 'PAYEE' %}
+                <span class="s-badge sb-payee"><span class="sdot"></span>Payée</span>
+              {% elseif statut == 'LIVREE' %}
+                <span class="s-badge sb-livree"><span class="sdot"></span>Livrée</span>
+              {% elseif statut == 'ANNULEE' %}
+                <span class="s-badge sb-annulee"><span class="sdot"></span>Annulée</span>
+              {% else %}
+                <span class="s-badge"><span class="sdot"></span>{{ statut }}</span>
+              {% endif %}
+            </td>
+
+            <td class="cell-total">{{ c.montantTotal }} TND</td>
+
+            <td class="cell-actions">
+              {% if statut == 'PAYEE' %}
+                <form
+                  method="post"
+                  action="{{ path('admin_commande_deliver', {id: c.id, page: page, limit: limit}) }}"
+                  style="margin:0;display:inline;"
+                >
+                  <input type="hidden" name="_token" value="{{ csrf_token('admin_deliver_' ~ c.id) }}">
+                  <button type="submit" class="btn-deliver">📦 Marquer livrée</button>
+                </form>
+              {% else %}
+                <span class="no-action">—</span>
+              {% endif %}
+            </td>
+          </tr>
+
+          <tr class="detail-row" id="detail-{{ c.id }}" style="display:none;">
+            <td colspan="6">
+              <div class="detail-inner">
+                {% if c.lignes|length > 0 %}
+                  <table><tbody>
+                    {% for l in c.lignes %}
+                      <tr>
+                        <td>
+                          <strong>{{ l.produit.nom }}</strong>
+                          {% if l.produit.categorie %}<span class="cat-tag">{{ l.produit.categorie }}</span>{% endif %}
+                        </td>
+                        <td>Qté : <strong>{{ l.quantite }}</strong></td>
+                        <td>Prix : <strong>{{ l.prixUnitaire }} TND</strong></td>
+                        <td>Sous-total : <strong>{{ l.totalLigne }} TND</strong></td>
+                      </tr>
+                    {% endfor %}
+                  </tbody></table>
+                {% else %}
+                  <span style="color:#CBD5E1;font-size:12px;">Aucune ligne.</span>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+
+        {% else %}
+          <tr><td colspan="6" class="empty-cell">
+            <div class="empty-icon">📋</div>
+            <div class="empty-msg">Aucune commande à afficher.</div>
+          </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# ── Pagination (bas) ── #}
+  {% if pages > 1 %}
+    <div class="pager">
+      {% if page > 1 %}
+        <a class="filter-btn" href="{{ path('admin_commandes_index', {page: page-1, limit: limit}) }}">← Précédent</a>
+      {% else %}
+        <span class="filter-btn disabled">← Précédent</span>
+      {% endif %}
+
+      <span class="info">Page {{ page }} / {{ pages }} — Total {{ total }}</span>
+
+      {% if page < pages %}
+        <a class="filter-btn" href="{{ path('admin_commandes_index', {page: page+1, limit: limit}) }}">Suivant →</a>
+      {% else %}
+        <span class="filter-btn disabled">Suivant →</span>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>
+
+<script>
+function toggleDetail(id) {
+  const row = document.getElementById('detail-' + id);
+  const btn = document.getElementById('expand-' + id);
+  const open = row.style.display !== 'none';
+  row.style.display = open ? 'none' : 'table-row';
+  btn.textContent = open ? '+' : '−';
+  btn.classList.toggle('open', !open);
+}
+
+function filterRows(statut, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  let v = 0;
+  document.querySelectorAll('.cmd-row').forEach(row => {
+    const show = statut === 'all' || row.dataset.statut === statut;
+    row.style.display = show ? '' : 'none';
+    const id = row.querySelector('.btn-expand')?.id?.replace('expand-','');
+    if (id) {
+      const d = document.getElementById('detail-'+id);
+      if (d && !show) d.style.display='none';
+    }
+    if (show) v++;
+  });
+  document.getElementById('visibleCount').textContent = v + ' / {{ total }}';
+}
+
+function searchRows(q) {
+  q = q.toLowerCase().trim();
+  let v = 0;
+  document.querySelectorAll('.cmd-row').forEach(row => {
+    const show = !q || row.dataset.search.includes(q);
+    row.style.display = show ? '' : 'none';
+    if (show) v++;
+  });
+  document.getElementById('visibleCount').textContent = v + ' / {{ total }}';
+}
+</script>
 {% endblock %}

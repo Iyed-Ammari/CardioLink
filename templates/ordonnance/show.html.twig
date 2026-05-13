@@ -14,8 +14,14 @@
     <li class="list-group-item"><strong>Notes :</strong><br> {{ ordonnance.notes }}</li>
 </ul>
 
-<a href="{{ path('ordonnance_index') }}" class="btn btn-secondary mt-3">Retour</a>
+<a href="{{ path('app_rdv_index') }}" class="btn btn-secondary mt-3">Retour</a>
+{% if is_granted('ROLE_MEDECIN') %}
 <a href="{{ path('ordonnance_edit', {'id': ordonnance.id}) }}" class="btn btn-primary mt-3">Modifier</a>
+{% endif %}
 
 <button class="btn btn-success mt-3" onclick="window.print()">Imprimer</button>
+<a href="{{ path('ordonnance_pdf', {'id': ordonnance.id}) }}" class="btn btn-dark mt-3">
+    Télécharger PDF
+</a>
+
 {% endblock %}

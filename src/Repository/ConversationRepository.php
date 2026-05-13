@@ -17,6 +17,9 @@ class ConversationRepository extends ServiceEntityRepository
         parent::__construct($registry, Conversation::class);
     }
 
+    /**
+     * @return Conversation[]
+     */
     public function findByUser(User $user): array
     {
         return $this->createQueryBuilder('c')
@@ -37,28 +40,40 @@ class ConversationRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
-    //    /**
-    //     * @return Conversation[] Returns an array of Conversation objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('c')
-    //            ->andWhere('c.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('c.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * @return Conversation[]
+     */
+    public function findByUserWithSearchAndSort(User $user, ?string $search, string $sortBy, string $order): array
+    {
+        $qb = $this->createQueryBuilder('c')
+            ->join('c.patient', 'p')
+            ->join('c.medecin', 'm')
+            ->where('c.patient = :user OR c.medecin = :user')
+            ->setParameter('user', $user);
 
-    //    public function findOneBySomeField($value): ?Conversation
-    //    {
-    //        return $this->createQueryBuilder('c')
-    //            ->andWhere('c.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        if ($search) {
+            $qb->andWhere('p.nom LIKE :search OR p.prenom LIKE :search OR m.nom LIKE :search OR m.prenom LIKE :search')
+               ->setParameter('search', '%' . $search . '%');
+        }
+
+        switch ($sortBy) {
+            case 'created':
+                $qb->orderBy('c.createdAt', $order);
+                break;
+            case 'contact':
+                $qb->addOrderBy('p.nom', $order)
+                   ->addOrderBy('m.nom', $order);
+                break;
+            case 'status':
+                $qb->orderBy('c.isActive', $order)
+                   ->addOrderBy('c.updatedAt', 'DESC');
+                break;
+            case 'updated':
+            default:
+                $qb->orderBy('c.updatedAt', $order);
+                break;
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }

@@ -13,7 +13,7 @@ class Conversation
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private ?int $id = null;
+    private ?int $id = null; // @phpstan-ignore property.unusedType
 
     #[ORM\ManyToOne(inversedBy: 'conversationsAsPatient')]
     #[ORM\JoinColumn(nullable: false)]
@@ -35,7 +35,7 @@ class Conversation
     /**
      * @var Collection<int, Message>
      */
-    #[ORM\OneToMany(targetEntity: Message::class, mappedBy: 'conversation')]
+    #[ORM\OneToMany(targetEntity: Message::class, mappedBy: 'conversation', orphanRemoval: true)]
     private Collection $messages;
 
     public function __construct()
@@ -56,7 +56,6 @@ class Conversation
     public function setPatient(?User $patient): static
     {
         $this->patient = $patient;
-
         return $this;
     }
 
@@ -68,7 +67,6 @@ class Conversation
     public function setMedecin(?User $medecin): static
     {
         $this->medecin = $medecin;
-
         return $this;
     }
 
@@ -80,7 +78,6 @@ class Conversation
     public function setCreatedAt(\DateTime $createdAt): static
     {
         $this->createdAt = $createdAt;
-
         return $this;
     }
 
@@ -92,7 +89,6 @@ class Conversation
     public function setUpdatedAt(\DateTime $updatedAt): static
     {
         $this->updatedAt = $updatedAt;
-
         return $this;
     }
 
@@ -104,7 +100,6 @@ class Conversation
     public function setIsActive(bool $isActive): static
     {
         $this->isActive = $isActive;
-
         return $this;
     }
 
@@ -122,19 +117,16 @@ class Conversation
             $this->messages->add($message);
             $message->setConversation($this);
         }
-
         return $this;
     }
 
     public function removeMessage(Message $message): static
     {
         if ($this->messages->removeElement($message)) {
-            // set the owning side to null (unless already changed)
             if ($message->getConversation() === $this) {
                 $message->setConversation(null);
             }
         }
-
         return $this;
     }
 }

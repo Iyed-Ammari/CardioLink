@@ -2,72 +2,66 @@
 
 namespace App\Form;
 
+use App\Entity\Lieu;
 use App\Entity\RendezVous;
 use App\Entity\User;
-use App\Repository\UserRepository;
-use App\Validator\Constraint\AvailableMedecinSlot;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Validator\Constraints\NotBlank;
+use Doctrine\ORM\EntityRepository;
 
 class RendezVousType extends AbstractType
 {
-    public function __construct(private UserRepository $userRepository)
-    {
-    }
-
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        // Les 4 champs requis pour un RDV
         $builder
-            ->add('medecin', EntityType::class, [
-                'class' => User::class,
-                'choice_label' => fn(User $user) => $user->getNom() . ' ' . $user->getPrenom(),
-                'choices' => $this->userRepository->findMedecins(),
-                'label' => 'Choisir un médecin',
-                'placeholder' => 'Sélectionnez un médecin',
-                'constraints' => [
-                    new NotBlank(['message' => 'Veuillez sélectionner un médecin.'])
-                ]
-            ])
             ->add('dateHeure', null, [
-                'widget' => 'single_text',
                 'label' => 'Date et Heure souhaitées',
-                'constraints' => [
-                    new NotBlank(['message' => 'La date et l\'heure sont obligatoires.'])
-                ]
             ])
+
+           ->add('medecin', EntityType::class, [
+    'class' => User::class,
+    'choice_label' => function(User $user) {
+        return $user->getNom() . ' ' . $user->getPrenom();
+    },
+    'label' => 'Choisir un médecin',
+    'placeholder' => 'Sélectionnez un médecin...',
+    'query_builder' => function (EntityRepository $er) {
+        return $er->createQueryBuilder('u')
+            ->where('u.roles LIKE :role')
+            ->setParameter('role', '%"ROLE_MEDECIN"%')
+            ->orderBy('u.nom', 'ASC');
+    },
+])
+
+
             ->add('type', ChoiceType::class, [
                 'choices' => [
                     'Consultation au cabinet' => 'Présentiel',
                     'Vidéo Consultation' => 'Télémédecine',
                 ],
                 'label' => 'Type de consultation',
-                'expanded' => true,
-                'placeholder' => false,
-                'constraints' => [
-                    new NotBlank(['message' => 'Veuillez sélectionner un type de consultation.'])
-                ]
             ])
+
+            // ->add('lieu', EntityType::class, [
+            //     'class' => Lieu::class,
+            //     'choice_label' => 'nom',
+            //     'placeholder' => 'Choisir un cabinet...',
+            //     'required' => false,
+            // ])
+
             ->add('remarques', TextareaType::class, [
-                'required' => false,
-                'label' => 'Motif / Remarques',
-                'attr' => ['placeholder' => 'Ex: Douleurs thoraciques depuis 2 jours...']
-            ])
-        ;
+                'label' => 'Motif de la consultation',
+            ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
             'data_class' => RendezVous::class,
-            'constraints' => [
-                new AvailableMedecinSlot(),
-            ],
         ]);
     }
 }
