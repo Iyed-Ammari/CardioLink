@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,7 +23,8 @@ class ProfileController extends AbstractController
     #[Route('/mon-profil/edit', name: 'app_mon_profil_edit')]
     public function edit(Request $request, EntityManagerInterface $em, UserPasswordHasherInterface $hasher): Response
     {
-        $user = $this->getUser();
+        /** @var User $user */
+        $user = $this->getUser(); // ✅ CORRIGÉ
 
         if ($request->isMethod('POST')) {
             $user->setNom($request->request->get('nom'));
@@ -60,14 +62,16 @@ class ProfileController extends AbstractController
             'user' => $user
         ]);
     }
+
     #[Route('/mon-profil/delete-photo', name: 'app_delete_photo')]
     public function deletePhoto(EntityManagerInterface $em): Response
-   {
-      $user = $this->getUser();
-      $user->setImageUrl(null);
-      $em->flush();
+    {
+        /** @var User $user */
+        $user = $this->getUser(); // ✅ CORRIGÉ
+        $user->setImageUrl(null);
+        $em->flush();
 
-      $this->addFlash('success', 'Photo supprimée avec succès.');
-      return $this->redirectToRoute('app_mon_profil');
+        $this->addFlash('success', 'Photo supprimée avec succès.');
+        return $this->redirectToRoute('app_mon_profil');
     }
 }

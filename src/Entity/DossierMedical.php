@@ -14,6 +14,7 @@ class DossierMedical
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    /** @phpstan-ignore property.unusedType */
     private ?int $id = null;
 
     #[ORM\Column(length: 5)]
@@ -80,25 +81,22 @@ class DossierMedical
     public function getFrequenceCardiaque(): ?int { return $this->frequenceCardiaque; }
     public function setFrequenceCardiaque(?int $f): static { $this->frequenceCardiaque = $f; return $this; }
 
-    // ✅ Méthode métier : historique
     public function updateHistory(string $newInfo): self
     {
         $this->antecedents .= "\n Mis à jour le " . date('d/m/Y') . " : " . $newInfo;
         return $this;
     }
 
-    // ✅ Méthode métier : résumé
     public function getSummary(): string
     {
         return sprintf(
             "Patient: %s | Groupe: %s | Allergies: %s",
-            $this->getUser()->getNom(),
+            $this->getUser()?->getNom() ?? 'Inconnu',
             $this->groupeSanguin,
             $this->allergies
         );
     }
 
-    // ✅ Méthode métier : mise à jour complète
     public function edit(
         string $groupeSanguin,
         ?string $antecedents,
@@ -117,11 +115,9 @@ class DossierMedical
         $this->tensionSystolique = $tensionSystolique;
         $this->tensionDiastolique = $tensionDiastolique;
         $this->frequenceCardiaque = $frequenceCardiaque;
-
         return $this;
     }
 
-    // ✅ Métier avancé : calcul IMC
     public function getIMC(): ?float
     {
         if ($this->poids && $this->taille && $this->taille > 0) {
@@ -130,16 +126,15 @@ class DossierMedical
         return null;
     }
 
-    // ✅ Métier avancé : analyse risque cardiaque
     public function getRisqueCardiaque(): string
     {
         $score = 0;
         $imc = $this->getIMC();
 
-        if ($imc && $imc > 30) $score++;
-        if ($this->tensionSystolique && $this->tensionSystolique > 140) $score++;
-        if ($this->tensionDiastolique && $this->tensionDiastolique > 90) $score++;
-        if ($this->frequenceCardiaque && $this->frequenceCardiaque > 100) $score++;
+        if ($imc !== null && $imc > 30) $score++;
+        if ($this->tensionSystolique !== null && $this->tensionSystolique > 140) $score++;
+        if ($this->tensionDiastolique !== null && $this->tensionDiastolique > 90) $score++;
+        if ($this->frequenceCardiaque !== null && $this->frequenceCardiaque > 100) $score++;
 
         if ($score >= 3) return 'CRITIQUE';
         if ($score >= 2) return 'ÉLEVÉ';

@@ -29,8 +29,17 @@
 </table>
 
 <br>
-<a href="{{ path('admin_dossier_edit', {id: dossier.id}) }}" style="background:linear-gradient(90deg,#F82239,#2F60F5); color:#fff; padding:10px 20px; border-radius:12px; text-decoration:none; font-weight:800;">
+
+<a href="{{ path('admin_dossier_edit', {id: dossier.id}) }}"
+   style="background:linear-gradient(90deg,#F82239,#2F60F5); color:#fff; padding:10px 20px; border-radius:12px; text-decoration:none; font-weight:800;">
     ✏️ Modifier
+</a>
+
+&nbsp;&nbsp;
+
+<a href="{{ path('admin_dossier_evolution', {id: dossier.id}) }}"
+   style="background:linear-gradient(90deg,#F82239,#2F60F5); color:#fff; padding:12px 24px; border-radius:12px; text-decoration:none; font-weight:800;">
+    📈 Voir évolution sur 6 mois
 </a>
 
 {% endblock %}

@@ -6,8 +6,6 @@
 
 {% if dossier %}
 
-    
-
     {% set risque = dossier.risqueCardiaque %}
     <div style="padding:15px; border-radius:12px; margin-bottom:20px;
         background: {{ risque == 'CRITIQUE' ? '#fee2e2' : (risque == 'ÉLEVÉ' ? '#ffedd5' : (risque == 'MODÉRÉ' ? '#fef9c3' : '#dcfce7')) }};">
@@ -38,6 +36,130 @@
     <a href="{{ path('app_mon_dossier_pdf') }}" style="background:linear-gradient(90deg,#F82239,#2F60F5); color:#fff; padding:10px 20px; border-radius:12px; text-decoration:none; font-weight:800;">
         📄 Télécharger PDF
     </a>
+
+    {% if dossier.risqueCardiaque == 'CRITIQUE' or dossier.risqueCardiaque == 'ÉLEVÉ' %}
+
+    <div style="background:#fee2e2; border:2px solid #dc2626; border-radius:16px; padding:20px; margin-top:30px;">
+
+        <h3 style="color:#dc2626; margin-bottom:10px;">
+            🚨 Alerte — Risque {{ dossier.risqueCardiaque }} détecté !
+        </h3>
+        <p style="color:#6B7280; margin-bottom:15px;">
+            Voici les hôpitaux et cliniques les plus proches de votre position.
+        </p>
+
+        <div id="map" style="width:100%; height:400px; border-radius:12px; margin-bottom:15px;"></div>
+
+        <p style="color:#6B7280; font-size:13px;">
+            📍 Cliquez sur un marqueur pour obtenir l'itinéraire
+        </p>
+    </div>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const defaultLat = 36.8065;
+        const defaultLng = 10.1815;
+
+        function initMap(lat, lng) {
+            const map = L.map('map').setView([lat, lng], 14);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            const patientIcon = L.divIcon({
+                html: '📍',
+                className: '',
+                iconSize: [30, 30],
+                iconAnchor: [15, 30]
+            });
+
+            L.marker([lat, lng], { icon: patientIcon })
+                .addTo(map)
+                .bindPopup('<strong>Votre position</strong>')
+                .openPopup();
+
+            fetch(`/api/hospitals?lat=${lat}&lng=${lng}`)
+                .then(res => res.json())
+                .then(hospitals => {
+                    hospitals.forEach(function (h) {
+                        if (!h.lat || !h.lng) return;
+
+                        const icon = L.divIcon({
+                            html: '🏥',
+                            className: '',
+                            iconSize: [30, 30],
+                            iconAnchor: [15, 30]
+                        });
+
+                        const mapsUrl = `https://www.google.com/maps/dir/${lat},${lng}/${h.lat},${h.lng}`;
+
+                        L.marker([h.lat, h.lng], { icon })
+                            .addTo(map)
+                            .bindPopup(`
+                                <div style="min-width:180px;">
+                                    <strong>🏥 ${h.name}</strong><br>
+                                    <span style="color:#6B7280; font-size:12px;">${h.address}</span><br>
+                                    ${h.rating ? `⭐ ${h.rating}<br>` : ''}
+                                    <br>
+                                    <a href="${mapsUrl}" target="_blank"
+                                       style="background:#dc2626; color:white; padding:6px 10px; border-radius:8px;
+                                              text-decoration:none; font-size:12px; font-weight:700; display:inline-block;">
+                                        🗺️ Itinéraire
+                                    </a>
+                                </div>
+                            `);
+                    });
+                })
+                .catch(err => console.error('Erreur:', err));
+        }
+
+        function getLocationAndInit() {
+            // 1. Essayer GPS navigateur (HTTPS requis)
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    pos => {
+                        initMap(pos.coords.latitude, pos.coords.longitude);
+                    },
+                    () => {
+                        // 2. GPS bloqué → géolocalisation par IP
+                        fetch('https://ipapi.co/json/')
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.latitude && data.longitude) {
+                                    initMap(data.latitude, data.longitude);
+                                } else {
+                                    initMap(defaultLat, defaultLng);
+                                }
+                            })
+                            .catch(() => initMap(defaultLat, defaultLng));
+                    },
+                    { timeout: 5000 }
+                );
+            } else {
+                // 3. Pas de géolocalisation → géolocalisation par IP
+                fetch('https://ipapi.co/json/')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.latitude && data.longitude) {
+                            initMap(data.latitude, data.longitude);
+                        } else {
+                            initMap(defaultLat, defaultLng);
+                        }
+                    })
+                    .catch(() => initMap(defaultLat, defaultLng));
+            }
+        }
+
+        getLocationAndInit();
+    });
+    </script>
+
+    {% endif %}
 
 {% else %}
     <p>Vous n'avez pas encore de dossier médical.</p>
