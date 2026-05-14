@@ -46,14 +46,14 @@ class RendezVousManagerTest extends TestCase
         $manager->validate($rdv);
     }
 
-    public function testTelemedecineWithLieu()
+    public function testTeleconsultationWithLieu()
     {
         $this->expectException(\InvalidArgumentException::class);
 
         $rdv = new RendezVous();
         $rdv->setDateHeure(new \DateTime('+1 day'));
         $rdv->setStatut('En attente');
-        $rdv->setType('Télémédecine');
+        $rdv->setType('Téléconsultation');
 
         // Créons un lieu factice pour tester la règle
         $lieu = new \App\Entity\Lieu();

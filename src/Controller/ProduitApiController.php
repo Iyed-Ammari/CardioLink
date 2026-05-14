@@ -142,15 +142,20 @@ class ProduitApiController extends AbstractController
                 return $this->json(['error' => 'Format non supporté (jpeg/png/webp).'], 422);
             }
 
-            $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/produits';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0777, true);
-            }
+            $cloudinary = new \Cloudinary\Cloudinary([
+                'cloud' => [
+                    'cloud_name' => $_ENV['CLOUDINARY_CLOUD_NAME'],
+                    'api_key'    => $_ENV['CLOUDINARY_API_KEY'],
+                    'api_secret' => $_ENV['CLOUDINARY_API_SECRET'],
+                ]
+            ]);
 
-            $filename = 'p'.$produit->getId().'_'.bin2hex(random_bytes(6)).'.'.$file->guessExtension();
-            $file->move($uploadDir, $filename);
+            $result = $cloudinary->uploadApi()->upload(
+                $file->getPathname(),
+                ['folder' => 'cardiolink/produits']
+            );
 
-            $produit->setImageUrl('/uploads/produits/'.$filename);
+            $produit->setImageUrl($result['secure_url']);
             $em->flush();
         }
 

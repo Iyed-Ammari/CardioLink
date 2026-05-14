@@ -273,9 +273,15 @@
   {# IMAGE DU POST #}
   {% if post.image %}
     <div class="post-image" style="display:flex; justify-content:center; margin-top:1.1rem;">
-      <img src="{{ asset('uploads/posts/' ~ post.image) }}"
-           alt="Image du post"
-           style="max-width:320px; width:100%; max-height:220px; object-fit:cover; border-radius:14px; box-shadow:0 2px 12px rgba(47,96,245,0.10); border:1px solid #e5e7eb; padding:4px; background:#f8fafc; transition:box-shadow 0.3s;">
+      {% if post.image starts with 'http' %}
+        <img src="{{ post.image }}"
+             alt="Image du post"
+             style="max-width:320px; width:100%; max-height:220px; object-fit:cover; border-radius:14px; box-shadow:0 2px 12px rgba(47,96,245,0.10); border:1px solid #e5e7eb; padding:4px; background:#f8fafc; transition:box-shadow 0.3s;">
+      {% else %}
+        <img src="{{ asset('uploads/posts/' ~ post.image) }}"
+             alt="Image du post"
+             style="max-width:320px; width:100%; max-height:220px; object-fit:cover; border-radius:14px; box-shadow:0 2px 12px rgba(47,96,245,0.10); border:1px solid #e5e7eb; padding:4px; background:#f8fafc; transition:box-shadow 0.3s;">
+      {% endif %}
     </div>
   {% endif %}
 </div>

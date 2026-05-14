@@ -35,7 +35,7 @@ class RappelRdvCommand extends Command
                     <p>Bonjour {$rdv->getPatient()->getPrenom()},</p>
                     <p>Ceci est un rappel pour votre rendez-vous de demain le <strong>{$rdv->getDateHeure()->format('d/m/Y')}</strong> à <strong>{$rdv->getDateHeure()->format('H:i')}</strong>.</p>
                     <p>Médecin : Dr. {$rdv->getMedecin()->getNom()}</p>
-                    " . ($rdv->getType() === 'Télémédecine' ? "<p>Lien visio : <a href='{$rdv->getLienVisio()}'>Cliquez ici pour rejoindre</a></p>" : "") . "
+                    " . ($rdv->getType() === 'Téléconsultation' ? "<p>Lien visio : <a href='{$rdv->getLienVisio()}'>Cliquez ici pour rejoindre</a></p>" : "") . "
                 ");
 
             $this->mailer->send($email);

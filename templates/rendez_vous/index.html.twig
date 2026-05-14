@@ -89,17 +89,17 @@
                             </td>
 
                             <td>
-                                <span class="badge {{ rdv.type == 'Télémédecine' ? 'bg-info text-dark' : 'bg-secondary' }}">
-                                    <i class="fas {{ rdv.type == 'Télémédecine' ? 'fa-video' : 'fa-hospital' }}"></i> {{ rdv.type }}
+                                <span class="badge {{ rdv.type == 'Téléconsultation' ? 'bg-info text-dark' : 'bg-secondary' }}">
+                                    <i class="fas {{ rdv.type == 'Téléconsultation' ? 'fa-video' : 'fa-hospital' }}"></i> {{ rdv.type }}
                                 </span>
                             </td>
 
                             <td>
-                                {% if rdv.type == 'Télémédecine' and rdv.lienVisio %}
+                                {% if rdv.type == 'Téléconsultation' and rdv.lienVisio %}
                                     <a href="{{ rdv.lienVisio }}" target="_blank" class="btn btn-success btn-sm" title="Rejoindre la visio">
                                         <i class="fas fa-video"></i> Rejoindre
                                     </a>
-                                {% elseif rdv.type == 'Télémédecine' %}
+                                {% elseif rdv.type == 'Téléconsultation' %}
                                     <span class="text-muted small">Lien non disponible</span>
                                 {% else %}
                                     <span class="text-muted small">—</span>

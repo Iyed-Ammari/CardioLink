@@ -420,7 +420,7 @@
         window.addEventListener('notificationsMarkAsRead', async function(e) {
           console.log(`📬 Événement: ${e.detail.count} notification(s) marquée(s) comme lue(s) pour la conversation ${e.detail.conversationId}`);
           // Attendre un peu puis rafraîchir le badge
-          await new Promise(resolve => setTimeout(resolve, 300));
+          await new Promise(resolve => setTimeout(resolve, 5000));
           updateNotificationCount();
         });
 

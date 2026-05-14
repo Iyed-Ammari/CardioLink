@@ -26,8 +26,8 @@ class RendezVousManager
             throw new \InvalidArgumentException("Statut invalide");
         }
 
-        // ✅ Règle 3 : Si Télémédecine → pas de lieu
-        if ($rdv->getType() === 'Télémédecine' && $rdv->getLieu() !== null) {
+        // ✅ Règle 3 : Si Téléconsultation → pas de lieu
+        if ($rdv->getType() === 'Téléconsultation' && $rdv->getLieu() !== null) {
             throw new \InvalidArgumentException("Un RDV en visio ne doit pas avoir de lieu");
         }
 

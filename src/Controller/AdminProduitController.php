@@ -112,8 +112,8 @@ final class AdminProduitController extends AbstractController
     private function handleImage(Produit $produit, ?UploadedFile $file, SluggerInterface $slugger, ?string $oldImageUrl): void
     {
         if ($file instanceof UploadedFile) {
-            $newFilename = $this->storeProductImage($file, $slugger);
-            $produit->setImageUrl('/uploads/produits/' . $newFilename);
+            $imageUrl = $this->storeProductImage($file);
+            $produit->setImageUrl($imageUrl);
             return;
         }
 
@@ -126,20 +126,21 @@ final class AdminProduitController extends AbstractController
         $produit->setImageUrl($url);
     }
 
-    private function storeProductImage(UploadedFile $file, SluggerInterface $slugger): string
+    private function storeProductImage(UploadedFile $file): string
     {
-        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $safeName     = $slugger->slug($originalName)->lower();
-        $ext          = $file->guessExtension() ?: 'jpg';
-        $newFilename  = $safeName.'-'.bin2hex(random_bytes(6)).'.'.$ext;
+        $cloudinary = new \Cloudinary\Cloudinary([
+            'cloud' => [
+                'cloud_name' => $_ENV['CLOUDINARY_CLOUD_NAME'],
+                'api_key'    => $_ENV['CLOUDINARY_API_KEY'],
+                'api_secret' => $_ENV['CLOUDINARY_API_SECRET'],
+            ]
+        ]);
 
-        $targetDir = $this->getParameter('kernel.project_dir').'/public/uploads/produits';
-        if (!is_dir($targetDir)) {
-            @mkdir($targetDir, 0775, true);
-        }
+        $result = $cloudinary->uploadApi()->upload(
+            $file->getPathname(),
+            ['folder' => 'cardiolink/produits']
+        );
 
-        $file->move($targetDir, $newFilename);
-
-        return $newFilename;
+        return $result['secure_url'];
     }
 }

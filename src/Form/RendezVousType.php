@@ -41,7 +41,7 @@ class RendezVousType extends AbstractType
             ->add('type', ChoiceType::class, [
                 'choices' => [
                     'Consultation au cabinet' => 'Présentiel',
-                    'Vidéo Consultation' => 'Télémédecine',
+                    'Téléconsultation' => 'Téléconsultation',
                 ],
                 'label' => 'Type de consultation',
             ])

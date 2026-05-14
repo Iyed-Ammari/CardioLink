@@ -51,9 +51,18 @@ public function frontoffice(
 
         $file = $request->files->get('image');
         if ($file) {
-            $filename = uniqid().'.'.$file->guessExtension();
-            $file->move($this->getParameter('posts_images_directory'), $filename);
-            $post->setImage($filename);
+            $cloudinary = new \Cloudinary\Cloudinary([
+                'cloud' => [
+                    'cloud_name' => $_ENV['CLOUDINARY_CLOUD_NAME'],
+                    'api_key'    => $_ENV['CLOUDINARY_API_KEY'],
+                    'api_secret' => $_ENV['CLOUDINARY_API_SECRET'],
+                ]
+            ]);
+            $result = $cloudinary->uploadApi()->upload(
+                $file->getPathname(),
+                ['folder' => 'cardiolink/forum']
+            );
+            $post->setImage($result['secure_url']);
         }
 
         try {
@@ -196,9 +205,18 @@ if ($lastUserPost && $lastUserPost->getEmbedding()) {
             $post->setContent($request->request->get('content'));
             $file = $request->files->get('image');
             if ($file) {
-                $filename = uniqid() . '.' . $file->guessExtension();
-                $file->move($this->getParameter('posts_images_directory'), $filename);
-                $post->setImage($filename);
+                $cloudinary = new \Cloudinary\Cloudinary([
+                    'cloud' => [
+                        'cloud_name' => $_ENV['CLOUDINARY_CLOUD_NAME'],
+                        'api_key'    => $_ENV['CLOUDINARY_API_KEY'],
+                        'api_secret' => $_ENV['CLOUDINARY_API_SECRET'],
+                    ]
+                ]);
+                $result = $cloudinary->uploadApi()->upload(
+                    $file->getPathname(),
+                    ['folder' => 'cardiolink/forum']
+                );
+                $post->setImage($result['secure_url']);
             }
             $em->flush();
 

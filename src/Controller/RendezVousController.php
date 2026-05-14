@@ -78,7 +78,7 @@ class RendezVousController extends AbstractController
             }
 
             // 2. Gestion du Type (Visio vs Présentiel)
-            if ($rdv->getType() === 'Télémédecine') {
+            if ($rdv->getType() === 'Téléconsultation') {
                 $uniqueId = uniqid('cardiolink-');
                 $rdv->setLienVisio("https://meet.jit.si/$uniqueId");
                 $rdv->setLieu(null);
@@ -136,7 +136,7 @@ class RendezVousController extends AbstractController
             }
 
             // Mise à jour logique visio
-            if ($rendezVous->getType() === 'Télémédecine' && empty($rendezVous->getLienVisio())) {
+            if ($rendezVous->getType() === 'Téléconsultation' && empty($rendezVous->getLienVisio())) {
                 $rendezVous->setLienVisio("https://meet.jit.si/" . uniqid('cardiolink-'));
                 $rendezVous->setLieu(null);
             } elseif ($rendezVous->getType() === 'Présentiel') {

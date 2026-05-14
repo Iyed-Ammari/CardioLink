@@ -34,7 +34,7 @@ class RendezVous
     #[ORM\Column(type: 'string', length: 50)]
     #[Assert\NotBlank(message: "Choisissez un type de consultation")]
     #[Assert\Choice(
-        choices: ['Présentiel', 'Télémedecine'],
+        choices: ['Présentiel', 'Téléconsultation'],
         message: "Type invalide"
     )]
     private string $type;
@@ -191,7 +191,7 @@ public function setDateHeure(\DateTimeImmutable $dateHeure): self
     #[Assert\Callback]
     public function validateTypeLieu(ExecutionContextInterface $context): void
     {
-        if ($this->type === 'Télémedecine' && $this->lieu !== null) {
+        if ($this->type === 'Téléconsultation' && $this->lieu !== null) {
             $context->buildViolation('Un rendez-vous en visio ne doit pas avoir de lieu physique')
                 ->atPath('lieu')
                 ->addViolation();
